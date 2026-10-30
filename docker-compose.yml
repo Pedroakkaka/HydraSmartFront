@@ -1,0 +1,21 @@
+# HydraSmart Front — painel servido pelo nginx.
+# Requer a API rodando na rede Docker "hydrasmart" (repositório HydraSmartAPI:
+# `docker compose --profile completo up -d`).
+
+name: hydrasmart-front
+
+services:
+  web:
+    build: .
+    image: hydrasmart-front:latest
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-api:3333}
+    ports:
+      - "${WEB_PORT:-80}:80"
+    networks: [hydrasmart]
+
+networks:
+  hydrasmart:
+    external: true
+    name: hydrasmart
