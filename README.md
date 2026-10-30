@@ -39,7 +39,13 @@ src/
 
 O painel **não calcula nada crítico**: conversão de níveis, risco e alertas ficam na API. O front só exibe o estado recebido e envia comandos (calibração, simulação, conexão USB).
 
-## Como rodar na máquina local (feira)
+## Instalar em outro computador (notebook da feira)
+
+Use o instalador automático do repositório da API. O passo a passo completo está em
+[HydraSmartAPI/docs/INSTALACAO.md](https://github.com/Pedroakkaka/HydraSmartAPI/blob/main/docs/INSTALACAO.md).
+Ele baixa este painel sozinho e deixa tudo pronto para ligar com dois cliques.
+
+## Como rodar manualmente (desenvolvimento)
 
 Pré-requisito: a **HydraSmartAPI rodando** (`npm run dev` no repositório dela, porta 3333).
 
