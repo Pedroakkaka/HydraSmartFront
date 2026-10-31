@@ -9,6 +9,9 @@ export const useClima = () =>
 export const useCemaden = () =>
   useQuery({ queryKey: ['cemaden'], queryFn: () => api.get('/cemaden'), refetchInterval: 5 * 60_000, staleTime: 2 * 60_000 });
 
+export const useBocasLoboOficiais = () =>
+  useQuery({ queryKey: ['bocas-lobo-oficiais'], queryFn: () => api.get('/bocas-de-lobo'), staleTime: 60 * 60_000 });
+
 export const useDrenosOsm = () =>
   useQuery({ queryKey: ['osm'], queryFn: () => api.get('/osm/drenos'), staleTime: 60 * 60_000 });
 
