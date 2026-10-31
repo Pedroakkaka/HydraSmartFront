@@ -8,7 +8,7 @@ import { api } from '../lib/api.js';
 import { metaRisco, temLeitura } from '../lib/risco.js';
 import { num } from '../lib/formato.js';
 
-const CENTRO_CACERES = [-16.0706, -57.6789];
+const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
 const ZOOM_INICIAL = 14;
 const NOMES = { bueiro_1: 'Bueiro 01', bueiro_2: 'Bueiro 02' };
 
@@ -80,12 +80,12 @@ function FormCoordenadas({ bueiro, cor, executar, ocupado }) {
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
           <label className="block text-slate-400 text-[10px] mb-1">Latitude</label>
-          <input type="number" step="0.000001" placeholder="Ex: -16.071800" className="coord-input"
+          <input type="number" step="0.000001" placeholder="Ex: -30.034600" className="coord-input"
             value={campos.lat} onChange={(e) => setCampos((c) => ({ ...c, lat: e.target.value }))} />
         </div>
         <div>
           <label className="block text-slate-400 text-[10px] mb-1">Longitude</label>
-          <input type="number" step="0.000001" placeholder="Ex: -57.678900" className="coord-input"
+          <input type="number" step="0.000001" placeholder="Ex: -51.217700" className="coord-input"
             value={campos.lng} onChange={(e) => setCampos((c) => ({ ...c, lng: e.target.value }))} />
         </div>
       </div>
@@ -131,16 +131,16 @@ export default function Mapa() {
         <div className="map-toolbar">
           <div className="map-toolbar-group">
             <button className={`map-control-btn ${camadas.prototipo ? 'active' : ''}`} onClick={() => alternarCamada('prototipo')}>
-              <span className="w-2 h-2 rounded-full bg-cyan-400" /> Bueiros Confirmados
+              <span className="w-2 h-2 rounded-full bg-cyan-400" /> Sensores físicos confirmados
             </button>
             <button className={`map-control-btn ${camadas.osm ? 'active' : ''}`} onClick={() => alternarCamada('osm')}
               title={osm?.mensagem}>
-              <span className="w-2 h-2 rounded-full bg-sky-400" /> Drenos OSM {drenos.length ? `(${drenos.length})` : ''}
+              <span className="w-2 h-2 rounded-full bg-sky-400" /> Drenagem OSM {drenos.length ? `(${drenos.length})` : ''}
             </button>
           </div>
           <div className="map-toolbar-group">
-            <button className="map-control-btn" onClick={() => setVoo({ coords: CENTRO_CACERES, zoom: ZOOM_INICIAL, t: Date.now() })}>
-              🎯 Recentralizar Cáceres
+            <button className="map-control-btn" onClick={() => setVoo({ coords: CENTRO_PORTO_ALEGRE, zoom: ZOOM_INICIAL, t: Date.now() })}>
+              🎯 Recentralizar Porto Alegre
             </button>
             <button className={`map-control-btn ${capturando ? 'active' : ''}`} onClick={() => setCapturando((v) => !v)}>
               {capturando ? `📍 Clique no mapa para ${NOMES[selecionado]}...` : '📍 Marcar Posição no Mapa'}
@@ -148,8 +148,9 @@ export default function Mapa() {
           </div>
         </div>
 
+        <p className="text-xs text-slate-400 mb-2">Porto Alegre–RS • Elementos OSM são registros cartográficos públicos, não representam inventário completo nem leituras em tempo real. Sensores físicos são mostrados separadamente.</p>
         <div className="map-canvas-full">
-          <MapContainer center={CENTRO_CACERES} zoom={ZOOM_INICIAL} zoomControl={false} style={{ height: '100%', width: '100%' }}>
+          <MapContainer center={CENTRO_PORTO_ALEGRE} zoom={ZOOM_INICIAL} zoomControl={false} style={{ height: '100%', width: '100%' }}>
             <TileLayer
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               maxZoom={19}
@@ -164,7 +165,7 @@ export default function Mapa() {
                 pathOptions={{ fillColor: '#38bdf8', color: '#0284c7', weight: 1, opacity: 0.8, fillOpacity: 0.6 }}>
                 <Tooltip className="scada-map-tooltip">
                   <div className="text-[11px] p-1">
-                    <div className="font-bold text-sky-400">Dreno / Bueiro Urbano (OSM)</div>
+                    <div className="font-bold text-sky-400">Elemento de drenagem cadastrado no OSM</div>
                     <div className="text-[10px] text-slate-300">ID: {d.id} • Tipo: {d.tipo}</div>
                   </div>
                 </Tooltip>
@@ -200,7 +201,7 @@ export default function Mapa() {
           </div>
           <div className="legend-item">
             <span className="legend-color-box bg-sky-400" />
-            <span>Elementos de Drenagem (OpenStreetMap)</span>
+            <span>Drenagem mapeada no OpenStreetMap (cadastro parcial; sem sensor)</span>
           </div>
         </div>
       </div>
