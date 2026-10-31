@@ -10,7 +10,7 @@ import { dataHora, hora, num } from '../lib/formato.js';
 const CEMADEN_UI = {
   sucesso: ['normal', 'Dados Recebidos', 'text-emerald-400', 'Token ativo'],
   sem_dados_recentes: ['warning', 'Sem dados recentes', 'text-amber-400', 'Token ativo'],
-  sem_token: ['muted', 'Sem credencial', 'text-slate-400', 'Definir CEMADEN_JWT_TOKEN na API'],
+  sem_token: ['muted', 'Sem credencial', 'text-slate-400', 'Configurar CEMADEN_EMAIL e CEMADEN_PASSWORD na API'],
   erro_autenticacao: ['danger', 'Token recusado', 'text-rose-400', 'Token inválido ou expirado'],
   erro_conexao: ['danger', 'Erro', 'text-rose-400', 'Falha de conexão']
 };
