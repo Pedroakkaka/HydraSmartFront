@@ -123,9 +123,9 @@ export default function Diagnostico() {
           <span className={`badge-pill ${badgeC}`}>{rotuloC}</span>
         </div>
         <div className="space-y-2">
-          <Linha rotulo="Estação de Cáceres:">510250401A (Jardim das Oliveiras)</Linha>
-          <Linha rotulo="Código IBGE:" classe="font-mono text-slate-300">5102504 (Cáceres - MT)</Linha>
-          <Linha rotulo="Sensores oficiais:" classe="text-slate-300">Chuva (10) e Intensidade (240)</Linha>
+          <Linha rotulo="Estações de Porto Alegre:">{cemaden?.metadados?.estacaoNome ?? 'Sem estação identificada'}</Linha>
+          <Linha rotulo="Código IBGE:" classe="font-mono text-slate-300">4314902 (Porto Alegre - RS)</Linha>
+          <Linha rotulo="Sensores oficiais:" classe="text-slate-300">Consultar sensores disponíveis no CEMADEN</Linha>
           <Linha rotulo="Credencial:" classe={`${corC} font-mono text-[11px]`}>{authC}</Linha>
           <Linha rotulo="Última consulta:" classe="font-mono text-slate-300">{hora(cemaden?.ultimaConsulta)}</Linha>
         </div>
@@ -160,7 +160,7 @@ export default function Diagnostico() {
           <Linha rotulo="Open-Meteo:" classe="font-mono text-emerald-400">Consultado pelo servidor (cache 10 min)</Linha>
           <Linha rotulo="Tiles OpenStreetMap:" classe="font-mono text-emerald-400">tile.openstreetmap.org</Linha>
           <Linha rotulo="Overpass OSM:" classe="font-mono text-cyan-400">Consultado pelo servidor (cache 6 h)</Linha>
-          <Linha rotulo="Referência:" classe="font-mono text-slate-300">-16.0706, -57.6789 (Cáceres-MT)</Linha>
+          <Linha rotulo="Referência:" classe="font-mono text-slate-300">-30.0346, -51.2177 (Porto Alegre-RS)</Linha>
         </div>
       </div>
     </div>
