@@ -23,7 +23,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
             </div>
             <div>
               <div className="brand-title">HydraSmart</div>
-              <div className="brand-subtitle">Monitoramento • Cáceres-MT</div>
+              <div className="brand-subtitle">Monitoramento • Porto Alegre-RS</div>
             </div>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
           <span className="text-[10px]">Trocar</span>
         </button>
 
-        <div className="clock-info-text" title="Horário de Cáceres-MT (GMT-4)">{relogio}</div>
+        <div className="clock-info-text" title="Horário de Porto Alegre-RS (GMT-3)">{relogio}</div>
       </div>
     </aside>
   );
