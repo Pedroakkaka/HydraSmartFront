@@ -58,7 +58,7 @@ function CardBueiro({ bueiro, titulo, onClick }) {
 
 function statusCemaden(c) {
   if (!c) return ['text-slate-400', 'Consultando...'];
-  if (c.status === 'sucesso') return ['text-emerald-400', 'Estação 510250401A (Ativa)'];
+  if (c.status === 'sucesso') return ['text-emerald-400', 'Estação legada de Cáceres (não representa Porto Alegre)'];
   if (c.status === 'sem_dados_recentes') return ['text-amber-400', 'Sem dados recentes'];
   if (c.status === 'sem_token') return ['text-slate-400', 'Sem token configurado'];
   return ['text-rose-400', 'Falha de conexão'];
@@ -174,7 +174,7 @@ export default function VisaoGeral() {
                 <span className={`font-mono ${serial.errosParser ? 'text-amber-400' : 'text-emerald-400'}`}>{serial.errosParser} erros</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Status CEMADEN:</span>
+                <span className="text-slate-400">CEMADEN (legado):</span>
                 <span className={corCemaden}>{textoCemaden}</span>
               </div>
               <div className="flex justify-between">
