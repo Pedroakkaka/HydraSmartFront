@@ -150,8 +150,8 @@ export default function Graficos() {
       <div className="card-base">
         <div className="card-header-line">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Arquivo histórico legado (Cáceres-MT — não corresponde a Porto Alegre)</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Dados históricos de Cáceres preservados apenas como referência legada; integração de registros oficiais de Porto Alegre pendente.</p>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros e referências oficiais de Porto Alegre-RS</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Fontes oficiais de Porto Alegre; registros históricos não equivalem a leituras em tempo real dos sensores.</p>
           </div>
         </div>
         <div className="grid-2-md mt-3">
