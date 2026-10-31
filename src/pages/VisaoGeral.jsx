@@ -6,13 +6,13 @@ import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
 import { hora, num } from '../lib/formato.js';
 import { useRelogio } from '../hooks/useRelogio.js';
 
-const CENTRO_CACERES = [-16.0706, -57.6789];
+const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
 
 const SITUACAO = {
   critico: {
     badge: ['danger', 'Alerta Crítico'], valor: ['text-rose-500', 'Crítico'], card: 'active-alert',
     icone: ['bg-rose-500 text-white', '⚠'], titulo: 'Risco Iminente de Transbordo',
-    descricao: "Nível d'água acima do limiar crítico em galeria monitorada de Cáceres."
+    descricao: "Nível d'água acima do limiar crítico em galeria monitorada."
   },
   atencao: {
     badge: ['warning', 'Atenção'], valor: ['text-amber-400', 'Atenção'], card: '',
@@ -92,8 +92,8 @@ export default function VisaoGeral() {
             <span className={`value-large ${s.valor[0]}`}>{s.valor[1]}</span>
           </div>
           <div className="card-meta-text">
-            <span>Cáceres - Mato Grosso</span>
-            <span>{relogio} (GMT-4)</span>
+            <span>Porto Alegre - Rio Grande do Sul</span>
+            <span>{relogio} (GMT-3)</span>
           </div>
         </div>
 
@@ -121,10 +121,10 @@ export default function VisaoGeral() {
           <div className="preview-map-header">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>🗺️</span> Malha Cartográfica de Cáceres-MT (OpenStreetMap)
+                <span>🗺️</span> Malha Cartográfica de Porto Alegre-RS (OpenStreetMap)
               </h3>
               <p className="text-xs text-slate-400">
-                Base cartográfica oficial pública. A calha do Rio Paraguai é exibida com precisão pelo próprio OpenStreetMap.
+                Base cartográfica oficial pública. Elementos cartográficos do OpenStreetMap; cobertura dos bueiros depende dos registros públicos disponíveis.
               </p>
             </div>
             <button className="btn-action-primary text-xs" onClick={() => navegar('/mapa')}>
@@ -133,7 +133,7 @@ export default function VisaoGeral() {
           </div>
           <div className="preview-map-frame" style={{ cursor: 'pointer' }} onClick={() => navegar('/mapa')}>
             <MapContainer
-              center={CENTRO_CACERES}
+              center={CENTRO_PORTO_ALEGRE}
               zoom={13}
               zoomControl={false}
               dragging={false}
