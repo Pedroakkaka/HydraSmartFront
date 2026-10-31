@@ -115,7 +115,9 @@ export default function Mapa() {
 
   const drenos = useMemo(() => osm?.elementos ?? [], [osm]);
   const bocasOficiais = useMemo(() => cadastroOficial?.elementos ?? [], [cadastroOficial]);
-  const lista = Object.values(bueiros).filter((b) => b.calibracao.coordenadasConfirmadas);
+  const lista = Object.values(bueiros).filter((b) => b.calibracao.coordenadasConfirmadas &&
+    b.calibracao.latitude >= -30.4 && b.calibracao.latitude <= -29.8 &&
+    b.calibracao.longitude >= -51.7 && b.calibracao.longitude <= -50.9);
 
   const capturar = ({ lat, lng }) => {
     setCapturando(false);
