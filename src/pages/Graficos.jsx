@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import { Line } from 'react-chartjs-2';
 import { useQuery } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
@@ -118,6 +119,8 @@ export default function Graficos() {
       </div>
 
       <GraficoBanco />
+
+      <AnaliseIntegrada />
 
       <div className="card-base mb-6">
         <div className="card-header-line">
