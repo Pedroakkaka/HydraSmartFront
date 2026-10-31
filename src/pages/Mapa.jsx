@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useDrenosOsm } from '../hooks/useConsultas.js';
+import { useDrenosOsm, useBocasLoboOficiais } from '../hooks/useConsultas.js';
 import { useAcao } from '../hooks/useAcoes.js';
 import { api } from '../lib/api.js';
 import { metaRisco, temLeitura } from '../lib/risco.js';
@@ -105,14 +105,16 @@ function FormCoordenadas({ bueiro, cor, executar, ocupado }) {
 export default function Mapa() {
   const bueiros = useTelemetria((s) => s.estado.bueiros);
   const { data: osm } = useDrenosOsm();
+  const { data: cadastroOficial } = useBocasLoboOficiais();
   const { executar, ocupado } = useAcao();
 
-  const [camadas, setCamadas] = useState({ prototipo: true, osm: true });
+  const [camadas, setCamadas] = useState({ prototipo: true, osm: false, oficial: true });
   const [selecionado, setSelecionado] = useState('bueiro_1');
   const [capturando, setCapturando] = useState(false);
   const [voo, setVoo] = useState(null);
 
   const drenos = useMemo(() => osm?.elementos ?? [], [osm]);
+  const bocasOficiais = useMemo(() => cadastroOficial?.elementos ?? [], [cadastroOficial]);
   const lista = Object.values(bueiros).filter((b) => b.calibracao.coordenadasConfirmadas);
 
   const capturar = ({ lat, lng }) => {
@@ -130,6 +132,9 @@ export default function Mapa() {
       <div className="map-view-layout">
         <div className="map-toolbar">
           <div className="map-toolbar-group">
+            <button className={`map-control-btn ${camadas.oficial ? 'active' : ''}`} onClick={() => alternarCamada('oficial')} title="Cadastro municipal de bocas de lobo (SMAMUS)">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Bocas de lobo oficiais {bocasOficiais.length ? `(${bocasOficiais.length}${cadastroOficial?.parcial ? '+' : ''})` : ''}
+            </button>
             <button className={`map-control-btn ${camadas.prototipo ? 'active' : ''}`} onClick={() => alternarCamada('prototipo')}>
               <span className="w-2 h-2 rounded-full bg-cyan-400" /> Sensores físicos confirmados
             </button>
@@ -149,6 +154,7 @@ export default function Mapa() {
         </div>
 
         <p className="text-xs text-slate-400 mb-2">Porto Alegre–RS • Elementos OSM são registros cartográficos públicos, não representam inventário completo nem leituras em tempo real. Sensores físicos são mostrados separadamente.</p>
+        {cadastroOficial?.parcial && <p className="text-xs text-amber-400 mb-2">A consulta oficial retornou o limite de registros por área; nem todos os pontos estão exibidos.</p>}
         <div className="map-canvas-full">
           <MapContainer center={CENTRO_PORTO_ALEGRE} zoom={ZOOM_INICIAL} zoomControl={false} style={{ height: '100%', width: '100%' }}>
             <TileLayer
@@ -160,6 +166,12 @@ export default function Mapa() {
             <CapturaClique ativo={capturando} aoCapturar={capturar} />
             <ControleVoo alvo={voo} />
 
+            {camadas.oficial && bocasOficiais.map((d, i) => (
+              <CircleMarker key={`oficial-${d.id ?? i}`} center={[d.lat, d.lon]} radius={3}
+                pathOptions={{ fillColor: '#10b981', color: '#047857', weight: 1, fillOpacity: 0.75 }}>
+                <Tooltip><div><b>Boca de lobo cadastrada — SMAMUS</b><div>Cadastro público, sem telemetria.</div></div></Tooltip>
+              </CircleMarker>
+            ))}
             {camadas.osm && drenos.map((d) => (
               <CircleMarker key={d.id} center={[d.lat, d.lon]} radius={4}
                 pathOptions={{ fillColor: '#38bdf8', color: '#0284c7', weight: 1, opacity: 0.8, fillOpacity: 0.6 }}>
@@ -195,6 +207,7 @@ export default function Mapa() {
         </div>
 
         <div className="map-discrete-legend">
+          <div className="legend-item"><span className="legend-color-box bg-emerald-400" /><span>Bocas de lobo cadastradas pela Prefeitura (SMAMUS; consulta por área)</span></div>
           <div className="legend-item">
             <span className="legend-color-box bg-cyan-400" />
             <span>Bueiros Físicos Confirmados (Sensores HC-SR04)</span>
