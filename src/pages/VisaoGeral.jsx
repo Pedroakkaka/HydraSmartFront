@@ -71,35 +71,6 @@ function Estacoes({ data, loading, error }) {
   </section>;
 }
 
-const TIPOS = [
-  { id:'prototipo', titulo:'Protótipo físico', descricao:'Leituras experimentais do Arduino e dos sensores da bancada.', icone:'⌁', etiqueta:'EXPERIMENTAL' },
-  { id:'demonstracao', titulo:'Demonstração sintética', descricao:'Valores fictícios gerados para mostrar cenários e alertas de teste.', icone:'◈', etiqueta:'DADOS FICTÍCIOS' },
-  { id:'campo', titulo:'Monitoramento de campo', descricao:'Somente dados reais enviados por dispositivos instalados em campo.', icone:'⌖', etiqueta:'CAMPO REAL' }
-];
-
-function FontesSeparadas({ canais }) {
-  return <section className="hs-card hs-origins" aria-label="Origem dos dados">
-    <div className="hs-card-head"><h3><span className="hs-outline-icon">▦</span> Origem dos dados</h3><span className="hs-origins-note">Três fontes independentes</span></div>
-    <div className="hs-origins-grid">
-      {TIPOS.map(tipo=>{
-        const leituras = Object.values(canais?.[tipo.id] ?? {});
-        const ultima = leituras.length ? Math.max(...leituras.map(l=>Number(l.timestamp)||0)) : 0;
-        const niveis = leituras.map(l=>Number(l.nivelPct)).filter(Number.isFinite);
-        const maior = niveis.length ? Math.max(...niveis) : null;
-        const recente = ultima && Date.now()-ultima < 30_000;
-        return <div className={`hs-origin hs-origin-${tipo.id}`} key={tipo.id}>
-          <span className="hs-origin-badge">{tipo.etiqueta}</span>
-          <h4><span aria-hidden="true">{tipo.icone}</span> {tipo.titulo}</h4>
-          <div className="hs-origin-value">{maior == null ? 'Sem leituras' : `${numero(maior,'%')}`}</div>
-          <p>{tipo.descricao}</p>
-          <small>{ultima ? `${recente?'Leitura recente':'Última leitura'}: ${new Date(ultima).toLocaleTimeString('pt-BR')}` : 'Nenhuma leitura recebida neste canal'}</small>
-        </div>;
-      })}
-    </div>
-    <p className="hs-card-foot">A origem é definida no servidor. Dados sintéticos e testes de bancada não são tratados como medições de campo nem acionam notificações externas.</p>
-  </section>;
-}
-
 export default function VisaoGeral(){
   const navegar=useNavigate();
   const estado=useTelemetria(s=>s.estado);
@@ -115,24 +86,25 @@ export default function VisaoGeral(){
   const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
   const estacaoDestaque=(hidrologia?.estacoes||[]).find(e=>e.codigo==='DCRS-00054')||(hidrologia?.estacoes||[]).find(e=>e.rio?.nivelMetros!=null);
   const chuva=clima?.precipitacaoObservadaMm;
+  const fonte=useTelemetria.getState().fonteSelecionada;
+  const isCampo=fonte==='campo';
   return <div className="hs-dashboard">
     <div className="hs-left">
       <div className="hs-kpi-row">
         <div className="hs-kpi hs-kpi-status">
           <span className="hs-kpi-title"><span className="hs-icon">◉</span> Status de monitoramento</span>
           <span className={`hs-state-pill ${estadoVisual}`}>{status}</span>
-          <p className="hs-kpi-caption">{ambos?'Condição avaliada pelos dois sensores físicos.':'Sem dados recentes suficientes para indicar normalidade.'}</p>
+          <p className="hs-kpi-caption">{ambos?'Condição avaliada pelas leituras do modo selecionado.':'Sem dados recentes suficientes para indicar normalidade.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
         <CartaoIndicador icone="⌛" titulo="Tempo estimado para extravasamento" valor="—" detalhe="Sem estimativa validada" classe="hs-kpi-soft"/>
         <CartaoIndicador icone="⚠" titulo="Chance de alagamento (próx. 6 h)" valor="—" detalhe="Previsão não disponível" classe="hs-kpi-soft"/>
       </div>
-      <FontesSeparadas canais={estado?.canais} />
       <div className="hs-measure-row">
         <section className="hs-card hs-level">
           <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
           <div className="hs-level-content">
-            <div className="hs-level-main"><strong>{temDado(b1)?numero(b1.alturaAguaCm,' cm'):'Sem leitura'}</strong><p>Sensor físico · Bueiro 01 (montante)</p><span>{ambos?'Medições válidas de ambos os sensores':'Sem medições físicas recentes'}</span></div>
+            <div className="hs-level-main"><strong>{temDado(b1)?numero(b1.alturaAguaCm,' cm'):'Sem leitura'}</strong><p>{fonte === 'campo' ? 'Sensor de campo · Bueiro 01' : fonte === 'prototipo' ? 'Protótipo experimental · Bueiro 01' : 'Cenário fictício · Bueiro 01'}</p><span>{ambos?'Medições válidas de ambos os sensores':'Sem medições físicas recentes'}</span></div>
             <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Entrada · B01"/><NivelSensor bueiro={b2} titulo="Saída · B02"/></div>
           </div>
         </section>
@@ -143,11 +115,11 @@ export default function VisaoGeral(){
       </div>
       <section className="hs-card hs-chart">
         <div className="hs-card-head"><h3><span className="hs-outline-icon">▥</span> Evolução do nível da água</h3><button className="hs-period" onClick={()=>navegar('/graficos')}>Ver histórico completo ⌄</button></div>
-        <p className="hs-chart-caption">Medições dos dois sensores físicos · percentual da altura útil</p>
+        <p className="hs-chart-caption">{fonte === 'campo' ? 'Medições reais de campo' : fonte === 'prototipo' ? 'Leituras experimentais do protótipo' : 'Leituras sintéticas de demonstração'} · percentual da altura útil</p>
         <GraficoNivel b1={b1} b2={b2}/>
       </section>
       <Estacoes data={hidrologia} loading={hidroCarregando} error={hidroErro}/>
     </div>
-    <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/>
+    {isCampo ? <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/> : <aside className="hs-card hs-mode-context"><h3>{fonte === 'prototipo' ? '⌁ Protótipo físico' : '◈ Demonstração fictícia'}</h3><p>{fonte === 'prototipo' ? 'Acompanhe somente as medições experimentais recebidas do Arduino. Os dados meteorológicos e as estações oficiais são referências externas independentes.' : 'Este modo apresenta exclusivamente valores sintéticos nos cartões dos sensores. Nenhum resultado representa medição em campo ou alerta real.'}</p><span>Sem notificações externas à Defesa Civil.</span></aside>}
   </div>;
 }
