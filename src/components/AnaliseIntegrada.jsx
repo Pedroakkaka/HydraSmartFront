@@ -47,8 +47,8 @@ export default function AnaliseIntegrada({ estacao, chuva }) {
     queryKey: ['analise-historica-cloudflare'],
     queryFn: () => api.get('/ia/relatorio'),
     retry: false,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 25_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: false
   });
   const texto = typeof (data?.analise || data?.relatorio) === 'string' ? (data.analise || data.relatorio) : '';
@@ -63,13 +63,14 @@ export default function AnaliseIntegrada({ estacao, chuva }) {
     <section className="hydra-panel hydra-ai" aria-label="Análise contextual do histórico">
       <header className="hydra-ai-header">
         <h2>▱ Análise contextual do histórico</h2>
-        <span>{data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Atualização automática'}</span>
+        <span>{data?.verificadoEm ? `Verificado: ${new Date(data.verificadoEm).toLocaleTimeString('pt-BR')}` : data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Verificação a cada 30 s'}</span>
       </header>
       <div className="hydra-ai-body">
         <div className="hydra-ai-summary">
           <strong>✦ Resumo da IA</strong>
           <p>{isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
         </div>
+        <p className="hydra-ai-footnote">Dados verificados a cada 30 segundos. Uma nova análise é gerada quando as fontes apresentam alterações; a atualização depende da frequência de cada fonte oficial.</p>
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>Nível oficial</span><strong>{formatar(nivel, ' m')}</strong><small>{estacao?.codigo ?? 'Sem estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>Tendência oficial</span><strong>{formatar(tendencia, ' m')}</strong><small>Valor informado pela estação</small></div>
