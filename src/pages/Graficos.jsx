@@ -96,6 +96,7 @@ function GraficoBanco() {
 
 export default function Graficos() {
   const { bueiro_1: b1, bueiro_2: b2 } = useTelemetria((s) => s.estado.bueiros);
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
@@ -106,12 +107,12 @@ export default function Graficos() {
         <div className="card-header-line">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📈</span> Séries Temporais ao Vivo</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Últimas leituras recebidas em tempo real pelo servidor.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Leituras recebidas da fonte selecionada. Dados experimentais e fictícios não são medições de campo.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono text-slate-400">{totalAoVivo} amostras</span>
-            <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>
-            <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>
+            {fonte === 'campo' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>}
+            {fonte === 'campo' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>}
           </div>
         </div>
         <div className="h-72 w-full relative mt-2">
@@ -119,13 +120,13 @@ export default function Graficos() {
         </div>
       </div>
 
-      <GraficoBanco />
+      {fonte === 'campo' && <GraficoBanco />}
 
       <HidrologiaOficial />
 
-      <AnaliseIntegrada />
+      {fonte === 'campo' && <AnaliseIntegrada />}
 
-      <div className="card-base mb-6">
+      {fonte === 'campo' && <div className="card-base mb-6">
         <div className="card-header-line">
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🚨</span> Alertas Críticos Registrados</h3>
           <span className="text-[11px] text-slate-400">Somente eventos reais</span>
@@ -148,9 +149,9 @@ export default function Graficos() {
             </tbody>
           </table>
         ) : <div className="text-slate-500 text-xs py-2">Nenhum alerta crítico real registrado.</div>}
-      </div>
+      </div>}
 
-      <div className="card-base">
+      {fonte === 'campo' && <div className="card-base">
         <div className="card-header-line">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros e referências oficiais de Porto Alegre-RS</h3>
@@ -175,7 +176,7 @@ export default function Graficos() {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
     </>
   );
 }
