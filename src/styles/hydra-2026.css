@@ -380,3 +380,105 @@ input,select,textarea{color-scheme:dark}
 .hs-mode-context p{color:#cbddec;font-size:.85rem;line-height:1.65}
 .hs-mode-context>span{margin-top:auto;color:#b5efcb;font-size:.77rem}
 @media(max-width:600px){.hs-modal-options{padding:12px}.hs-modal-head{padding:17px}.hs-modal-credentials{padding:8px 16px 18px}}
+
+
+/* Tema claro de alto contraste: somente cores, estrutura preservada */
+:root{--bg-app:#f2f5f9;--bg-surface:#fff;--bg-surface-elevated:#f8fafc;--bg-surface-card:#fff;--bg-surface-hover:#f2f7fc;--bg-surface-active:#eaf1f9;--border-subtle:#d5dfe9;--border-medium:#becddb;--border-accent:#88a6c4;--accent-cyan:#035f9f;--accent-cyan-hover:#003a67;--accent-cyan-subtle:#ebf4fc;--text-primary:#080f19;--text-secondary:#29394b;--text-muted:#44566a;--text-cyan:#064779;--status-normal:#09683d;--status-warning:#805200;--status-danger:#b42332}
+html,body{background:#f2f5f9!important;color:#101923!important}
+.app-main-content{background:#f2f5f9!important}
+.hs-kpi:not(.hs-kpi-status),.hs-card,.hydra-panel,.card-base,.preview-map-box,.manhole-card-detailed,.weather-metric-box,.diag-card,.coord-config-card,.history-card,.forecast-day-card,.metric-sub-card,.gauge-level-container,.diag-intro,.diag-panel,.diag-summary{
+background:#fff!important;color:#101923!important;border-color:#d1dae5!important;box-shadow:0 5px 18px rgba(12,39,67,.07)!important}
+.hs-kpi-soft{background:#f8fbff!important}
+.hs-kpi:not(.hs-kpi-status) .hs-kpi-title,.hs-kpi:not(.hs-kpi-status) .hs-kpi-number,.hs-card-head h3,.hs-level-main strong,.hs-meter-cell strong,.hs-rain-body strong,.hs-stations .hs-val,.hydra-panel h3,.hydra-number,.metric-sub-val,.diag-card-title,.value-large,.history-title,.diag-intro h2,.diag-section-header h3,.diag-summary strong,.diag-sensor strong,.diag-health-grid strong{color:#090f18!important}
+.hs-kpi-caption,.hs-level-main p,.hs-meter-cell span,.hs-rain-body p,.hs-chart-caption,.hs-card-foot,.hs-inline-empty,.hs-subtle-state,.hydra-muted,.card-title-text,.card-meta-text,.value-unit,.diag-intro p,.diag-summary span,.diag-summary small,.diag-section-header>span,.diag-sensor small,.diag-health-grid span,.diag-extra,.diag-empty{color:#35465a!important}
+.hs-level-main span{color:#075d36!important}
+.hs-meter-title,.hs-stations table,.hs-stations td{color:#273a4d!important}
+.hs-stations th,.tabela-alertas th{background:#e8eff6!important;color:#152438!important}
+.hs-stations td,.tabela-alertas td{border-color:#d7e2ec!important;color:#1d2f43!important}
+.hs-text-link,.hs-period,.diag-details-button{background:#edf4fb!important;color:#123e68!important;border-color:#b6cbdf!important}
+.hs-meter-rail,.hydra-level-track{background:#e0e9f3!important}
+.hs-chart-empty{background:repeating-linear-gradient(0deg,#f8fafc 0 35px,#dfe8f0 36px 37px)!important;color:#28425d!important}
+.hs-chart-empty strong,.hs-chart-empty small{color:#34495e!important}
+.hs-status-tag{background:#e4f3e9!important;color:#11663a!important}
+.hs-dashboard .hydra-ai{background:#fff!important;border-color:#d1dae5!important}
+.hs-dashboard .hydra-ai-header{background:linear-gradient(100deg,#122b48,#254b74)!important}
+.hs-dashboard .hydra-ai-header h2,.hs-dashboard .hydra-ai-header span{color:#fff!important}
+.hs-dashboard .hydra-ai-summary,.hydra-ai-summary{background:#eff4fc!important;border-color:#d5e1f1!important}
+.hydra-ai-summary strong{color:#123a67!important}
+.hydra-ai-summary p{color:#1c2b42!important}
+.hs-dashboard .hydra-insight,.hydra-insight,.hs-dashboard .hydra-insight:nth-child(2),.hs-dashboard .hydra-insight:nth-child(3),.hs-dashboard .hydra-insight:nth-child(4){background:#f3f6fa!important;border:1px solid #dce5ed!important}
+.hs-dashboard .hydra-insight:nth-child(2){background:#ecf7ef!important}
+.hs-dashboard .hydra-insight:nth-child(4){background:#fff7e5!important}
+.hs-dashboard .hydra-insight span:not(.hs-insight-icon),.hydra-insight span,.hs-dashboard .hydra-insight small{color:#32475c!important}
+.hs-dashboard .hydra-insight strong,.hydra-insight strong{color:#070e17!important}
+.hydra-ai-section{border-color:#d7e0e9!important}
+.hydra-ai-section h3{color:#0b1420!important}
+.hydra-findings li,.hydra-ai-details,.hydra-ai-footnote{color:#2f4054!important}
+.hydra-ai-details summary{color:#144977!important}
+.hydra-source{background:#e8f0fa!important;color:#133b68!important}
+.card-base:hover{background:#f9fcff!important;border-color:#abc6de!important}
+.card-base .text-white,.preview-map-box .text-white,.diag-card .text-white,.manhole-card-detailed .text-white,.weather-metric-box .text-white,.card-base .text-slate-200,.card-base .text-slate-300,.preview-map-box .text-slate-300,.diag-card .text-slate-300{color:#080f19!important}
+.card-base .text-slate-400,.preview-map-box .text-slate-400,.diag-card .text-slate-400,.diag-card .text-slate-500,.card-base .text-slate-500,.text-slate-300,.text-slate-400{color:#415267!important}
+.card-base .text-cyan-300,.card-base .text-cyan-400,.text-cyan-300,.text-cyan-400{color:#075e9b!important}
+.text-white{color:#101923}
+.app-sidebar .text-white,.app-sidebar .text-slate-300,.app-sidebar .text-slate-400,.top-context-bar .text-white,.top-context-bar .text-slate-400{color:#f3f8ff!important}
+.btn-action-secondary{background:#ebf3fb!important;color:#123a60!important;border-color:#bfcfdf!important}
+.btn-action-primary{background:#064e86!important;color:#fff!important}
+.map-toolbar{background:#eaf1f8!important}.map-control-btn{background:#fff!important;color:#153b60!important;border-color:#b6ccdf!important}
+.history-desc{color:#33485e!important}
+.hs-outline-icon,.hs-rain-icon,.hs-pin{color:#16679f!important}
+.hs-dashboard .hydra-insight .hs-insight-icon{color:#16679f!important}
+.hs-dashboard .hydra-insight:nth-child(2) .hs-insight-icon{color:#12683d!important}
+.hs-dashboard .hydra-insight:nth-child(4) .hs-insight-icon{color:#9b6500!important}
+.hs-kpi-status{background:linear-gradient(125deg,#143a54,#17607a)!important}
+.hs-kpi-status .hs-kpi-title,.hs-kpi-status .hs-kpi-caption{color:#fff!important}
+.hs-state-pill{color:#18314a!important;background:#e7f0f8!important}
+.diag-intro,.diag-panel,.diag-summary{background:#fff!important}
+.diag-kicker{color:#16598a!important}.diag-mode{color:#14513b!important;border-color:#b4d8c8!important;background:#eaf8f0!important}
+.diag-sensor,.diag-health-grid>div{background:#f4f7fa!important;border-color:#d9e2ed!important}
+.diag-sensor-value{color:#075b91!important}
+.diag-summary .diag-blue{color:#075b91!important}.diag-summary .diag-danger{color:#ae2034!important}.diag-summary .diag-warning{color:#885900!important}
+.diag-extra h4{color:#0d1724!important}
+.hs-modal{background:#fff!important;color:#111827!important;border-color:#c6d4e0!important}
+.hs-modal-head{border-color:#d6e0ea!important}
+.hs-modal-head span{color:#145b8c!important}.hs-modal-head h2{color:#090f19!important}.hs-modal-head p{color:#37475b!important}
+.hs-modal-head>button{background:#edf3f9!important;color:#173e62!important;border-color:#bfcedd!important}
+.hs-modal-option{background:#f8fafc!important;border-color:#ccd9e6!important}
+.hs-modal-option.selected{background:#eaf3fc!important;border-color:#3982bc!important}
+.hs-modal-option-text strong{color:#0b1420!important}
+.hs-modal-option-text>span{color:#405167!important}
+.hs-modal-option-text small{color:#815400!important}
+.hs-modal-option-icon{color:#145d90!important}
+.hs-modal-credentials label{color:#14243a!important}
+.hs-modal-credentials input{color:#101923!important;background:#fff!important;border-color:#aebfce!important;color-scheme:light}
+.hs-modal-credentials small{color:#41566b!important}
+.hs-modal-actions{border-color:#d3dfea!important}
+.hs-modal-actions button{color:#173a5b!important;background:#eef4fa!important;border-color:#bdcddb!important}
+.hs-modal-actions button[type=submit]{color:#fff!important;background:#075e9c!important}
+.hs-modal-error{color:#a21c2b!important}
+.hs-mode-context h3{color:#0c1621!important}.hs-mode-context p{color:#32475a!important}.hs-mode-context>span{color:#185c3d!important}
+input,select,textarea{color-scheme:light}
+.hs-replay-intro{margin:4px 0 14px}
+.hs-replay-badge,.hs-test-tag{font-size:.65rem;border:1px solid #cbd8e4;border-radius:99px;background:#eef4fa;color:#1e4970;padding:5px 9px;font-weight:850}
+.hs-replay-label{display:block;font-size:.76rem;font-weight:800;color:#152438;margin-bottom:7px}
+.hs-replay-select{width:100%;padding:10px 12px;border:1px solid #b7cad9;border-radius:9px;background:#fff;color:#101923}
+.hs-replay-record{padding:14px;margin:13px 0;background:#f4f8fc;border:1px solid #dae4ed;border-radius:11px}
+.hs-replay-record strong{display:block;color:#091522}.hs-replay-record small{display:block;color:#40566b;margin:6px 0;font-size:.7rem}
+.hs-replay-record p,.hs-replay-phase p,.hs-test-record p{font-size:.79rem;color:#33495d;line-height:1.6}
+.hs-replay-record a{color:#155e95;font-weight:780;font-size:.75rem}
+.hs-replay-steps{display:flex;gap:8px;margin:15px 0}
+.hs-replay-step{border-radius:99px;width:33px;height:33px;background:#e4edf5;color:#123e61;font-weight:800;border:1px solid #b9cedc;cursor:pointer}
+.hs-replay-step.selected{background:#154e7c;color:#fff}
+.hs-replay-phase{border:1px solid #d7e3ed;border-radius:10px;padding:14px}
+.hs-replay-phase strong{color:#101923}
+.hs-replay-preview{padding:12px;background:#f1f6fa;margin-top:12px;border-radius:9px;border-left:3px solid #1f6a99}
+.hs-replay-preview span{font-size:.65rem;color:#9a3f19;font-weight:850}
+.hs-replay-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.hs-replay-actions span{color:#40536a;font-size:.72rem}
+.hs-test-receiver .hs-card-foot{margin:9px 0 13px}
+.hs-test-list{display:flex;flex-direction:column;gap:9px}
+.hs-test-record{padding:12px;background:#f2f7fb;border:1px solid #dce5ed;border-radius:10px}
+.hs-test-record>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hs-test-record strong{color:#101923}.hs-test-record span{color:#14663e;font-size:.74rem;font-weight:850}
+.hs-test-record small{color:#536579;font-size:.65rem}
+.hs-test-empty{padding:12px 0}
