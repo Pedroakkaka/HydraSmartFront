@@ -10,6 +10,7 @@ import { num } from '../lib/formato.js';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
 import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
+import { estimarTempoExtravasamento, avaliarCondicaoObservada } from '../lib/indicadoresReais.js';
 
 const ESTACOES = {
   'DCRS-00044': 'Viamão · Itapuã',
@@ -92,6 +93,8 @@ export default function VisaoGeral(){
   const inteligente=fonte==='inteligente';
   const medicaoOficial = estacaoDestaque?.rio?.nivelMetros;
   const tituloEstacao = estacaoDestaque ? (ESTACOES[estacaoDestaque.codigo] || estacaoDestaque.codigo) : null;
+  const tempoExtravasamento = estimarTempoExtravasamento(estado?.bueiros || {});
+  const condicaoOficial = avaliarCondicaoObservada(estacaoDestaque, chuva);
   return <div className="hs-dashboard">
     <div className="hs-left">
       <div className="hs-kpi-row">
@@ -101,8 +104,8 @@ export default function VisaoGeral(){
           <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
-        <CartaoIndicador icone="⌛" titulo="Tempo estimado para extravasamento" valor="—" detalhe="Sem estimativa validada" classe="hs-kpi-soft"/>
-        <CartaoIndicador icone="⚠" titulo="Chance de alagamento (próx. 6 h)" valor="—" detalhe="Previsão não disponível" classe="hs-kpi-soft"/>
+        <CartaoIndicador icone="⌛" titulo={inteligente ? "Tendência até limite do bueiro" : "Tempo até limite (experimental)"} valor={tempoExtravasamento.valor} detalhe={inteligente ? tempoExtravasamento.detalhe : "Estimativa da bancada exige histórico consistente do protótipo."} classe="hs-kpi-soft"/>
+        <CartaoIndicador icone="⚠" titulo={inteligente ? "Condição hidrológica observada" : "Chance de alagamento (próx. 6 h)"} valor={inteligente ? condicaoOficial.valor : "Não validada"} detalhe={inteligente ? condicaoOficial.detalhe : "Sem modelo probabilístico validado para previsão."} classe="hs-kpi-soft"/>
       </div>
       <div className="hs-measure-row">
         <section className="hs-card hs-level">
