@@ -90,13 +90,15 @@ export default function VisaoGeral(){
   const chuva=clima?.precipitacaoObservadaMm;
   const fonte=useTelemetria(s=>s.fonteSelecionada);
   const inteligente=fonte==='inteligente';
+  const medicaoOficial = estacaoDestaque?.rio?.nivelMetros;
+  const tituloEstacao = estacaoDestaque ? (ESTACOES[estacaoDestaque.codigo] || estacaoDestaque.codigo) : null;
   return <div className="hs-dashboard">
     <div className="hs-left">
       <div className="hs-kpi-row">
         <div className="hs-kpi hs-kpi-status">
-          <span className="hs-kpi-title"><span className="hs-icon">◉</span> Status de monitoramento</span>
-          <span className={`hs-state-pill ${estadoVisual}`}>{status}</span>
-          <p className="hs-kpi-caption">{ambos?'Condição avaliada pelas leituras do modo selecionado.':'Sem dados recentes suficientes para indicar normalidade.'}</p>
+          <span className="hs-kpi-title"><span className="hs-icon">◉</span> {inteligente ? 'Monitoramento com dados reais' : 'Status do projeto físico'}</span>
+          <span className={`hs-state-pill ${estadoVisual}`}{inteligente ? (tituloEstacao ? 'Estação consultada' : 'Dados indisponíveis') : status}</span>
+          <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
         <CartaoIndicador icone="⌛" titulo="Tempo estimado para extravasamento" valor="—" detalhe="Sem estimativa validada" classe="hs-kpi-soft"/>
@@ -106,7 +108,7 @@ export default function VisaoGeral(){
         <section className="hs-card hs-level">
           <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
           <div className="hs-level-content">
-            <div className="hs-level-main"><strong>{temDado(b1)?numero(b1.alturaAguaCm,' cm'):'Sem leitura'}</strong><p>{inteligente ? 'Sensor de campo · Bueiro 01' : 'Protótipo experimental · Bueiro 01'}</p><span>{ambos?'Medições válidas de ambos os sensores':'Sem medições físicas recentes'}</span></div>
+            <div className="hs-level-main"><strong>{inteligente ? numero(medicaoOficial,' m') : temDado(b1) ? numero(b1.alturaAguaCm,' cm') : 'Sem leitura'}</strong><p>{inteligente ? (tituloEstacao ? 'Estação oficial · ' + tituloEstacao : 'Aguardando estação oficial') : 'Protótipo experimental · Bueiro 01'}</p><span>{inteligente ? 'Medições da estação não equivalem ao nível de um bueiro.' : ambos ? 'Sensores experimentais disponíveis' : 'Sem medições da bancada'}</span></div>
             <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Entrada · B01"/><NivelSensor bueiro={b2} titulo="Saída · B02"/></div>
           </div>
         </section>
