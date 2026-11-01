@@ -53,7 +53,7 @@ export default function App() {
               <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">⌖</span>{pathname === '/' ? 'Porto Alegre' : rotaAtual.rotulo}</h1>
             </div>
             <div className="header-status-pills">
-              <span className={`header-mode-pill ${fonte === 'demonstracao' ? 'demo' : 'real'}`}>{fonte === 'campo' ? '● Campo · Dados reais' : fonte === 'prototipo' ? '● Protótipo · Experimental' : '● Demonstração · Fictício'}</span>
+              <span className={`header-mode-pill ${'real'}`}>{fonte === 'prototipo' ? '● Projeto físico · Experimental' : '● Análise com dados reais'}</span>
               <span className={`server-pill ${conexao}`}>
                 <span className="ponto" />
                 {TEXTO_CONEXAO[conexao]}
