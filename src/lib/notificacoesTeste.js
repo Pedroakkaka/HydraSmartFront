@@ -26,16 +26,21 @@ export const TEXTO_TESTE = 'Teste do protótipo HydraSmart. Não há emergência
 // Mensagens de campo, histórico e simulador virtual não são notificadas.
 export function ehAlertaProtótipo(dados) {
   const a = dados?.alerta;
-  return dados?.acao === 'disparado'
+  return (dados?.acao === 'disparado' || dados?.acao === 'nivel_alto_teste')
     && a?.simulado === true
     && typeof a?.mensagem === 'string'
     && a.mensagem.startsWith('[TESTE PROTÓTIPO]');
 }
 
-export async function exibirNotificacaoTeste() {
+export async function exibirNotificacaoTeste(evento = null) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
+  const nivel = evento?.alerta?.nivelPctPico;
+  const dadosExperimentais = ehAlertaProtótipo(evento) && typeof nivel === 'number' && Number.isFinite(nivel);
+  const descricao = dadosExperimentais
+    ? `Leitura experimental do protótipo: ${nivel.toFixed(1)}% da altura útil. Não há emergência real. Nenhuma ação é necessária.`
+    : TEXTO_TESTE;
   const opcoes = {
-    body: TEXTO_TESTE,
+    body: descricao,
     tag: 'hydrasmart-teste-experimental',
     icon: '/hydrasmart-h.svg',
     silent: true,
