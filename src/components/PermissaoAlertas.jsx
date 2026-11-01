@@ -57,7 +57,7 @@ export default function PermissaoAlertas() {
       : 'Ativar avisos automáticos experimentais neste celular'}
     aria-pressed={ativo}
   >
-    <span aria-hidden="true">{ativo ? '♧' : '♧'}</span>
+    <span aria-hidden="true">{ativo ? '🔔' : '🔕'}</span>
     <span className="hs-alerts-icon-text">{ativo ? 'Avisos ativos' : 'Ativar avisos'}</span>
   </button>;
 }
