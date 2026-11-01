@@ -69,7 +69,7 @@ function Estacoes({ data, loading, error }) {
       </tr>)}</tbody></table>
       {!estacoes.length && <p className="hs-inline-empty">{error?'Estações temporariamente indisponíveis.':'Aguardando dados oficiais.'}</p>}
     </div>
-    <p className="hs-card-foot">Fonte: Defesa Civil RS · Estações da região, não sensores dos bueiros. Atualização a cada 5 min.</p>
+    <p className="hs-card-foot">Fonte: Defesa Civil RS · Estações da região, não sensores dos bueiros. Consulta do painel a cada 30 s; leituras conforme a atualização da fonte oficial.</p>
   </section>;
 }
 
@@ -78,7 +78,7 @@ export default function VisaoGeral(){
   const estado=useTelemetria(s=>s.estado);
   const {data:clima}=useClima();
   const {data:hidrologia,isLoading:hidroCarregando,isError:hidroErro}=useQuery({
-    queryKey:['hidrologia-estacoes-rs'],queryFn:()=>api.get('/hidrologia/estacoes'),staleTime:2*60*1000,refetchInterval:5*60*1000
+    queryKey:['hidrologia-estacoes-rs'],queryFn:()=>api.get('/hidrologia/estacoes'),staleTime:25_000,refetchInterval:30_000
   });
   const b1=estado?.bueiros?.bueiro_1;
   const b2=estado?.bueiros?.bueiro_2;
