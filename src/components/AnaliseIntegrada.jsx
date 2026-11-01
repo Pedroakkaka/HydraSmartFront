@@ -1,55 +1,34 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 
-/**
- * A IA é um complemento interpretativo do histórico; nunca define risco.
- * Sem registros reais ou sem backend configurado, não apresenta previsões.
- */
-/**
- * Renderização limitada do Markdown retornado pela IA: títulos, parágrafos e negrito.
- * Não interpreta HTML nem insere conteúdo da IA diretamente no DOM.
- */
-function textoFormatado(texto) {
-  return texto.split(/(\\*\\*[^*\\n]+\\*\\*)/g).map((parte, i) =>
-    parte.startsWith('**') && parte.endsWith('**')
-      ? <strong key={i} className="font-semibold text-white">{parte.slice(2, -2)}</strong>
-      : parte
-  );
-}
-
-function RelatorioFormatado({ texto }) {
-  const linhas = texto.replace(/\\r\\n?/g, '\\n').split('\\n');
-  const blocos = [];
-  let paragrafo = [];
-  const fecharParagrafo = () => {
-    if (paragrafo.length) {
-      blocos.push({ tipo: 'paragrafo', texto: paragrafo.join(' ') });
-      paragrafo = [];
-    }
-  };
-  for (const linha of linhas) {
-    const atual = linha.trim();
-    if (!atual) { fecharParagrafo(); continue; }
-    const tituloMarkdown = atual.match(/^#{1,4}\\s+(.+)$/);
-    const tituloNegrito = atual.match(/^\\*\\*([^*]+)\\*\\*:?$/);
-    if (tituloMarkdown || tituloNegrito) {
-      fecharParagrafo();
-      blocos.push({ tipo: 'titulo', texto: (tituloMarkdown ? tituloMarkdown[1] : tituloNegrito[1]).trim() });
+// Mostra apenas informações efetivamente contidas no relatório; a IA não define risco ou previsão.
+function extrairResumo(texto) {
+  if (!texto) return { resumo: '', achados: [], secoes: [] };
+  const secoes = [];
+  let atual = { titulo: 'Relatório', linhas: [] };
+  for (const linha of texto.replace(/\r\n?/g, '\n').split('\n')) {
+    const limpa = linha.trim();
+    if (!limpa) continue;
+    const cabecalho = limpa.match(/^(?:#{1,4}\s+|\*\*)([^*\n]+?)(?:\*\*)?:?$/);
+    if (cabecalho && (limpa.startsWith('**') || limpa.startsWith('#'))) {
+      if (atual.linhas.length) secoes.push(atual);
+      atual = { titulo: cabecalho[1].trim(), linhas: [] };
     } else {
-      paragrafo.push(atual);
+      atual.linhas.push(limpa.replace(/^[-*•]\s+/, '').replace(/\*\*/g, ''));
     }
   }
-  fecharParagrafo();
-  return (
-    <div className="space-y-3 text-sm text-slate-200 leading-relaxed">
-      {blocos.map((bloco, i) => bloco.tipo === 'titulo'
-        ? <h4 key={i} className="font-bold text-white text-base pt-2">{bloco.texto}</h4>
-        : <p key={i}>{textoFormatado(bloco.texto)}</p>)}
-    </div>
-  );
+  if (atual.linhas.length) secoes.push(atual);
+  const resumoSecao = secoes.find((s) => /resumo|conclus[aã]o/i.test(s.titulo));
+  const resumo = (resumoSecao?.linhas.join(' ') || secoes[0]?.linhas.join(' ') || '').slice(0, 350);
+  const tendencias = secoes.find((s) => /tend[eê]ncias|limita[cç][oõ]es/i.test(s.titulo));
+  const observacoes = secoes.find((s) => /observa[cç][oõ]es atuais/i.test(s.titulo));
+  const achados = [...(observacoes?.linhas || []), ...(tendencias?.linhas || [])].slice(0, 3);
+  return { resumo, achados, secoes };
 }
 
 export default function AnaliseIntegrada() {
+  const [expandido, setExpandido] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['analise-historica-cloudflare'],
     queryFn: () => api.get('/ia/relatorio'),
@@ -58,31 +37,46 @@ export default function AnaliseIntegrada() {
     refetchInterval: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });
+  const texto = typeof (data?.analise || data?.relatorio) === 'string' ? (data.analise || data.relatorio) : '';
+  const { resumo, achados, secoes } = extrairResumo(texto);
+  const status = data?.status === 'disponivel' ? 'Relatório disponível' : 'Consultando dados';
+  const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
+
   return (
-    <section className="card-base mb-6" aria-label="Análise histórica integrada">
-      <div className="card-header-line">
-        <div>
-          <h3 className="text-sm font-bold text-white">🧠 Análise contextual do histórico</h3>
-          <p className="text-xs text-slate-400 mt-1">A Cloudflare Workers AI interpreta dados oficiais da Defesa Civil RS, histórico meteorológico e leituras disponíveis. O relatório é público e atualizado sob demanda, com cache compartilhado de 5 minutos. A IA não define alertas nem altera parâmetros.</p>
+    <section className="hydra-panel hydra-ai" aria-label="Análise contextual do histórico">
+      <header className="hydra-ai-header">
+        <h2>✦ Análise contextual do histórico</h2>
+        <span>{data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Atualização automática'}</span>
+      </header>
+      <div className="hydra-ai-body">
+        <div className="hydra-ai-summary">
+          <strong>✦ Resumo da IA</strong>
+          <p>{isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
         </div>
-        <button type="button" className="btn-action-secondary text-xs" disabled={isFetching} onClick={() => refetch()}>
-          {isFetching ? 'Analisando...' : 'Atualizar análise'}
-        </button>
+        <div className="hydra-insights">
+          <div className="hydra-insight"><span>Estado do relatório</span><strong>{isError ? 'Indisponível' : status}</strong></div>
+          <div className="hydra-insight"><span>Registros consultados</span><strong>{data?.registrosConsultados ?? '—'}</strong></div>
+          <div className="hydra-insight"><span>Fontes consultadas</span><strong>{fontes.length || '—'}</strong></div>
+          <div className="hydra-insight"><span>Natureza da análise</span><strong>Consultiva</strong></div>
+        </div>
+        <div className="hydra-ai-section">
+          <h3>◎ Principais achados</h3>
+          {achados.length ? <ul className="hydra-findings">{achados.map((item, index) => <li key={index}>{item}</li>)}</ul>
+            : <p className="hydra-muted">{isError ? error?.message || 'Fonte temporariamente indisponível.' : 'Aguardando observações suficientes.'}</p>}
+        </div>
+        <div className="hydra-ai-section">
+          <h3>▤ Fontes consultadas</h3>
+          <div className="hydra-sources">{fontes.length ? fontes.map((fonte) => <span className="hydra-source" key={fonte}>{fonte}</span>) : <span className="hydra-muted">Nenhuma fonte informada.</span>}</div>
+        </div>
+        <button type="button" className="hydra-ai-btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>
+        {texto && <details className="hydra-ai-details" open={expandido} onToggle={(e) => setExpandido(e.currentTarget.open)}>
+          <summary>Ver relatório técnico completo</summary>
+          {secoes.map((secao, index) => <div key={index}><strong>{secao.titulo}</strong>{secao.linhas.map((linha, i) => <p key={i}>{linha}</p>)}</div>)}
+        </details>}
+        {data?.desatualizado && <p className="hydra-muted" role="status">Exibindo o último relatório disponível: a atualização recente falhou.</p>}
+        {data?.avisosFontes?.length > 0 && <p className="hydra-muted">{data.avisosFontes.join('; ')}</p>}
+        <p className="hydra-ai-footnote">A IA interpreta registros oficiais e históricos. Não é previsão validada de alagamento nem substitui alertas da Defesa Civil.</p>
       </div>
-      {isLoading ? <p className="text-xs text-slate-400 mt-3">Consultando registros históricos...</p> : null}
-      {isError ? <p role="status" className="text-xs text-amber-400 mt-3">Análise indisponível: {error?.status === 404 ? 'a API em execução ainda não possui a nova rota. Atualize e reinicie o backend.' : error?.message || 'verifique a API e a configuração da Cloudflare Workers AI.'} O monitoramento do Core permanece independente.</p> : null}
-      {data?.status === 'erro' || data?.status === 'indisponivel' || data?.status === 'processando' || data?.status === 'aguardando' ? <p className="text-xs text-amber-400 mt-3">{data.mensagem}</p> : null}
-      {data?.status === 'sem_dados' ? <p className="text-xs text-slate-400 mt-3">{data.mensagem || 'Ainda não há leituras históricas suficientes para gerar o relatório.'}</p> : null}
-      {(data?.analise || data?.relatorio) ? (
-        <div className="mt-3">
-          <RelatorioFormatado texto={typeof (data.analise || data.relatorio) === 'string' ? (data.analise || data.relatorio) : JSON.stringify(data.analise || data.relatorio, null, 2)} />
-          {data.desatualizado ? <p role="status" className="text-xs text-amber-400 mt-2">Último relatório válido: a atualização mais recente falhou. {data.avisoAtualizacao || ''}</p> : null}
-          <p className="text-xs text-slate-400 mt-3">{data.registrosConsultados} registros consultados • Gerado em {data.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'horário indisponível'} • Interpretação consultiva, não previsão validada.</p>
-          {data.fontes?.length ? <p className="text-xs text-slate-400 mt-2">Fontes: {data.fontes.map((f) => `${f.fonte} (${f.tipo}${f.estacao ? `, ${f.estacao}` : ''}: ${f.registros} registros)`).join('; ')}.</p> : null}
-          {data.aviso ? <p className="text-xs text-slate-400 mt-2">{data.aviso}</p> : null}
-          {data.avisosFontes?.length ? <p className="text-xs text-amber-400 mt-2">Algumas fontes não responderam: {data.avisosFontes.join('; ')}</p> : null}
-        </div>
-      ) : null}
     </section>
   );
 }
