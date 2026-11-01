@@ -4,9 +4,9 @@ import { cabecalhoOperador } from '../lib/operador.js';
 import { avisar, useTelemetria } from '../store/useTelemetria.js';
 
 const OPCOES = [
-  { id: 'prototipo', titulo: 'Protótipo físico', tag: 'BANCADA EXPERIMENTAL', icone: '⌁',
+  { id: 'prototipo', titulo: 'Projeto físico', tag: 'BANCADA EXPERIMENTAL', icone: '⌁',
     descricao: 'Acompanhar as leituras dos sensores reais do projeto físico. Sem dados artificiais.' },
-  { id: 'inteligente', titulo: 'Monitoramento inteligente', tag: 'OBSERVAÇÕES REAIS + DEMONSTRAÇÃO ASSISTIDA', icone: '⌖',
+  { id: 'inteligente', titulo: 'Análise com dados reais', tag: 'OBSERVAÇÕES REAIS + DEMONSTRAÇÃO ASSISTIDA', icone: '⌖',
     descricao: 'Analisar medições oficiais e de campo e demonstrar o fluxo de alertas usando eventos documentados.' }
 ];
 
