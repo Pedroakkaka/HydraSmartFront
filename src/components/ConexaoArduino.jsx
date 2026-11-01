@@ -11,6 +11,7 @@ import { cabecalhoOperador } from '../lib/operador.js';
  */
 export default function ConexaoArduino() {
   const serial = useTelemetria((s) => s.estado?.serial);
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
   const [porta, setPorta] = useState('auto');
   const [baud, setBaud] = useState(115200);
   const [ocupado, setOcupado] = useState(false);
@@ -49,6 +50,8 @@ export default function ConexaoArduino() {
       setOcupado(false);
     }
   };
+
+  if (fonte !== 'prototipo') return null;
 
   return (
     <div className="sidebar-arduino-card">
