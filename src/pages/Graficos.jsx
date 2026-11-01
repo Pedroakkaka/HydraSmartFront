@@ -74,7 +74,7 @@ function GraficoBanco() {
         <div>
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🗄️</span> Histórico Gravado no Banco de Dados</h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Somente leituras físicas reais (o modo demonstração não grava). Média a cada {periodo.intervalo >= 60 ? `${periodo.intervalo / 60} min` : `${periodo.intervalo} s`}.
+            Somente leituras de sensores de campo (exclui ensaios de bancada). Média a cada {periodo.intervalo >= 60 ? `${periodo.intervalo / 60} min` : `${periodo.intervalo} s`}.
           </p>
         </div>
         <div className="seletor-periodo">
@@ -111,8 +111,8 @@ export default function Graficos() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono text-slate-400">{totalAoVivo} amostras</span>
-            {fonte === 'campo' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>}
-            {fonte === 'campo' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>}
+            {fonte === 'inteligente' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>}
+            {fonte === 'inteligente' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>}
           </div>
         </div>
         <div className="h-72 w-full relative mt-2">
@@ -120,13 +120,13 @@ export default function Graficos() {
         </div>
       </div>
 
-      {fonte === 'campo' && <GraficoBanco />}
+      {fonte === 'inteligente' && <GraficoBanco />}
 
       <HidrologiaOficial />
 
-      {fonte === 'campo' && <AnaliseIntegrada />}
+      {fonte === 'inteligente' && <AnaliseIntegrada />}
 
-      {fonte === 'campo' && <div className="card-base mb-6">
+      {fonte === 'inteligente' && <div className="card-base mb-6">
         <div className="card-header-line">
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🚨</span> Alertas Críticos Registrados</h3>
           <span className="text-[11px] text-slate-400">Somente eventos reais</span>
@@ -151,7 +151,7 @@ export default function Graficos() {
         ) : <div className="text-slate-500 text-xs py-2">Nenhum alerta crítico real registrado.</div>}
       </div>}
 
-      {fonte === 'campo' && <div className="card-base">
+      {fonte === 'inteligente' && <div className="card-base">
         <div className="card-header-line">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros e referências oficiais de Porto Alegre-RS</h3>
