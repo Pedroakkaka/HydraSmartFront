@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { ROTAS } from '../rotas.js';
 import { useRelogio } from '../hooks/useRelogio.js';
-import { useAlternarModo } from '../hooks/useAcoes.js';
 import { som } from '../lib/som.js';
 import { useTelemetria } from '../store/useTelemetria.js';
+import SeletorModo, { ROTULOS_FONTE } from './SeletorModo.jsx';
+import { useState } from 'react';
 import ConexaoArduino from './ConexaoArduino.jsx';
 
 const CAMINHOS = {
@@ -20,10 +21,11 @@ function IconeMenu({ caminho }) {
 
 export default function Sidebar({ aberto, aoNavegar }) {
   const relogio = useRelogio();
-  const modo = useTelemetria((s) => s.estado?.modo ?? 'real');
-  const { alternar, ocupado } = useAlternarModo();
+  const [modalAberto, setModalAberto] = useState(false);
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
 
   return (
+    <>
     <aside className={`app-sidebar ${aberto ? 'mobile-open' : ''}`}>
       <div>
         <div className="sidebar-header">
@@ -58,21 +60,15 @@ export default function Sidebar({ aberto, aoNavegar }) {
       <div className="sidebar-footer">
         <ConexaoArduino />
 
-        <button
-          className={`mode-badge-btn ${modo}`}
-          onClick={alternar}
-          disabled={ocupado}
-          title="Modo Real recebe sensores físicos; Modo Demonstração gera dados sintéticos para testes"
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            <span>{modo === 'demo' ? 'Simulação virtual' : 'Protótipo / Real'}</span>
-          </span>
+        <button className={`mode-badge-btn ${fonte === 'demonstracao' ? 'demo' : 'real'}`} type="button" onClick={() => setModalAberto(true)} title="Selecionar origem dos dados do painel">
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-current"/><span>{ROTULOS_FONTE[fonte]}</span></span>
           <span className="text-[10px]">Trocar</span>
         </button>
 
         <div className="clock-info-text" title="Horário de Porto Alegre-RS (GMT-3)">{relogio}</div>
       </div>
     </aside>
+    <SeletorModo aberto={modalAberto} fechar={() => setModalAberto(false)} />
+    </>
   );
 }
