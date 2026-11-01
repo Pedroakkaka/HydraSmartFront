@@ -27,7 +27,7 @@ function extrairResumo(texto) {
   return { resumo, achados, secoes };
 }
 
-export default function AnaliseIntegrada() {
+export default function AnaliseIntegrada({ estacao, chuva }) {
   const [expandido, setExpandido] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['analise-historica-cloudflare'],
@@ -39,13 +39,16 @@ export default function AnaliseIntegrada() {
   });
   const texto = typeof (data?.analise || data?.relatorio) === 'string' ? (data.analise || data.relatorio) : '';
   const { resumo, achados, secoes } = extrairResumo(texto);
-  const status = data?.status === 'disponivel' ? 'Relatório disponível' : 'Consultando dados';
+  
   const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
+  const nivel = estacao?.rio?.nivelMetros;
+  const tendencia = estacao?.rio?.tendenciaMetros;
+  const formatar = (v, unidade = '') => v == null || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR', {maximumFractionDigits: 2})}${unidade}`;
 
   return (
     <section className="hydra-panel hydra-ai" aria-label="Análise contextual do histórico">
       <header className="hydra-ai-header">
-        <h2>✦ Análise contextual do histórico</h2>
+        <h2>▱ Análise contextual do histórico</h2>
         <span>{data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Atualização automática'}</span>
       </header>
       <div className="hydra-ai-body">
@@ -54,10 +57,10 @@ export default function AnaliseIntegrada() {
           <p>{isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
         </div>
         <div className="hydra-insights">
-          <div className="hydra-insight"><span>Estado do relatório</span><strong>{isError ? 'Indisponível' : status}</strong></div>
-          <div className="hydra-insight"><span>Registros consultados</span><strong>{data?.registrosConsultados ?? '—'}</strong></div>
-          <div className="hydra-insight"><span>Fontes consultadas</span><strong>{fontes.length || '—'}</strong></div>
-          <div className="hydra-insight"><span>Natureza da análise</span><strong>Consultiva</strong></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>Nível oficial</span><strong>{formatar(nivel, ' m')}</strong><small>{estacao?.codigo ?? 'Sem estação'}</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>Tendência oficial</span><strong>{formatar(tendencia, ' m')}</strong><small>Valor informado pela estação</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>Janela crítica</span><strong>—</strong><small>Não calculada</small></div>
         </div>
         <div className="hydra-ai-section">
           <h3>◎ Principais achados</h3>
