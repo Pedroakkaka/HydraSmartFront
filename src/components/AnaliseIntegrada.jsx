@@ -34,7 +34,7 @@ function RelatorioFormatado({ texto }) {
     const tituloNegrito = atual.match(/^\\*\\*([^*]+)\\*\\*:?$/);
     if (tituloMarkdown || tituloNegrito) {
       fecharParagrafo();
-      blocos.push({ tipo: 'titulo', texto: (tituloMarkdown?.[1] || tituloNegrito?.[1]).trim() });
+      blocos.push({ tipo: 'titulo', texto: (tituloMarkdown ? tituloMarkdown[1] : tituloNegrito[1]).trim() });
     } else {
       paragrafo.push(atual);
     }
