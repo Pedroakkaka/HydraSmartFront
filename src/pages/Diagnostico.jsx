@@ -1,168 +1,143 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useCemaden, useClima, useDrenosOsm, useSaude, useUltimaLeituraBanco } from '../hooks/useConsultas.js';
+import { useClima } from '../hooks/useConsultas.js';
 import { api } from '../lib/api.js';
-import { som } from '../lib/som.js';
-import { avisar } from '../store/useTelemetria.js';
-import { dataHora, hora, num } from '../lib/formato.js';
+import { metaRisco, temLeitura } from '../lib/risco.js';
+import { dataHora, num } from '../lib/formato.js';
 
-const CEMADEN_UI = {
-  sucesso: ['normal', 'Dados Recebidos', 'text-emerald-400', 'Token ativo'],
-  sem_dados_recentes: ['warning', 'Sem dados recentes', 'text-amber-400', 'Token ativo'],
-  sem_token: ['muted', 'Sem credencial', 'text-slate-400', 'Configurar CEMADEN_EMAIL e CEMADEN_PASSWORD na API'],
-  erro_autenticacao: ['danger', 'Token recusado', 'text-rose-400', 'Token inválido ou expirado'],
-  erro_conexao: ['danger', 'Erro', 'text-rose-400', 'Falha de conexão']
-};
-
-function Linha({ rotulo, children, classe = 'font-mono text-white' }) {
+function Indicador({ titulo, valor, detalhe, destaque = false }) {
   return (
-    <div className="diag-status-row">
-      <span>{rotulo}</span>
-      <span className={classe}>{children}</span>
-    </div>
-  );
-}
-
-/** Verificação geral para mostrar à banca que tudo está no ar. */
-function Autodiagnostico() {
-  const conexao = useTelemetria((s) => s.conexao);
-  const serial = useTelemetria((s) => s.estado.serial);
-  const saude = useSaude();
-  const clima = useClima();
-  const osm = useDrenosOsm();
-  const [mudo, setMudo] = useState(som.estaMudo());
-
-  const CONSULTANDO = ['check-aviso', '… Consultando'];
-  const item = (ok, aviso = false) => (ok ? ['check-ok', '✔ OK'] : aviso ? ['check-aviso', '● Atenção'] : ['check-falha', '✖ Falha']);
-  const externo = (q) => (q.isFetching && !q.data ? CONSULTANDO
-    : q.data?.status === 'sucesso' ? item(true)
-      : q.data?.status === 'desatualizado' ? ['check-aviso', '● Cache']
-        : ['check-aviso', '● Indisponível']);
-  const verificacoes = [
-    ['API HydraSmart', ...(saude.isFetching && !saude.data ? CONSULTANDO : item(saude.isSuccess))],
-    ['Tempo real (WebSocket)', ...item(conexao === 'online')],
-    ['Banco de dados PostgreSQL', ...item(saude.data?.banco === 'postgres', saude.data?.banco?.startsWith('memoria'))],
-    ['Arduino na porta USB', ...(serial.conectado ? item(true) : ['check-aviso', serial.habilitada ? '● Desconectado' : '● Desativado'])],
-    ['Meteorologia (Open-Meteo)', ...externo(clima)],
-    ['Mapa de drenos (OpenStreetMap)', ...externo(osm)]
-  ];
-
-  return (
-    <div className="diag-card">
-      <div className="diag-card-title">
-        <span>🧪 Autodiagnóstico do Sistema</span>
-        <button className="btn-action-primary text-xs" onClick={() => { saude.refetch(); clima.refetch(); osm.refetch(); som.beep(900); }}>
-          Verificar agora
-        </button>
-      </div>
-      <ul className="check-list">
-        {verificacoes.map(([nome, classe, texto]) => (
-          <li key={nome}><span className="text-slate-300">{nome}</span><span className={classe}>{texto}</span></li>
-        ))}
-      </ul>
-      <p className="text-[11px] text-slate-400">
-        Os 25 testes automatizados das regras de cálculo rodam no servidor com <code>npm test</code> (repositório HydraSmartAPI).
-      </p>
-      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
-        <button className="btn-action-secondary text-xs" onClick={() => setMudo(som.alternarMudo())}>
-          {mudo ? '🔇 Sirene Desativada' : '🔊 Sirene Ativa'}
-        </button>
-        <button className="btn-action-secondary text-xs" onClick={() => som.sirene()} disabled={mudo}>Testar sirene</button>
-      </div>
-    </div>
+    <article className="diag-card" style={{ minHeight: 145 }}>
+      <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{titulo}</div>
+      <div className={`text-2xl font-extrabold mt-3 ${destaque ? 'text-cyan-300' : 'text-white'}`}>{valor}</div>
+      <p className="text-xs text-slate-400 mt-2">{detalhe}</p>
+    </article>
   );
 }
 
 export default function Diagnostico() {
-  const serial = useTelemetria((s) => s.estado.serial);
-  const { data: cemaden } = useCemaden();
-  const saude = useSaude();
-  const ultima = useUltimaLeituraBanco();
-  const queryClient = useQueryClient();
-  const [consultando, setConsultando] = useState(false);
+  const estado = useTelemetria((s) => s.estado);
+  const { data: clima } = useClima();
+  const [analise, setAnalise] = useState(null);
+  const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-  const [badgeC, rotuloC, corC, authC] = CEMADEN_UI[cemaden?.status] ?? ['muted', 'Consultando...', 'text-slate-400', '--'];
-  const registro = ultima.data?.[0];
+  const bueiros = Object.entries(estado?.bueiros ?? {});
+  const validos = bueiros.filter(([, b]) => temLeitura(b) && !b.desatualizado);
+  const maiorNivel = validos.length ? Math.max(...validos.map(([, b]) => Number(b.nivelPct) || 0)) : null;
+  const maiorRisco = validos.some(([, b]) => b.risco === 'critico')
+    ? 'critico' : validos.some(([, b]) => b.risco === 'atencao') ? 'atencao' : validos.length ? 'normal' : 'desconhecido';
+  const risco = metaRisco(maiorRisco);
+  const simulacao = estado?.modo === 'prototipo' || estado?.modo === 'simulacao' || validos.some(([, b]) => b.origem === 'simulador');
 
-  const consultarCemaden = async () => {
-    setConsultando(true);
+  async function solicitarAnalise() {
+    setCarregando(true);
+    setErro('');
     try {
-      queryClient.setQueryData(['cemaden'], await api.get('/cemaden?forcar=true'));
-      som.beep(850);
-    } catch (err) {
-      avisar(err.message, 'erro');
+      const resultado = await api.post('/ia/analisar', {
+        pergunta: 'Analise exclusivamente os dados disponíveis e identifique tendências, anomalias e observações úteis sobre nível de água e drenagem. Diferencie medição de simulação. Não invente probabilidade de alagamento nem tempo de enchimento; somente apresente estimativas numéricas se houver modelo quantitativo validado e dados suficientes. Explique incertezas e limitações.',
+        limite: 60
+      });
+      setAnalise({ ...resultado, consultadoEm: new Date().toISOString() });
+    } catch (e) {
+      setErro(e.status === 503
+        ? 'A análise Gemini está desabilitada no servidor por segurança. Os indicadores de sensores continuam disponíveis.'
+        : e.message || 'Não foi possível consultar a inteligência artificial.');
     } finally {
-      setConsultando(false);
+      setCarregando(false);
     }
-  };
+  }
 
   return (
-    <div className="diagnostico-grid">
-      <div className="diag-card">
-        <div className="diag-card-title">
-          <span>🔌 Enlace Arduino USB (lido pelo servidor)</span>
-          <span className={`badge-pill ${serial.conectado ? 'normal' : 'muted'}`}>{serial.conectado ? 'Conectado' : 'Desconectado'}</span>
-        </div>
-        <div className="space-y-2">
-          <Linha rotulo="Situação:" classe="font-mono text-slate-300 text-[11px]">{serial.statusTexto}</Linha>
-          <Linha rotulo="Porta:">{serial.porta ?? '--'}</Linha>
-          <Linha rotulo="Velocidade:">{serial.baudRate ? `${serial.baudRate} baud` : '--'}</Linha>
-          <Linha rotulo="Leituras válidas:" classe="font-mono text-cyan-400">{serial.leiturasRecebidas}</Linha>
-          <Linha rotulo="Linhas rejeitadas:" classe="font-mono text-slate-400">{serial.errosParser}</Linha>
-          <Linha rotulo="Última mensagem:" classe="font-mono text-slate-300">{serial.timestampUltimaMensagem ? hora(serial.timestampUltimaMensagem) : 'Nenhuma'}</Linha>
-        </div>
-        <div className="text-[10px] text-slate-400 uppercase font-bold mt-2">Último pacote serial bruto:</div>
-        <div className="diag-terminal-box">{serial.ultimaMensagemBruta || 'Aguardando pacotes do Arduino...'}</div>
-        {serial.erroMensagem && <div className="text-[11px] text-rose-400">{serial.erroMensagem}</div>}
-      </div>
+    <div className="space-y-5">
+      <header className="diag-card">
+        <div className="text-xs font-bold tracking-widest text-cyan-400">HYDRASMART • DIAGNÓSTICO INTELIGENTE</div>
+        <h1 className="text-2xl font-extrabold text-white mt-2">Análise do comportamento da água</h1>
+        <p className="text-sm text-slate-300 mt-2">
+          Indicadores medidos pelo sistema e interpretações complementares da IA, apresentados separadamente para evitar previsões sem validação.
+        </p>
+        <span className={`badge-pill mt-3 ${simulacao ? 'warning' : 'normal'}`}>
+          {simulacao ? 'Dados de simulação / protótipo' : 'Modo de monitoramento'}
+        </span>
+      </header>
 
-      <div className="diag-card">
-        <div className="diag-card-title">
-          <span>📡 Integração Oficial CEMADEN</span>
-          <span className={`badge-pill ${badgeC}`}>{rotuloC}</span>
+      <section aria-label="Indicadores essenciais">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-white">Indicadores essenciais</h2>
+          <span className="text-xs text-slate-400">Atualizados pela telemetria</span>
         </div>
-        <div className="space-y-2">
-          <Linha rotulo="Estações de Porto Alegre:">{cemaden?.metadados?.estacaoNome ?? 'Sem estação identificada'}</Linha>
-          <Linha rotulo="Código IBGE:" classe="font-mono text-slate-300">4314902 (Porto Alegre - RS)</Linha>
-          <Linha rotulo="Sensores oficiais:" classe="text-slate-300">Consultar sensores disponíveis no CEMADEN</Linha>
-          <Linha rotulo="Credencial:" classe={`${corC} font-mono text-[11px]`}>{authC}</Linha>
-          <Linha rotulo="Última consulta:" classe="font-mono text-slate-300">{hora(cemaden?.ultimaConsulta)}</Linha>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <Indicador titulo="Nível atual máximo" valor={maiorNivel == null ? 'Sem leitura' : `${num(maiorNivel)}%`}
+            detalhe="Maior nível entre os pontos com leitura válida e atual." destaque />
+          <Indicador titulo="Situação de risco" valor={validos.length ? risco.rotulo : 'Indeterminada'}
+            detalhe="Classificação calculada pelo sistema, não pela IA." />
+          <Indicador titulo="Tempo até enchimento" valor="Não estimado"
+            detalhe="Requer histórico temporal, tendência e modelo hidráulico validado." />
+          <Indicador titulo="Chance de alagamento" valor="Não calculada"
+            detalhe="Probabilidade só será exibida após validação de modelo preditivo." />
         </div>
-        <div className="bg-slate-950 p-2.5 rounded border border-slate-800 text-xs text-slate-300">
-          {cemaden?.mensagem ?? 'Consultando os servidores oficiais do CEMADEN...'}
-        </div>
-        <button className="btn-action-primary text-xs mt-1" onClick={consultarCemaden} disabled={consultando}>
-          {consultando ? '⏳ Consultando...' : '🔄 Consultar CEMADEN Agora'}
-        </button>
-      </div>
+      </section>
 
-      <Autodiagnostico />
+      <section className="diag-card" aria-label="Leituras por ponto">
+        <h2 className="text-base font-bold text-white mb-3">Níveis monitorados</h2>
+        {bueiros.length === 0 ? <p className="text-sm text-slate-400">Aguardando telemetria dos sensores.</p> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {bueiros.map(([id, b]) => {
+              const atual = temLeitura(b) && !b.desatualizado;
+              return <div key={id} className="rounded-xl border border-slate-700 p-4 bg-slate-950/50">
+                <div className="flex justify-between gap-2 items-center">
+                  <strong className="text-sm text-white">{id.replaceAll('_', ' ').toUpperCase()}</strong>
+                  <span className={`badge-pill ${atual ? metaRisco(b.risco).classe : 'muted'}`}>
+                    {atual ? metaRisco(b.risco).rotulo : 'Sem leitura atual'}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-cyan-300 mt-2">{atual ? `${num(b.nivelPct)}%` : '--'}</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {atual ? `${num(b.alturaAguaCm)} cm de água • ${dataHora(b.timestamp)}` : 'Aguardando medição válida e recente'}
+                </p>
+              </div>;
+            })}
+          </div>
+        )}
+      </section>
 
-      <div className="diag-card">
-        <div className="diag-card-title"><span>🗄️ Servidor e Banco de Dados</span>
-          <span className={`badge-pill ${saude.data?.status === 'ok' ? 'normal' : 'danger'}`}>{saude.data?.status === 'ok' ? 'Operacional' : 'Verificar'}</span>
+      <section className="diag-card" aria-label="Interpretação dinâmica da inteligência artificial">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-white">🧠 Descobertas e observações da IA</h2>
+            <p className="text-xs text-slate-400 mt-1">Campo aberto para tendências, anomalias, relações e hipóteses identificadas a partir dos registros.</p>
+          </div>
+          <button className="btn-action-primary text-xs" onClick={solicitarAnalise} disabled={carregando}>
+            {carregando ? 'Analisando...' : 'Gerar análise com IA'}
+          </button>
         </div>
-        <div className="space-y-2 text-xs">
-          <Linha rotulo="Versão da API:" classe="font-mono text-cyan-400">{saude.data?.versao ?? '--'}</Linha>
-          <Linha rotulo="Banco:" classe="font-mono text-slate-300">{saude.data?.banco ?? (saude.isError ? 'indisponível' : '...')}</Linha>
-          <Linha rotulo="No ar há:" classe="font-mono text-slate-300">{saude.data ? `${Math.floor(saude.data.uptimeSegundos / 60)} min` : '--'}</Linha>
-          <Linha rotulo="Último registro gravado:" classe="font-mono text-cyan-300 text-[11px]">
-            {registro ? `${registro.bueiroId} • ${num(registro.nivelPct)}% • ${dataHora(registro.registradoEm)}` : 'Nenhum'}
-          </Linha>
-        </div>
-        <a className="btn-action-secondary text-xs mt-2" href="/docs" target="_blank" rel="noreferrer">📘 Documentação da API (Swagger)</a>
-      </div>
+        {erro && <p role="status" className="text-sm text-amber-300 mt-4">{erro}</p>}
+        {analise?.analise ? (
+          <div className="mt-4 rounded-xl border border-cyan-900 bg-slate-950/60 p-4">
+            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{analise.analise}</p>
+            <p className="text-xs text-slate-400 mt-4">
+              {analise.registrosConsultados ?? 'Quantidade não informada'} registros consultados • Análise em {dataHora(analise.consultadoEm)}
+            </p>
+            {analise.aviso && <p className="text-xs text-amber-300 mt-2">{analise.aviso}</p>}
+          </div>
+        ) : !erro && (
+          <div className="mt-4 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">
+            Nenhuma análise gerada nesta sessão. Quando a IA estiver habilitada de forma segura, suas observações aparecerão aqui, sem limitar a resposta a campos pré-definidos.
+          </div>
+        )}
+        <p className="text-xs text-slate-500 mt-3">
+          A IA interpreta dados disponíveis; não aprende autonomamente nem valida previsões apenas por gerar texto.
+          Aprendizado contínuo exigirá armazenamento histórico, avaliação de acertos e atualização controlada do modelo.
+        </p>
+      </section>
 
-      <div className="diag-card">
-        <div className="diag-card-title"><span>🌐 Serviços Externos</span></div>
-        <div className="space-y-2 text-xs">
-          <Linha rotulo="Open-Meteo:" classe="font-mono text-emerald-400">Consultado pelo servidor (cache 10 min)</Linha>
-          <Linha rotulo="Tiles OpenStreetMap:" classe="font-mono text-emerald-400">tile.openstreetmap.org</Linha>
-          <Linha rotulo="Overpass OSM:" classe="font-mono text-cyan-400">Consultado pelo servidor (cache 6 h)</Linha>
-          <Linha rotulo="Referência:" classe="font-mono text-slate-300">-30.0346, -51.2177 (Porto Alegre-RS)</Linha>
-        </div>
-      </div>
+      <section className="diag-card">
+        <h2 className="text-sm font-bold text-white">Contexto meteorológico</h2>
+        <p className="text-sm text-slate-300 mt-2">
+          Precipitação observada: {clima?.precipitacaoObservadaMm == null ? 'indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm`}.
+          Esta informação é complementar e não equivale, isoladamente, à probabilidade de alagamento.
+        </p>
+      </section>
     </div>
   );
 }
