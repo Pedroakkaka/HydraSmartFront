@@ -49,7 +49,7 @@ export function avaliarCondicaoObservada(estacao, chuva) {
   const nivel = valido(rio?.nivelMetros) ? decimal(rio.nivelMetros,2) + ' m' : null;
   const tendencia = valido(rio?.tendenciaMetros) ? Number(rio.tendenciaMetros) : null;
   const oficial = typeof rio?.situacaoOficial === 'string' ? rio.situacaoOficial.trim() : '';
-  if (!nivel && !oficial && tendencia === null && !valido(chuva))
+  if (!nivel && !oficial && tendencia === null)
     return {valor:'Sem dados atuais',detalhe:'Aguardando observações hidrológicas oficiais.',natureza:'indisponivel'};
   const movimento = tendencia === null ? 'tendência não informada' :
     tendencia > 0 ? 'nível em elevação' : tendencia < 0 ? 'nível em queda' : 'nível estável';
