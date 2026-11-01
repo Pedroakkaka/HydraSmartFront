@@ -23,10 +23,10 @@ export default function Banners() {
         </div>
       )}
 
-      {fonte !== 'campo' && (
+      {fonte === 'prototipo' && (
         <div className="demo-alert-banner" role="status">
           <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-400"/>
-            <span><b>{fonte === 'prototipo' ? 'MODO PROTÓTIPO EXPERIMENTAL:' : 'MODO DEMONSTRAÇÃO — DADOS FICTÍCIOS:'}</b> {fonte === 'prototipo' ? 'Leituras do projeto físico. Não são medições de campo.' : 'Cenários gerados artificialmente. Não representam riscos reais.'}</span>
+            <span><b>{'MODO PROTÓTIPO EXPERIMENTAL:'}</b> {'Leituras do projeto físico. Não são medições de campo.'}</span>
           </div>
         </div>
       )}
