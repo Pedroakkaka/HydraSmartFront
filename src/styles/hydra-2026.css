@@ -496,3 +496,86 @@ input,select,textarea{color-scheme:light}
 .hs-mobile-notification-admin label{font-size:.8rem;font-weight:800;color:#142437}
 .hs-mobile-notification-admin input{flex:1;min-width:180px;min-height:40px;border:1px solid #b6cadd;border-radius:8px;padding:8px 12px;background:#fff;color:#15243a}
 .hs-mobile-notification-admin small{font-size:.7rem;color:#3c5265}
+
+
+/* Ajustes móveis finais — apenas responsividade; desktop preservado. */
+@media (max-width: 900px) {
+  #root,.app-container,.app-main-content,.page-container,.page-section.active{min-width:0;max-width:100%;width:100%}
+  .app-container{display:block;min-height:100dvh}
+  .app-sidebar{height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+  .mobile-header-bar{display:flex;gap:10px;min-height:56px;padding:10px 14px;background:#071c33;color:#fff}
+  .mobile-header-bar .hamburger-btn{min-width:42px;min-height:42px;color:#fff;border:1px solid #57708b;background:#173653;border-radius:10px}
+  .mobile-header-bar .text-white,.mobile-header-bar .text-slate-400{color:#fff!important}
+  .mobile-header-bar>div{min-width:0}
+  .top-context-bar{width:100%;min-width:0;min-height:0!important;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;padding:17px 16px!important;background-position:center!important}
+  .top-context-bar .page-heading-group{flex:1 1 180px;min-width:0}
+  .top-context-bar .page-heading-eyebrow{letter-spacing:.1em;line-height:1.5;overflow-wrap:anywhere}
+  .top-context-bar .page-title-heading{font-size:clamp(1.18rem,5vw,1.55rem);line-height:1.25}
+  .top-context-bar .header-status-pills{display:flex;flex:1 1 100%;max-width:100%;flex-wrap:wrap;gap:7px}
+  .top-context-bar .header-mode-pill,.top-context-bar .server-pill{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.35;font-size:.7rem}
+  .page-container{padding:14px 12px 28px!important}
+  .hs-dashboard,.hydra-dashboard,.overview-grid,.bueiros-page-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px}
+  .hs-left,.hs-dashboard>.hydra-ai,.hs-dashboard>aside{min-width:0;max-width:100%;width:100%}
+  .hs-kpi-row,.hs-measure-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .hs-kpi-status{grid-column:1/-1}
+  .hs-kpi,.hs-card{min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .hs-card{padding:14px}
+  .hs-card-head{gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .hs-card-head h3{flex:1 1 180px;min-width:0;line-height:1.4}
+  .hs-card-head button{max-width:100%;white-space:normal;min-height:34px}
+  .hs-level-content{grid-template-columns:minmax(0,1fr);gap:12px}
+  .hs-sensor-measures{border-left:0;border-top:1px solid #dce6ef;padding:12px 0 0;min-width:0}
+  .hs-chart-graphic{width:100%;max-width:100%;height:190px;min-width:0}
+  .hs-table-wrap,.tabela-alertas,.table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .hs-stations table{min-width:500px}
+  .hs-dashboard .hydra-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hs-dashboard .hydra-ai-body{min-width:0;padding:14px}
+  .hs-dashboard .hydra-ai-header{gap:6px;flex-wrap:wrap}
+  .hs-dashboard .hydra-ai-summary p,.hs-dashboard .hydra-findings li{overflow-wrap:anywhere}
+  .hs-mobile-notification-controls{width:100%;display:flex;flex-direction:column;align-items:stretch}
+  .hs-mobile-notification-controls button,.hs-mobile-notification-controls input{width:100%;max-width:100%;min-width:0;min-height:44px}
+  .hs-replay-badge,.hs-test-tag{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center}
+  .hs-test-record>div{flex-wrap:wrap}
+  .hs-modal-backdrop{z-index:3000;align-items:center;padding:12px;overflow-y:auto;overscroll-behavior:contain}
+  .hs-modal{width:100%;max-width:520px;min-width:0;max-height:calc(100dvh - 24px);overflow-y:auto;border-radius:15px}
+  .hs-modal-head{gap:10px}
+  .hs-modal-head>div,.hs-modal-option-text{min-width:0}
+  .hs-modal-head h2,.hs-modal-option-text>span{overflow-wrap:anywhere}
+  .hs-modal-option{gap:9px;align-items:flex-start}
+  .hs-modal-actions{gap:10px}
+  .hs-modal-actions button{min-height:44px}
+  .critical-emergency-banner,.demo-alert-banner{padding:11px 14px;gap:10px;flex-wrap:wrap;line-height:1.5;overflow-wrap:anywhere}
+  .card-base,.diag-panel,.diag-intro,.manhole-card-detailed,.history-card,.weather-metric-box{min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .grid-2-md,.grid-3,.grid-4,.grid-cols-3,.grid-cols-4{grid-template-columns:minmax(0,1fr)}
+  .map-container,.leaflet-container,.preview-map-box{max-width:100%;min-width:0}
+}
+@media (max-width: 600px) {
+  .page-container{padding:11px 10px 24px!important}
+  .top-context-bar{padding:14px 12px!important}
+  .hs-kpi-row,.hs-measure-row{grid-template-columns:minmax(0,1fr)}
+  .hs-kpi-status{grid-column:auto}
+  .hs-kpi{min-height:112px;padding:14px}
+  .hs-kpi-number{font-size:1.6rem}
+  .hs-level-content{grid-template-columns:minmax(0,1fr)}
+  .hs-dashboard .hydra-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hs-dashboard .hydra-ai-header{flex-direction:column;align-items:flex-start}
+  .hs-dashboard .hydra-ai-header span{white-space:normal}
+  .hs-card,.diag-panel{padding:13px}
+  .hs-chart-graphic{height:175px}
+  .hs-modal-head{padding:15px}
+  .hs-modal-options{padding:11px}
+  .hs-modal-credentials{padding:8px 13px 14px}
+  .hs-modal-actions{padding:12px 13px 15px;display:grid;grid-template-columns:1fr}
+  .hs-modal-actions button{width:100%}
+  .hs-modal-option{padding:11px}
+  .hs-modal-check{min-width:14px}
+  .diag-summary-grid,.diag-health-grid,.diag-sensors{grid-template-columns:minmax(0,1fr)}
+  .hs-replay-actions{flex-direction:column;align-items:stretch}
+  .hs-replay-actions button{min-height:44px}
+}
+@media (max-width: 360px) {
+  .top-context-bar .header-status-pills{flex-direction:column;align-items:flex-start}
+  .hs-dashboard .hydra-insights{grid-template-columns:minmax(0,1fr)}
+  .hs-rain-icon{display:none}
+  .hs-modal-option-icon{font-size:1.2rem}
+}
