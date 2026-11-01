@@ -593,3 +593,40 @@ input,select,textarea{color-scheme:light}
   .app-sidebar:not(.mobile-open){transform:translateX(-110%)!important;pointer-events:none}
   .top-context-bar{margin-top:0!important}
 }
+
+
+/*
+ * Correção definitiva do espaço branco no celular:
+ * regra desktop .app-sidebar { position: sticky } estava sobrescrevendo
+ * o position: fixed do breakpoint mobile. A sidebar deslocada com
+ * translateX(-100%) permanecia ocupando 100dvh no fluxo da página.
+ */
+@media (max-width: 900px) {
+  .app-container > .app-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    width: min(290px, 86vw) !important;
+    flex-shrink: 0;
+    z-index: 1200;
+    margin: 0 !important;
+  }
+  .app-container > .app-sidebar:not(.mobile-open) {
+    transform: translateX(-105%) !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .app-container > .app-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .app-container > .app-main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
