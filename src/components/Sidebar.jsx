@@ -6,6 +6,18 @@ import { som } from '../lib/som.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 import ConexaoArduino from './ConexaoArduino.jsx';
 
+const CAMINHOS = {
+  '/': <><path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z" /></>,
+  '/mapa': <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z" /><circle cx="12" cy="10" r="2.5" /></>,
+  '/bueiros': <><rect x="9" y="8" width="6" height="8" rx="2"/><path d="M6 5a10 10 0 0 0 0 14M18 5a10 10 0 0 1 0 14M3 2a14 14 0 0 0 0 20M21 2a14 14 0 0 1 0 20"/></>,
+  '/clima': <><path d="M7 18a5 5 0 0 1-.2-10A7 7 0 0 1 20 10a4 4 0 0 1-1 8z" /></>,
+  '/graficos': <><path d="M4 20h16M5 17v-6h4v6M10 17V4h4v13M15 17V9h4v8" /></>,
+  '/diagnostico': <><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4V2h6v2M8 10h8M8 14h8M8 18h5"/></>
+};
+function IconeMenu({ caminho }) {
+  return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{CAMINHOS[caminho]}</svg>;
+}
+
 export default function Sidebar({ aberto, aoNavegar }) {
   const relogio = useRelogio();
   const modo = useTelemetria((s) => s.estado?.modo ?? 'real');
@@ -36,7 +48,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
                 aoNavegar();
               }}
             >
-              <span className="nav-icon">{r.icone}</span>
+              <span className="nav-icon"><IconeMenu caminho={r.caminho}/></span>
               <span className="nav-label">{r.rotulo}</span>
             </NavLink>
           ))}
