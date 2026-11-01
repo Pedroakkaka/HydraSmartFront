@@ -24,8 +24,9 @@ function selecionarCanal(snapshot, fonte) {
     return [id, {
       ...original, ...leitura, valido: true, conectado: true, desatualizado: false,
       distanciaMedidaCm: leitura.distanciaCm,
-      historicoNiveis: [leitura.nivelPct], historicoTimestamps: [leitura.timestamp],
-      historicoDistancias: [leitura.distanciaCm]
+      historicoNiveis: leitura.historicoNiveis || [leitura.nivelPct],
+      historicoTimestamps: leitura.historicoTimestamps || [leitura.timestamp],
+      historicoDistancias: leitura.historicoDistancias || [leitura.distanciaCm]
     }];
   }));
   const ativos = (snapshot.alertasAtivos || []).filter((a) => fonte === 'campo'
