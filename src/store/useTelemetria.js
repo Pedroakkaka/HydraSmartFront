@@ -4,19 +4,19 @@ import { create } from 'zustand';
  * Estado global do painel, alimentado pelo WebSocket da API.
  * `estado` é o snapshot completo enviado pelo servidor (bueiros, serial, modo, alertas...).
  */
-const CANAIS = ['prototipo', 'demonstracao', 'campo'];
+const CANAIS = ['prototipo', 'inteligente'];
 
 // Constrói um painel inteiro a partir de uma única fonte; jamais preenche com outra.
 function selecionarCanal(snapshot, fonte) {
   if (!snapshot) return null;
   const canais = snapshot.canais || {};
-  const leituras = canais[fonte] || {};
+  const leituras = canais[fonte === 'inteligente' ? 'campo' : 'prototipo'] || {};
   const bueiros = Object.fromEntries(Object.entries(snapshot.bueiros || {}).map(([id, original]) => {
     const leitura = leituras[id];
     const recente = leitura && Date.now() - Number(leitura.timestamp) <= 30000;
     if (!recente) return [id, {
       ...original, conectado: false, valido: false, desatualizado: true,
-      origem: fonte === 'prototipo' ? 'Aguardando protótipo físico' : fonte === 'demonstracao' ? 'Aguardando dados fictícios' : 'Aguardando sensores de campo',
+      origem: fonte === 'prototipo' ? 'Aguardando protótipo físico' : 'Aguardando sensores de campo',
       nivelPct: 0, alturaAguaCm: 0, volumeMl: 0,
       distanciaMedidaCm: null, timestamp: null,
       risco: 'desconhecido', historicoNiveis: [], historicoTimestamps: [], historicoDistancias: []
@@ -29,14 +29,12 @@ function selecionarCanal(snapshot, fonte) {
       historicoDistancias: leitura.historicoDistancias || [leitura.distanciaCm]
     }];
   }));
-  const ativos = (snapshot.alertasAtivos || []).filter((a) => fonte === 'campo'
+  const ativos = (snapshot.alertasAtivos || []).filter((a) => fonte === 'inteligente'
     ? !a.simulado
-    : fonte === 'prototipo'
-      ? a.simulado && (a.mensagem || '').startsWith('[TESTE PROTÓTIPO]')
-      : a.simulado && !(a.mensagem || '').startsWith('[TESTE PROTÓTIPO]'));
+    : a.simulado && (a.mensagem || '').startsWith('[TESTE PROTÓTIPO]'));
   return {
     ...snapshot, bueiros, alertasAtivos: ativos,
-    modo: fonte === 'demonstracao' ? 'demo' : 'real',
+    modo: 'real',
     fonteSelecionada: fonte
   };
 }
@@ -44,7 +42,7 @@ function selecionarCanal(snapshot, fonte) {
 export const useTelemetria = create((set) => ({
   estadoBruto: null,
   estado: null,
-  fonteSelecionada: 'campo',
+  fonteSelecionada: 'inteligente',
   conexao: 'conectando',
   alertasDispensados: [],
 
