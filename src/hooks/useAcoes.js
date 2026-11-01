@@ -26,14 +26,23 @@ export function useAcao() {
   return { executar, ocupado };
 }
 
-/** Liga/desliga o modo demonstração. */
+/** Liga/desliga a simulação com autenticação explícita do operador.
+ * A chave nunca é armazenada no frontend nem incluída no código publicado.
+ */
 export function useAlternarModo() {
   const { executar, ocupado } = useAcao();
   const alternar = () => {
     const modo = useTelemetria.getState().estado?.modo;
+    const chave = window.prompt('Informe a chave de operador configurada no backend (OPERATOR_API_KEY):');
+    if (chave === null) return;
+    if (!chave.trim()) {
+      avisar('Informe a chave de operador para alternar o modo.', 'erro');
+      return;
+    }
+    const headers = { 'X-Operator-Key': chave.trim() };
     return modo === 'demo'
-      ? executar(() => api.post('/simulacao/encerrar'), { beep: 850, sucesso: 'Modo real reativado' })
-      : executar(() => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }), { beep: 650, sucesso: 'Modo demonstração ativado' });
+      ? executar(() => api.post('/simulacao/encerrar', {}, headers), { beep: 850, sucesso: 'Modo real reativado' })
+      : executar(() => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers), { beep: 650, sucesso: 'Modo demonstração ativado' });
   };
   return { alternar, ocupado };
 }
