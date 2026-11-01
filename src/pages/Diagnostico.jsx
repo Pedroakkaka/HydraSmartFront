@@ -15,6 +15,7 @@ export default function Diagnostico() {
   const [detalhes, setDetalhes] = useState(false);
   const estado = useTelemetria(s => s.estado);
   const conexao = useTelemetria(s => s.conexao);
+  const fonte = useTelemetria(s => s.fonteSelecionada);
   const { data: clima } = useClima();
   const { data: saude } = useSaude();
   const pontos = Object.entries(estado?.bueiros || {});
@@ -25,15 +26,16 @@ export default function Diagnostico() {
     : validos.length ? 'normal' : null;
   const situacao = riscoId ? metaRisco(riscoId).rotulo : 'Indeterminada';
   const serial = estado?.serial;
+  const descricaoFonte = fonte === 'prototipo' ? 'Protótipo experimental' : fonte === 'demonstracao' ? 'Dados fictícios' : 'Sensores reais em campo';
   const chuva = clima?.precipitacaoObservadaMm;
 
   return <div className="diag-simple">
     <div className="diag-intro">
       <div><span className="diag-kicker">HYDRASMART / DIAGNÓSTICO</span>
         <h2>Saúde do monitoramento</h2>
-        <p>Leituras, conexões e condições atuais em uma única visão.</p>
+        <p>Leituras, conexões e condições atuais: {descricaoFonte}.</p>
       </div>
-      <span className="diag-mode">{estado?.modo === 'demo' ? 'Demonstração' : 'Modo real'}</span>
+      <span className="diag-mode">{descricaoFonte}</span>
     </div>
 
     <div className="diag-summary-grid">
@@ -63,7 +65,7 @@ export default function Diagnostico() {
       <div className="diag-health-grid">
         <div><span>Banco de dados</span><strong>{saude?.banco ?? 'Consultando…'}</strong></div>
         <div><span>Arduino / serial</span><strong>{serial?.habilitada ? (serial.conectado ? 'Conectado' : 'Desconectado') : 'Desativado no servidor'}</strong></div>
-        <div><span>IA contextual</span><strong>Relatório consultivo</strong></div>
+        <div><span>Origem selecionada</span><strong>{descricaoFonte}</strong></div>
       </div>
       <button type="button" className="diag-details-button" onClick={() => setDetalhes(v => !v)} aria-expanded={detalhes}>
         {detalhes ? 'Ocultar informações técnicas −' : 'Ver informações técnicas +'}
@@ -78,6 +80,6 @@ export default function Diagnostico() {
       </div>}
     </section>
 
-    <AnaliseIntegrada />
+    {fonte === 'campo' ? <AnaliseIntegrada /> : <section className="diag-panel"><div className="diag-section-header"><h3>Nota sobre as medições</h3></div><p className="hydra-muted">{fonte === 'prototipo' ? 'Estas leituras são ensaios do projeto físico. Não representam níveis de água em ruas ou bueiros operacionais.' : 'Estes valores são gerados pelo simulador e servem somente para demonstrar o funcionamento do HydraSmart.'} Nenhuma notificação externa é enviada.</p></section>}
   </div>;
 }
