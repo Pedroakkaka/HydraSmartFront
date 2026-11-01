@@ -1,209 +1,117 @@
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useCemaden, useClima, useSaude, useHistoricoOficial } from '../hooks/useConsultas.js';
+import { useClima, useSaude, useHistoricoOficial } from '../hooks/useConsultas.js';
 import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
-import { hora, num } from '../lib/formato.js';
-import { useRelogio } from '../hooks/useRelogio.js';
+import { num } from '../lib/formato.js';
+import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 
-const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
-
-const SITUACAO = {
-  critico: {
-    badge: ['danger', 'Alerta Crítico'], valor: ['text-rose-500', 'Crítico'], card: 'active-alert',
-    icone: ['bg-rose-500 text-white', '⚠'], titulo: 'Risco Iminente de Transbordo',
-    descricao: "Nível d'água acima do limiar crítico em galeria monitorada."
-  },
-  atencao: {
-    badge: ['warning', 'Atenção'], valor: ['text-amber-400', 'Atenção'], card: '',
-    icone: ['bg-amber-500 text-black', '!'], titulo: 'Elevação do Nível de Drenagem',
-    descricao: "Nível d'água entre os limiares de atenção e crítico nas galerias monitoradas."
-  },
-  normal: {
-    badge: ['normal', 'Operacional'], valor: ['text-emerald-400', 'Normal'], card: '',
-    icone: ['bg-emerald-500 text-white', '✓'], titulo: 'Condição Hidrológica Normal',
-    descricao: 'Nenhum transbordo ou risco crítico detectado nas galerias monitoradas.'
-  },
-  desconhecido: {
-    badge: ['muted', 'Sem dados'], valor: ['text-slate-400', 'Sem dados'], card: 'unknown-state',
-    icone: ['bg-slate-700 text-slate-200', '—'], titulo: 'Leituras insuficientes',
-    descricao: 'A condição geral só é considerada normal quando todos os sensores têm leituras válidas.'
-  }
-};
-
-function CardBueiro({ bueiro, titulo, onClick }) {
-  const ok = temLeitura(bueiro);
-  const meta = metaRisco(bueiro.risco);
-  const cfg = bueiro.calibracao;
-
+function BueiroResumo({ bueiro, numero, onClick }) {
+  const valido = temLeitura(bueiro) && !bueiro.desatualizado;
+  const risco = valido ? metaRisco(bueiro.risco).rotulo : 'Sem leitura';
+  const percentual = valido ? Math.max(0, Math.min(100, Number(bueiro.nivelPct) || 0)) : 0;
   return (
-    <button type="button" className="card-base cursor-pointer w-full text-left transition-colors hover:border-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" onClick={onClick} aria-label={`Ver detalhes de ${titulo}`}>
+    <div className="hydra-panel">
       <div className="card-header-line">
-        <span className="card-title-text">{titulo}</span>
-        <span className={`badge-pill ${ok ? meta.classe : 'muted'}`}>{ok ? meta.rotulo : 'Desconectado'}</span>
+        <h3>◉ Bueiro {numero} · {numero === '01' ? 'Entrada' : 'Saída'}</h3>
+        <span className={`badge-pill ${valido ? metaRisco(bueiro.risco).classe : 'muted'}`}>{risco}</span>
       </div>
-      <div className="card-value-display">
-        <span className="value-large">{ok ? `${num(bueiro.nivelPct)}%` : 'Sem leitura'}</span>
-        <span className="value-unit">{ok ? `(${num(bueiro.alturaAguaCm)} cm d'água)` : ''}</span>
+      <div className="hydra-number">{valido ? `${num(bueiro.nivelPct)}%` : '—'}</div>
+      <p className="hydra-muted">{valido ? `${num(bueiro.alturaAguaCm)} cm de coluna d’água` : 'Aguardando medição do sensor físico.'}</p>
+      <div className="hydra-level-track" aria-label={valido ? `Nível ${percentual}%` : 'Sem medição'}>
+        <div className="hydra-level-fill" style={{ width: `${percentual}%` }} />
       </div>
-      <div className="card-meta-text">
-        <span>
-          {!ok ? 'Aguardando leituras' : bueiro.desatualizado ? '⚠️ Desatualizado' : `Distância: ${num(bueiro.distanciaMedidaCm)} cm`}
-        </span>
-        <span className="font-mono">{ok ? hora(bueiro.timestamp) : '--:--'}</span>
+      <div className="hydra-mini-meta">
+        <span>{valido ? `Atenção: ${bueiro.calibracao.limiteAtencaoPct}%` : 'Leitura indisponível'}</span>
+        <button type="button" className="hydra-link" onClick={onClick}>Detalhes ↗</button>
       </div>
-      <div className={`text-[10px] font-mono mt-1 ${cfg.coordenadasConfirmadas ? 'text-emerald-400' : 'text-slate-500'}`}>
-        {cfg.coordenadasConfirmadas
-          ? `Lat: ${cfg.latitude.toFixed(4)}, Lng: ${cfg.longitude.toFixed(4)}`
-          : 'Localização não confirmada'}
-      </div>
-    </button>
+    </div>
   );
-}
-
-function statusCemaden(c) {
-  if (!c) return ['text-slate-400', 'Consultando...'];
-  if (c.status === 'sucesso') return ['text-emerald-400', 'Estações de Porto Alegre com dados recentes'];
-  if (c.status === 'desatualizado') return ['text-amber-400', 'Último dado CEMADEN desatualizado'];
-  if (c.status === 'sem_dados_recentes') return ['text-amber-400', 'Sem dados recentes'];
-  if (c.status === 'sem_token') return ['text-slate-400', 'Sem token configurado'];
-  return ['text-rose-400', 'Falha de conexão'];
 }
 
 export default function VisaoGeral() {
   const navegar = useNavigate();
-  const relogio = useRelogio();
   const estado = useTelemetria((s) => s.estado);
+  const conexao = useTelemetria((s) => s.conexao);
   const { data: clima } = useClima();
-  const { data: cemaden } = useCemaden();
-  const saude = useSaude();
-  const { data: historicoOficial } = useHistoricoOficial();
-
-  const { bueiro_1: b1, bueiro_2: b2 } = estado.bueiros;
-  const s = SITUACAO[situacaoGeral(estado.bueiros)];
-  const serial = estado.serial;
-  const [corCemaden, textoCemaden] = statusCemaden(cemaden);
-  const banco = saude.data?.banco ?? (saude.isError ? 'indisponível' : '...');
-
-  const abrirBueiro = () => navegar('/bueiros');
+  const { data: historico } = useHistoricoOficial();
+  const { data: saude } = useSaude();
+  if (!estado?.bueiros?.bueiro_1 || !estado?.bueiros?.bueiro_2) return <p className="hydra-muted">Aguardando estado dos sensores…</p>;
+  const b1 = estado.bueiros.bueiro_1;
+  const b2 = estado.bueiros.bueiro_2;
+  const situacao = situacaoGeral(estado.bueiros);
+  const temAmbos = [b1,b2].every((b) => temLeitura(b) && !b.desatualizado);
+  const estatus = !temAmbos ? 'Sem leituras' : situacao === 'normal' ? 'Operacional' : situacao === 'atencao' ? 'Atenção' : situacao === 'critico' ? 'Crítico' : 'Indeterminado';
+  const classe = !temAmbos ? '' : situacao === 'normal' ? 'ok' : situacao === 'atencao' ? 'warn' : situacao === 'critico' ? 'danger' : '';
+  const chuva = clima?.precipitacaoObservadaMm;
 
   return (
-    <>
-      <div className="overview-grid">
-        <div className="card-base">
+    <div className="hydra-dashboard">
+      <div className="hydra-dashboard-main">
+        <div className="hydra-kpis">
+          <div className="hydra-kpi hydra-kpi-feature">
+            <h3>◉ Status do monitoramento</h3>
+            <span className={`hydra-state ${classe}`}>{estatus}</span>
+            <p className="hydra-banner-hint">{!temAmbos ? 'Sensores sem leituras recentes; situação não determinada.' : 'Situação dos sensores físicos monitorados.'}</p>
+          </div>
+          <div className="hydra-kpi">
+            <h3>◷ Tempo até extravasamento</h3>
+            <strong>Não disponível</strong>
+            <small>Estimativa hidráulica ainda não validada.</small>
+          </div>
+          <div className="hydra-kpi">
+            <h3>△ Probabilidade de alagamento</h3>
+            <strong>Não disponível</strong>
+            <small>O sistema não realiza previsão validada.</small>
+          </div>
+        </div>
+
+        <div className="hydra-info-pair">
+          <div className="hydra-panel">
+            <div className="card-header-line"><h3>◉ Nível de água dos sensores</h3><button type="button" onClick={() => navegar('/bueiros')} className="hydra-link">Ver sensores ↗</button></div>
+            <div className="hydra-number">{temLeitura(b1) && !b1.desatualizado ? `${num(b1.alturaAguaCm)} cm` : 'Sem leitura'}</div>
+            <p className="hydra-muted">Bueiro 01 · medição do protótipo físico, não nível do Guaíba.</p>
+            <div className="hydra-level-track"><div className="hydra-level-fill" style={{ width: `${temLeitura(b1) && !b1.desatualizado ? Math.min(100,Math.max(0,Number(b1.nivelPct)||0)) : 0}%` }} /></div>
+            <div className="hydra-mini-meta"><span>Sensor 01: {temLeitura(b1) && !b1.desatualizado ? 'com leitura' : 'sem dados'}</span><span>Sensor 02: {temLeitura(b2) && !b2.desatualizado ? 'com leitura' : 'sem dados'}</span></div>
+          </div>
+          <div className="hydra-panel">
+            <div className="card-header-line"><h3>☁ Precipitação observada</h3><button type="button" className="hydra-link" onClick={() => navegar('/clima')}>Clima ↗</button></div>
+            <div className="hydra-number">{chuva == null ? 'Sem dados' : `${num(chuva,1)} mm`}</div>
+            <p className="hydra-muted">Fonte: Open-Meteo · valor conforme período informado pela API.</p>
+            <div className="hydra-data-grid" style={{marginTop:12}}>
+              <div><span>Temperatura</span><strong>{clima?.temperatura == null ? '—' : `${num(clima.temperatura)} °C`}</strong></div>
+              <div><span>Umidade</span><strong>{clima?.umidadeRelativaPct == null ? '—' : `${clima.umidadeRelativaPct}%`}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="hydra-info-pair">
+          <BueiroResumo bueiro={b1} numero="01" onClick={() => navegar('/bueiros')} />
+          <BueiroResumo bueiro={b2} numero="02" onClick={() => navegar('/bueiros')} />
+        </div>
+
+        <div className="hydra-panel">
           <div className="card-header-line">
-            <span className="card-title-text">Sistema Geral</span>
-            <span className={`badge-pill ${s.badge[0]}`}>{s.badge[1]}</span>
+            <h3>↗ Evolução dos níveis</h3>
+            <button type="button" className="hydra-link" onClick={() => navegar('/graficos')}>Abrir gráficos e histórico ↗</button>
           </div>
-          <div className="card-value-display">
-            <span className={`value-large ${s.valor[0]}`}>{s.valor[1]}</span>
-          </div>
-          <div className="card-meta-text">
-            <span>Porto Alegre - Rio Grande do Sul</span>
-            <span>{relogio} (GMT-3)</span>
-          </div>
+          <div className="hydra-chart-empty">{b1.historicoNiveis?.length || b2.historicoNiveis?.length
+            ? 'As séries reais dos sensores estão disponíveis na página Gráficos e histórico.'
+            : 'Nenhuma série de medição física disponível. O gráfico será exibido quando chegarem leituras.'}</div>
         </div>
 
-        <CardBueiro bueiro={b1} titulo="Bueiro 01 (Entrada)" onClick={abrirBueiro} />
-        <CardBueiro bueiro={b2} titulo="Bueiro 02 (Saída)" onClick={abrirBueiro} />
-
-        <button type="button" className="card-base cursor-pointer w-full text-left transition-colors hover:border-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" onClick={() => navegar('/clima')} aria-label="Ver detalhes do clima">
-          <div className="card-header-line">
-            <span className="card-title-text">Clima (Open-Meteo)</span>
-            <span className="text-xs text-cyan-400 font-mono">{clima?.condicaoTempo ?? 'Consultando...'}</span>
+        <div className="hydra-panel">
+          <div className="card-header-line"><h3>▤ Fontes e integridade dos dados</h3><button className="hydra-link" type="button" onClick={() => navegar('/diagnostico')}>Diagnóstico ↗</button></div>
+          <div className="hydra-data-grid">
+            <div><span>API / Tempo real</span><strong>{conexao === 'online' ? 'Conectado' : 'HTTP disponível / WS pendente'}</strong></div>
+            <div><span>Banco de dados</span><strong>{saude?.banco ?? 'Consultando…'}</strong></div>
+            <div><span>Leitura serial</span><strong>{estado.serial?.habilitada ? estado.serial?.conectado ? 'Conectada' : 'Desconectada' : 'Desativada'}</strong></div>
+            <div><span>Referências oficiais</span><strong>{Array.isArray(historico) ? historico.length : '—'}</strong></div>
           </div>
-          <div className="card-value-display">
-            <span className="value-large">{clima?.temperatura == null ? 'Sem dados' : num(clima.temperatura)}</span>
-            {clima?.temperatura != null && <span className="value-unit">°C</span>}
-          </div>
-          <div className="card-meta-text">
-            <span>Chuva: {clima?.precipitacaoObservadaMm == null ? 'Sem dados' : `${num(clima.precipitacaoObservadaMm, 1)} mm`}</span>
-            <span>Umidade: {clima?.umidadeRelativaPct == null ? 'Sem dados' : `${clima.umidadeRelativaPct}%`}</span>
-          </div>
-        </button>
-      </div>
-
-      <div className="card-base mt-3">
-        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Porto Alegre</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
-          <div><strong className="text-white">Chuva observada</strong><div>{clima?.precipitacaoObservadaMm == null ? 'Fonte meteorológica indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm (Open-Meteo)`}</div></div>
-          <div><strong className="text-white">Referências históricas</strong><div>{Array.isArray(historicoOficial) ? `${historicoOficial.length} registros/referências cadastrados` : 'Aguardando histórico oficial'}</div></div>
-          <div><strong className="text-white">Protótipo físico B1 / B2</strong><div>{[b1,b2].map((b,i) => `B${i+1}: ${temLeitura(b) && !b.desatualizado && b.origem !== 'simulador' ? num(b.nivelPct) + '% de nível' : 'sem leitura física atual'}`).join(' • ')}</div></div>
-        </div>
-        <p className="text-[11px] text-slate-400 mt-2">A análise reúne fontes distintas, sem atribuir causalidade automaticamente. Nível de água não equivale a vazão (L/s): para medir vazão são necessários sensor adequado e calibração hidráulica. No modo demonstração os valores gerados são sintéticos; para medições reais use Modo Real e conecte o dispositivo.</p>
-      </div>
-      <div className="overview-central-layout">
-        <div className="preview-map-box">
-          <div className="preview-map-header">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>🗺️</span> Malha Cartográfica de Porto Alegre-RS (OpenStreetMap)
-              </h3>
-              <p className="text-xs text-slate-400">
-                Base cartográfica OpenStreetMap; cadastro municipal de bocas de lobo disponível no mapa completo.
-              </p>
-            </div>
-            <button className="btn-action-primary text-xs" onClick={() => navegar('/mapa')}>
-              Abrir Mapa Completo ↗
-            </button>
-          </div>
-          <div className="preview-map-frame" style={{ cursor: 'pointer' }} onClick={() => navegar('/mapa')}>
-            <MapContainer
-              center={CENTRO_PORTO_ALEGRE}
-              zoom={13}
-              zoomControl={false}
-              dragging={false}
-              scrollWheelZoom={false}
-              doubleClickZoom={false}
-              touchZoom={false}
-              boxZoom={false}
-              keyboard={false}
-              attributionControl={false}
-              style={{ height: '100%', width: '100%', pointerEvents: 'none' }}
-            >
-              <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={18} />
-            </MapContainer>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className={`alert-status-card ${s.card}`}>
-            <div className={`alert-icon-wrap ${s.icone[0]}`}>{s.icone[1]}</div>
-            <div>
-              <div className="text-xs font-bold text-white">{s.titulo}</div>
-              <div className="text-[11px] text-slate-300 mt-0.5">{s.descricao}</div>
-            </div>
-          </div>
-
-          <div className="card-base">
-            <div className="text-xs font-bold text-white uppercase border-b border-slate-800 pb-2 mb-2 flex justify-between">
-              <span>Enlace de Telemetria</span>
-              <span className="text-cyan-400 font-mono text-[11px]">{serial.leiturasRecebidas} msgs</span>
-            </div>
-            <div className="space-y-1.5 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Porta USB:</span>
-                <span className="font-mono text-white">{serial.conectado ? `${serial.porta} (${serial.baudRate} baud)` : 'Desconectada'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Erros de leitura:</span>
-                <span className={`font-mono ${serial.errosParser ? 'text-amber-400' : 'text-emerald-400'}`}>{serial.errosParser} erros</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">CEMADEN Porto Alegre:</span>
-                <span className={corCemaden}>{textoCemaden}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Banco de dados:</span>
-                <span className={`font-mono text-[11px] ${banco === 'postgres' ? 'text-emerald-400' : 'text-amber-400'}`}>{banco}</span>
-              </div>
-            </div>
-            <button className="btn-action-secondary mt-3 text-xs w-full" onClick={() => navegar('/diagnostico')}>
-              Ver Diagnóstico Completo
-            </button>
-          </div>
+          <p className="hydra-ai-footnote">Dados externos, sensores físicos e análises de IA têm origens distintas. Ausência de medição não significa situação normal.</p>
+          <button type="button" className="btn-action-primary" style={{marginTop:13}} onClick={() => navegar('/mapa')}>⌖ Explorar mapa de Porto Alegre ↗</button>
         </div>
       </div>
-    </>
+      <AnaliseIntegrada />
+    </div>
   );
 }
