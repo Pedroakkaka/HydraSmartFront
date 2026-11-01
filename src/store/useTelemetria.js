@@ -4,15 +4,64 @@ import { create } from 'zustand';
  * Estado global do painel, alimentado pelo WebSocket da API.
  * `estado` é o snapshot completo enviado pelo servidor (bueiros, serial, modo, alertas...).
  */
+const CANAIS = ['prototipo', 'demonstracao', 'campo'];
+
+// Constrói um painel inteiro a partir de uma única fonte; jamais preenche com outra.
+function selecionarCanal(snapshot, fonte) {
+  if (!snapshot) return null;
+  const canais = snapshot.canais || {};
+  const leituras = canais[fonte] || {};
+  const bueiros = Object.fromEntries(Object.entries(snapshot.bueiros || {}).map(([id, original]) => {
+    const leitura = leituras[id];
+    const recente = leitura && Date.now() - Number(leitura.timestamp) <= 30000;
+    if (!recente) return [id, {
+      ...original, conectado: false, valido: false, desatualizado: true,
+      origem: fonte === 'prototipo' ? 'Aguardando protótipo físico' : fonte === 'demonstracao' ? 'Aguardando dados fictícios' : 'Aguardando sensores de campo',
+      nivelPct: 0, alturaAguaCm: 0, volumeMl: 0,
+      distanciaMedidaCm: null, timestamp: null,
+      risco: 'desconhecido', historicoNiveis: [], historicoTimestamps: [], historicoDistancias: []
+    }];
+    return [id, {
+      ...original, ...leitura, valido: true, conectado: true, desatualizado: false,
+      distanciaMedidaCm: leitura.distanciaCm,
+      historicoNiveis: [leitura.nivelPct], historicoTimestamps: [leitura.timestamp],
+      historicoDistancias: [leitura.distanciaCm]
+    }];
+  }));
+  const ativos = (snapshot.alertasAtivos || []).filter((a) => fonte === 'campo'
+    ? !a.simulado
+    : fonte === 'prototipo'
+      ? a.simulado && (a.mensagem || '').startsWith('[TESTE PROTÓTIPO]')
+      : a.simulado && !(a.mensagem || '').startsWith('[TESTE PROTÓTIPO]'));
+  return {
+    ...snapshot, bueiros, alertasAtivos: ativos,
+    modo: fonte === 'demonstracao' ? 'demo' : 'real',
+    fonteSelecionada: fonte
+  };
+}
+
 export const useTelemetria = create((set) => ({
+  estadoBruto: null,
   estado: null,
-  conexao: 'conectando', // 'conectando' | 'online' | 'offline'
+  fonteSelecionada: 'campo',
+  conexao: 'conectando',
   alertasDispensados: [],
 
-  definirEstado: (estado) => set({ estado }),
+  definirEstado: (estadoBruto) => set(s => ({
+    estadoBruto,
+    estado: selecionarCanal(estadoBruto, s.fonteSelecionada)
+  })),
+  selecionarFonte: (fonte) => {
+    if (!CANAIS.includes(fonte)) return;
+    set(s => ({
+      fonteSelecionada: fonte,
+      estado: selecionarCanal(s.estadoBruto, fonte),
+      alertasDispensados: []
+    }));
+  },
   definirConexao: (conexao) => set({ conexao }),
   dispensarAlertas: (ids) =>
-    set((s) => ({ alertasDispensados: [...new Set([...s.alertasDispensados, ...ids])] }))
+    set(s => ({ alertasDispensados: [...new Set([...s.alertasDispensados, ...ids])] }))
 }));
 
 /** Avisos rápidos (toasts) no canto da tela. */
