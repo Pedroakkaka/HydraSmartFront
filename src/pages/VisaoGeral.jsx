@@ -70,6 +70,36 @@ function Estacoes({ data, loading, error }) {
     <p className="hs-card-foot">Fonte: Defesa Civil RS · Estações da região, não sensores dos bueiros. Atualização a cada 5 min.</p>
   </section>;
 }
+
+const TIPOS = [
+  { id:'prototipo', titulo:'Protótipo físico', descricao:'Leituras experimentais do Arduino e dos sensores da bancada.', icone:'⌁', etiqueta:'EXPERIMENTAL' },
+  { id:'demonstracao', titulo:'Demonstração sintética', descricao:'Valores fictícios gerados para mostrar cenários e alertas de teste.', icone:'◈', etiqueta:'DADOS FICTÍCIOS' },
+  { id:'campo', titulo:'Monitoramento de campo', descricao:'Somente dados reais enviados por dispositivos instalados em campo.', icone:'⌖', etiqueta:'CAMPO REAL' }
+];
+
+function FontesSeparadas({ canais }) {
+  return <section className="hs-card hs-origins" aria-label="Origem dos dados">
+    <div className="hs-card-head"><h3><span className="hs-outline-icon">▦</span> Origem dos dados</h3><span className="hs-origins-note">Três fontes independentes</span></div>
+    <div className="hs-origins-grid">
+      {TIPOS.map(tipo=>{
+        const leituras = Object.values(canais?.[tipo.id] ?? {});
+        const ultima = leituras.length ? Math.max(...leituras.map(l=>Number(l.timestamp)||0)) : 0;
+        const niveis = leituras.map(l=>Number(l.nivelPct)).filter(Number.isFinite);
+        const maior = niveis.length ? Math.max(...niveis) : null;
+        const recente = ultima && Date.now()-ultima < 30_000;
+        return <div className={`hs-origin hs-origin-${tipo.id}`} key={tipo.id}>
+          <span className="hs-origin-badge">{tipo.etiqueta}</span>
+          <h4><span aria-hidden="true">{tipo.icone}</span> {tipo.titulo}</h4>
+          <div className="hs-origin-value">{maior == null ? 'Sem leituras' : `${numero(maior,'%')}`}</div>
+          <p>{tipo.descricao}</p>
+          <small>{ultima ? `${recente?'Leitura recente':'Última leitura'}: ${new Date(ultima).toLocaleTimeString('pt-BR')}` : 'Nenhuma leitura recebida neste canal'}</small>
+        </div>;
+      })}
+    </div>
+    <p className="hs-card-foot">A origem é definida no servidor. Dados sintéticos e testes de bancada não são tratados como medições de campo nem acionam notificações externas.</p>
+  </section>;
+}
+
 export default function VisaoGeral(){
   const navegar=useNavigate();
   const estado=useTelemetria(s=>s.estado);
@@ -97,6 +127,7 @@ export default function VisaoGeral(){
         <CartaoIndicador icone="⌛" titulo="Tempo estimado para extravasamento" valor="—" detalhe="Sem estimativa validada" classe="hs-kpi-soft"/>
         <CartaoIndicador icone="⚠" titulo="Chance de alagamento (próx. 6 h)" valor="—" detalhe="Previsão não disponível" classe="hs-kpi-soft"/>
       </div>
+      <FontesSeparadas canais={estado?.canais} />
       <div className="hs-measure-row">
         <section className="hs-card hs-level">
           <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
