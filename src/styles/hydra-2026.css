@@ -630,3 +630,18 @@ input,select,textarea{color-scheme:light}
     max-width: 100% !important;
   }
 }
+
+
+/* Avisos automáticos: sem seção própria, apenas autorização compacta no cabeçalho. */
+.hs-alerts-icon{display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;min-height:32px;padding:5px 9px;border-radius:9px;border:1px solid #becfdf;background:#edf4fa;color:#102338;cursor:pointer;font-size:.7rem;font-weight:800}
+.hs-alerts-icon.enabled{background:#e6f6ec;border-color:#b9dfc8;color:#155a35}
+.hs-alerts-icon:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
+.hs-alerts-icon:disabled{opacity:.5}
+.hs-alerts-icon span:first-child{font-size:1rem;line-height:1}
+@media(max-width:900px){
+  .hs-alerts-desktop{display:none!important}
+  .mobile-header-bar .hs-alerts-icon{min-width:40px;min-height:40px;padding:5px 7px;border:1px solid #54738b;background:#173b55;color:#fff}
+  .mobile-header-bar .hs-alerts-icon.enabled{background:#164b36;border-color:#78c9a0;color:#fff}
+  .mobile-header-bar .hs-alerts-icon-text{display:none}
+}
+@media(min-width:901px){.mobile-header-bar .hs-alerts-icon{display:none}}
