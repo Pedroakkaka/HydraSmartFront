@@ -1,5 +1,8 @@
 # HydraSmart Front
 
+> **Histórico de desenvolvimento:** veja [docs/REGISTRO_DESENVOLVIMENTO.md](docs/REGISTRO_DESENVOLVIMENTO.md) para o registro cronológico das alterações discutidas, decisões, commits, testes, publicações e pendências.
+
+
 Painel web do **HydraSmart**, a plataforma de monitoramento de drenagem urbana e prevenção de alagamentos de Porto Alegre-RS.
 
 Mostra em tempo real o nível de água dos bueiros, os alertas críticos, o mapa da cidade, a meteorologia e o histórico gravado. Todos os dados vêm da [HydraSmartAPI](https://github.com/Pedroakkaka/HydraSmartAPI).
