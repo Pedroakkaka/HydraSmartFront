@@ -49,8 +49,8 @@ export default function App() {
         <main className="app-main-content">
           <div className="top-context-bar">
             <div className="page-heading-group">
-              <span className="page-heading-eyebrow">HYDRASMART <span aria-hidden="true">/</span> PORTO ALEGRE · RS</span>
-              <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">{rotaAtual.icone}</span>{rotaAtual.titulo}</h1>
+              <span className="page-heading-eyebrow">SISTEMA DE MONITORAMENTO HIDROLÓGICO</span>
+              <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">⌖</span>{pathname === '/' ? 'Porto Alegre' : rotaAtual.rotulo}</h1>
             </div>
             <div className="header-status-pills">
               <span className={`header-mode-pill ${modo === 'demo' ? 'demo' : 'real'}`}>{modo === 'demo' ? '● Demonstração' : '● Monitoramento real'}</span>
