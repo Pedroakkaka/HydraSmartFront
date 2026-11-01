@@ -37,7 +37,7 @@ function CardBueiro({ bueiro, titulo, onClick }) {
   const cfg = bueiro.calibracao;
 
   return (
-    <div className="card-base cursor-pointer" onClick={onClick}>
+    <button type="button" className="card-base cursor-pointer w-full text-left transition-colors hover:border-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" onClick={onClick} aria-label={`Ver detalhes de ${titulo}`}>
       <div className="card-header-line">
         <span className="card-title-text">{titulo}</span>
         <span className={`badge-pill ${ok ? meta.classe : 'muted'}`}>{ok ? meta.rotulo : 'Desconectado'}</span>
@@ -57,7 +57,7 @@ function CardBueiro({ bueiro, titulo, onClick }) {
           ? `Lat: ${cfg.latitude.toFixed(4)}, Lng: ${cfg.longitude.toFixed(4)}`
           : 'Localização não confirmada'}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -107,20 +107,20 @@ export default function VisaoGeral() {
         <CardBueiro bueiro={b1} titulo="Bueiro 01 (Entrada)" onClick={abrirBueiro} />
         <CardBueiro bueiro={b2} titulo="Bueiro 02 (Saída)" onClick={abrirBueiro} />
 
-        <div className="card-base cursor-pointer" onClick={() => navegar('/clima')}>
+        <button type="button" className="card-base cursor-pointer w-full text-left transition-colors hover:border-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" onClick={() => navegar('/clima')} aria-label="Ver detalhes do clima">
           <div className="card-header-line">
             <span className="card-title-text">Clima (Open-Meteo)</span>
             <span className="text-xs text-cyan-400 font-mono">{clima?.condicaoTempo ?? 'Consultando...'}</span>
           </div>
           <div className="card-value-display">
-            <span className="value-large">{num(clima?.temperatura)}</span>
-            <span className="value-unit">°C</span>
+            <span className="value-large">{clima?.temperatura == null ? 'Sem dados' : num(clima.temperatura)}</span>
+            {clima?.temperatura != null && <span className="value-unit">°C</span>}
           </div>
           <div className="card-meta-text">
-            <span>Chuva: {num(clima?.precipitacaoObservadaMm, 1, '--')} mm</span>
-            <span>Umidade: {clima?.umidadeRelativaPct ?? '--'}%</span>
+            <span>Chuva: {clima?.precipitacaoObservadaMm == null ? 'Sem dados' : `${num(clima.precipitacaoObservadaMm, 1)} mm`}</span>
+            <span>Umidade: {clima?.umidadeRelativaPct == null ? 'Sem dados' : `${clima.umidadeRelativaPct}%`}</span>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="card-base mt-3">
