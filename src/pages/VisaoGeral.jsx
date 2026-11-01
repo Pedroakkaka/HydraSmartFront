@@ -10,7 +10,6 @@ import { num } from '../lib/formato.js';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
 import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
-import AdesaoNotificacoes from '../components/AdesaoNotificacoes.jsx';
 
 const ESTACOES = {
   'DCRS-00044': 'Viamão · Itapuã',
@@ -126,7 +125,6 @@ export default function VisaoGeral(){
       {inteligente && <Estacoes data={hidrologia} loading={hidroCarregando} error={hidroErro}/>}
       {inteligente && <DemonstracaoAssistida />}
       <ReceptorSimulado />
-      <AdesaoNotificacoes />
     </div>
     {inteligente ? <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/> : <aside className="hs-card hs-mode-context"><h3>Protótipo físico</h3><p>Leituras experimentais da bancada. Não são medições de campo. Os dados meteorológicos são fontes externas independentes.</p><span>Alertas de teste não são enviados externamente.</span></aside>}
   </div>;
