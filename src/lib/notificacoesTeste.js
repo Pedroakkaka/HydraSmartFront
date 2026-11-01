@@ -32,19 +32,24 @@ export function ehAlertaProtótipo(dados) {
     && a.mensagem.startsWith('[TESTE PROTÓTIPO]');
 }
 
-export function exibirNotificacaoTeste() {
+export async function exibirNotificacaoTeste() {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
+  const opcoes = {
+    body: TEXTO_TESTE,
+    tag: 'hydrasmart-teste-experimental',
+    icon: '/hydrasmart-h.svg',
+    silent: true,
+    requireInteraction: false
+  };
   try {
-    const aviso = new Notification(TITULO_TESTE, {
-      body: TEXTO_TESTE,
-      tag: 'hydrasmart-teste-experimental',
-      icon: '/hydrasmart-h.svg',
-      silent: true,
-      requireInteraction: false
-    });
+    // O método showNotification é necessário em muitos navegadores de celular.
+    if ('serviceWorker' in navigator) {
+      const registro = await navigator.serviceWorker.register('/hydrasmart-testes-sw.js');
+      await registro.showNotification(TITULO_TESTE, opcoes);
+      return true;
+    }
+    const aviso = new Notification(TITULO_TESTE, opcoes);
     aviso.onclick = () => { window.focus(); aviso.close(); };
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
