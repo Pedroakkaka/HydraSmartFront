@@ -16,11 +16,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
       <div>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <div className="brand-icon-box">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+            <div className="brand-icon-box"><img src="/hydrasmart-mark.svg" alt="Símbolo HydraSmart: hidra" /></div>
             <div>
               <div className="brand-title">HydraSmart</div>
               <div className="brand-subtitle">Monitoramento • Porto Alegre-RS</div>
