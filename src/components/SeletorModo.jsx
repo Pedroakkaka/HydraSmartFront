@@ -4,18 +4,15 @@ import { cabecalhoOperador } from '../lib/operador.js';
 import { avisar, useTelemetria } from '../store/useTelemetria.js';
 
 const OPCOES = [
-  { id: 'prototipo', titulo: 'Protótipo físico', tag: 'EXPERIMENTAL', icone: '⌁',
-    descricao: 'Exibe somente as medições do Arduino e dos sensores montados na bancada.' },
-  { id: 'demonstracao', titulo: 'Demonstração do sistema', tag: 'DADOS FICTÍCIOS', icone: '◈',
-    descricao: 'Demonstra níveis, gráficos e alertas com cenários gerados artificialmente.' },
-  { id: 'campo', titulo: 'Monitoramento de campo', tag: 'DADOS REAIS', icone: '⌖',
-    descricao: 'Exibe exclusivamente as leituras enviadas por dispositivos reais em campo.' }
+  { id: 'prototipo', titulo: 'Protótipo físico', tag: 'BANCADA EXPERIMENTAL', icone: '⌁',
+    descricao: 'Acompanhar as leituras dos sensores reais do projeto físico. Sem dados artificiais.' },
+  { id: 'inteligente', titulo: 'Monitoramento inteligente', tag: 'OBSERVAÇÕES REAIS + DEMONSTRAÇÃO ASSISTIDA', icone: '⌖',
+    descricao: 'Analisar medições oficiais e de campo e demonstrar o fluxo de alertas usando eventos documentados.' }
 ];
 
 export const ROTULOS_FONTE = {
   prototipo: 'Protótipo físico · Experimental',
-  demonstracao: 'Demonstração · Dados fictícios',
-  campo: 'Campo · Dados reais'
+  inteligente: 'Monitoramento inteligente · Dados reais'
 };
 
 export default function SeletorModo({ aberto, fechar }) {
@@ -52,9 +49,9 @@ export default function SeletorModo({ aberto, fechar }) {
     try {
       // Mesmo trocar apenas a visualização exige credencial validada no servidor.
       await api.get('/operador/validar', headers);
-      if (escolha === 'demonstracao' && modoApi !== 'demo') {
-        await api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers);
-      } else if (escolha !== 'demonstracao' && modoApi === 'demo') {
+      // O modo fictício legado não participa dos dois modos atuais.
+      // Se havia cenário ativo, encerramos antes da mudança de contexto.
+      if (modoApi === 'demo') {
         await api.post('/simulacao/encerrar', {}, headers);
       }
       selecionarFonte(escolha);
@@ -73,7 +70,7 @@ export default function SeletorModo({ aberto, fechar }) {
     <div className="hs-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !ocupado) fechar(); }}>
       <section className="hs-modal" role="dialog" aria-modal="true" aria-labelledby="hs-modal-titulo">
         <header className="hs-modal-head">
-          <div><span>CONFIGURAÇÃO DO MONITORAMENTO</span><h2 id="hs-modal-titulo">Selecionar modo de operação</h2><p>O painel inteiro exibirá somente a fonte escolhida.</p></div>
+          <div><span>CONFIGURAÇÃO DO MONITORAMENTO</span><h2 id="hs-modal-titulo">Selecionar modo de operação</h2><p>Selecione a experiência de monitoramento. Nenhum modo gera alerta externo.</p></div>
           <button type="button" onClick={fechar} disabled={ocupado} aria-label="Fechar janela">✕</button>
         </header>
         <form onSubmit={aplicar}>
