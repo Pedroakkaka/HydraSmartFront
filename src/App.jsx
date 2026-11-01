@@ -24,7 +24,7 @@ export default function App() {
   const conexao = useTelemetria((s) => s.conexao);
   const temEstado = useTelemetria((s) => Boolean(s.estado));
   const serialConectada = useTelemetria((s) => Boolean(s.estado?.serial?.conectado));
-  const modo = useTelemetria((s) => s.estado?.modo ?? 'real');
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
 
   const rotaAtual = ROTAS.find((r) => r.caminho === pathname) ?? ROTAS[0];
 
@@ -53,7 +53,7 @@ export default function App() {
               <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">⌖</span>{pathname === '/' ? 'Porto Alegre' : rotaAtual.rotulo}</h1>
             </div>
             <div className="header-status-pills">
-              <span className={`header-mode-pill ${modo === 'demo' ? 'demo' : 'real'}`}>{modo === 'demo' ? '● Demonstração' : '● Monitoramento real'}</span>
+              <span className={`header-mode-pill ${fonte === 'demonstracao' ? 'demo' : 'real'}`}>{fonte === 'campo' ? '● Campo · Dados reais' : fonte === 'prototipo' ? '● Protótipo · Experimental' : '● Demonstração · Fictício'}</span>
               <span className={`server-pill ${conexao}`}>
                 <span className="ponto" />
                 {TEXTO_CONEXAO[conexao]}
