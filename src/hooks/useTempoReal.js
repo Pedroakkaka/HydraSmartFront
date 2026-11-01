@@ -47,10 +47,10 @@ export function useTempoReal() {
           return;
         }
         if (msg.tipo === 'estado') definirEstado(msg.dados);
-        if (msg.tipo === 'alerta' && msg.dados?.acao === 'disparado') {
+        if (msg.tipo === 'alerta' && (msg.dados?.acao === 'disparado' || msg.dados?.acao === 'nivel_alto_teste')) {
           // Som administrativo no painel permanece separado do aviso opcional ao celular.
           const fonte = useTelemetria.getState().fonteSelecionada;
-          if ((fonte === 'prototipo' && ehAlertaProtótipo(msg.dados))
+          if ((fonte === 'prototipo' && msg.dados.acao === 'disparado' && ehAlertaProtótipo(msg.dados))
               || (fonte === 'inteligente' && msg.dados.alerta?.simulado === false)) som.sirene();
           // Só alertas de bancada identificados como TESTE podem acionar os celulares.
           const optin = useNotificacoesTeste.getState();
@@ -59,7 +59,7 @@ export function useTempoReal() {
             if (!alertasVistos.has(id)) {
               alertasVistos.add(id);
               if (alertasVistos.size > 100) alertasVistos.delete(alertasVistos.values().next().value);
-              exibirNotificacaoTeste().then(exibida => {
+              exibirNotificacaoTeste(msg.dados).then(exibida => {
                 if (exibida) useNotificacoesTeste.getState().receber(new Date().toISOString());
               });
             }
