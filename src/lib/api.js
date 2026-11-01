@@ -8,7 +8,14 @@ const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 export const API_V1 = `${BASE}/api/v1`;
 
 export function urlWebSocket() {
+  const wsConfigurado = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
+  if (wsConfigurado) return wsConfigurado;
   if (BASE) return `${BASE.replace(/^http/, 'ws')}/ws`;
+  // A Vercel encaminha as rotas HTTP /api, mas não faz proxy de WebSocket.
+  // Conectamos diretamente à API Render quando o painel está hospedado na Vercel.
+  if (window.location.hostname.endsWith('.vercel.app')) {
+    return 'wss://hydrasmartapi.onrender.com/ws';
+  }
   const protocolo = window.location.protocol === 'https:' ? 'wss' : 'ws';
   return `${protocolo}://${window.location.host}/ws`;
 }
