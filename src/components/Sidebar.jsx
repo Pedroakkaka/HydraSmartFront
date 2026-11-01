@@ -54,11 +54,11 @@ export default function Sidebar({ aberto, aoNavegar }) {
           className={`mode-badge-btn ${modo}`}
           onClick={alternar}
           disabled={ocupado}
-          title="Alternar entre Modo Real e Modo Demonstração"
+          title="Modo Real recebe sensores físicos; Modo Demonstração gera dados sintéticos para testes"
         >
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            <span>{modo === 'demo' ? 'Modo Demonstração' : 'Modo Real'}</span>
+            <span>{modo === 'demo' ? 'Simulação virtual' : 'Protótipo / Real'}</span>
           </span>
           <span className="text-[10px]">Trocar</span>
         </button>
