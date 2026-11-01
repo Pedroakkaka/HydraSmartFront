@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { urlWebSocket } from '../lib/api.js';
+import { api, urlWebSocket } from '../lib/api.js';
 import { som } from '../lib/som.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 
@@ -14,6 +14,19 @@ export function useTempoReal() {
     let tentativa = 0;
     let timer;
     let ativo = true;
+
+    // Fallback HTTP para navegadores/redes que bloqueiam WebSocket.
+    const buscarEstadoHttp = async () => {
+      if (!ativo || socket?.readyState === WebSocket.OPEN) return;
+      try {
+        const estado = await api.get('/estado');
+        if (ativo && socket?.readyState !== WebSocket.OPEN) definirEstado(estado);
+      } catch {
+        // O WebSocket segue tentando reconectar.
+      }
+    };
+    const intervaloHttp = setInterval(buscarEstadoHttp, 15_000);
+    buscarEstadoHttp();
 
     const conectar = () => {
       definirConexao('conectando');
@@ -49,6 +62,7 @@ export function useTempoReal() {
     return () => {
       ativo = false;
       clearTimeout(timer);
+      clearInterval(intervaloHttp);
       socket?.close();
     };
   }, []);
