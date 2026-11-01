@@ -3,7 +3,7 @@ import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap } f
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useDrenosOsm, useBocasLoboOficiais } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
-import { num } from '../lib/formato.js';
+import { dataHora, num } from '../lib/formato.js';
 
 const CENTRO = [-30.0346, -51.2177];
 function Recentralizar({ sinal }) {
@@ -13,10 +13,11 @@ function Recentralizar({ sinal }) {
 }
 export default function Mapa() {
   const bueiros = useTelemetria((s) => s.estado.bueiros);
-  const { data: oficial } = useBocasLoboOficiais();
-  const { data: osm } = useDrenosOsm();
+  const { data: oficial, isLoading: oficialCarregando, isError: oficialErro } = useBocasLoboOficiais();
+  const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
   const [recentralizar, setRecentralizar] = useState(0);
+  const [tiles, setTiles] = useState({ carregou: false, falhou: false });
   const pontos = useMemo(() => {
     const lista = (oficial?.elementos ?? []).filter(p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)));
     if (lista.length < 2) return [];
@@ -42,7 +43,15 @@ export default function Mapa() {
       <p className="text-xs text-slate-400 mb-2">Dois pontos próximos do cadastro municipal são vinculados automaticamente ao protótipo B1/B2. Vínculo demonstrativo: não representa instalação de sensores nesses locais.</p>
       <div className="map-canvas-full">
         <MapContainer center={CENTRO} zoom={14} zoomControl={false} style={{ height: '100%', width: '100%' }}>
-          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} attribution='&copy; OpenStreetMap contributors' />
+          <TileLayer
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+            attribution='&copy; OpenStreetMap contributors'
+            eventHandlers={{
+              tileload: () => setTiles((v) => ({ ...v, carregou: true })),
+              tileerror: () => setTiles((v) => ({ ...v, falhou: true }))
+            }}
+          />
           <ZoomControl position="bottomright" />
           <Recentralizar sinal={recentralizar} />
           {camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
@@ -68,6 +77,21 @@ export default function Mapa() {
             </CircleMarker>;
           })}
         </MapContainer>
+      </div>
+      <div className="space-y-1" aria-live="polite">
+        {tiles.falhou && <p role="status" className="text-xs text-amber-400">
+          {tiles.carregou
+            ? 'Algumas imagens da base cartográfica OpenStreetMap falharam; o mapa pode aparecer parcialmente.'
+            : 'Base cartográfica OpenStreetMap indisponível; marcadores de sensores e cadastros são consultados separadamente.'}
+        </p>}
+        {camadas.oficial && oficialCarregando && <p role="status" className="text-xs text-slate-400">Consultando o cadastro público municipal…</p>}
+        {camadas.oficial && (oficialErro || oficial?.status === 'indisponivel') && <p role="status" className="text-xs text-amber-400">Cadastro municipal indisponível; nenhum ponto desse cadastro está sendo apresentado como sensor.</p>}
+        {camadas.oficial && oficial?.status === 'sucesso' && oficial.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta ao cadastro municipal não retornou pontos para esta área.</p>}
+        {camadas.osm && osmCarregando && <p role="status" className="text-xs text-slate-400">Consultando elementos de drenagem do OpenStreetMap…</p>}
+        {camadas.osm && osmErro && <p role="status" className="text-xs text-amber-400">Não foi possível consultar o serviço OSM. Os sensores físicos e o cadastro municipal são camadas independentes.</p>}
+        {camadas.osm && osm?.status === 'desatualizado' && <p role="status" className="text-xs text-amber-400">OpenStreetMap indisponível agora; os pontos mostrados vêm do último cache válido ({dataHora(osm.consultadoEm)}).</p>}
+        {camadas.osm && osm?.status === 'indisponivel' && <p role="status" className="text-xs text-amber-400">Serviço de consulta OpenStreetMap indisponível; nenhum elemento OSM está sendo mostrado.</p>}
+        {camadas.osm && osm?.status === 'sucesso' && osm.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta OSM não encontrou elementos mapeados nesta área; cobertura não exaustiva.</p>}
       </div>
       {pontos.length < 2 && <p className="text-xs text-amber-400 mt-2">Aguardando ao menos dois pontos válidos da base municipal para vincular B1 e B2.</p>}
       <div className="map-discrete-legend">
