@@ -21,12 +21,12 @@ export class ErroApi extends Error {
   }
 }
 
-async function requisitar(metodo, caminho, corpo) {
+async function requisitar(metodo, caminho, corpo, headersExtras = {}) {
   let resp;
   try {
     resp = await fetch(`${API_V1}${caminho}`, {
       method: metodo,
-      headers: corpo !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: { ...(corpo !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headersExtras },
       body: corpo !== undefined ? JSON.stringify(corpo) : undefined
     });
   } catch {
@@ -45,7 +45,7 @@ async function requisitar(metodo, caminho, corpo) {
 
 export const api = {
   get: (caminho) => requisitar('GET', caminho),
-  post: (caminho, corpo = {}) => requisitar('POST', caminho, corpo),
+  post: (caminho, corpo = {}, headers = {}) => requisitar('POST', caminho, corpo, headers),
   put: (caminho, corpo) => requisitar('PUT', caminho, corpo),
   del: (caminho) => requisitar('DELETE', caminho)
 };
