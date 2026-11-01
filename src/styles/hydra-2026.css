@@ -482,3 +482,12 @@ input,select,textarea{color-scheme:light}
 .hs-test-record strong{color:#101923}.hs-test-record span{color:#14663e;font-size:.74rem;font-weight:850}
 .hs-test-record small{color:#536579;font-size:.65rem}
 .hs-test-empty{padding:12px 0}
+
+.hs-mobile-notifications{display:flex;flex-direction:column;gap:10px}
+.hs-mobile-notification-preview{background:#eff6fe;border-left:4px solid #095f96;border-radius:10px;padding:14px 16px}
+.hs-mobile-notification-preview strong{display:block;font-weight:900;color:#0e2134}
+.hs-mobile-notification-preview p{font-size:.8rem;line-height:1.6;color:#273e53;margin:7px 0 0}
+.hs-mobile-notification-controls{display:flex;flex-wrap:wrap;gap:10px}
+.hs-mobile-notification-controls button{min-height:40px;border-radius:9px;padding:9px 14px;font-weight:750}
+.hs-mobile-notification-status{font-size:.75rem;color:#344d62}
+.hs-mobile-notification-last{padding:9px 12px;color:#12603c;background:#eaf7ee;font-size:.73rem;border-radius:8px}
