@@ -26,7 +26,7 @@ export default function Diagnostico() {
     : validos.length ? 'normal' : null;
   const situacao = riscoId ? metaRisco(riscoId).rotulo : 'Indeterminada';
   const serial = estado?.serial;
-  const descricaoFonte = fonte === 'prototipo' ? 'Protótipo experimental' : fonte === 'demonstracao' ? 'Dados fictícios' : 'Sensores reais em campo';
+  const descricaoFonte = fonte === 'prototipo' ? 'Projeto físico experimental' : 'Análise com dados reais';
   const chuva = clima?.precipitacaoObservadaMm;
 
   return <div className="diag-simple">
@@ -80,6 +80,6 @@ export default function Diagnostico() {
       </div>}
     </section>
 
-    {fonte === 'campo' ? <AnaliseIntegrada /> : <section className="diag-panel"><div className="diag-section-header"><h3>Nota sobre as medições</h3></div><p className="hydra-muted">{fonte === 'prototipo' ? 'Estas leituras são ensaios do projeto físico. Não representam níveis de água em ruas ou bueiros operacionais.' : 'Estes valores são gerados pelo simulador e servem somente para demonstrar o funcionamento do HydraSmart.'} Nenhuma notificação externa é enviada.</p></section>}
+    {fonte === 'inteligente' ? <AnaliseIntegrada /> : <section className="diag-panel"><div className="diag-section-header"><h3>Nota sobre as medições</h3></div><p className="hydra-muted">{fonte === 'prototipo' ? 'Estas leituras são ensaios do projeto físico. Não representam níveis de água em ruas ou bueiros operacionais.' : 'Estes valores são gerados pelo simulador e servem somente para demonstrar o funcionamento do HydraSmart.'} Nenhuma notificação externa é enviada.</p></section>}
   </div>;
 }
