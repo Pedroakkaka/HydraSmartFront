@@ -60,7 +60,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
       <div className="sidebar-footer">
         <ConexaoArduino />
 
-        <button className={`mode-badge-btn ${fonte === 'demonstracao' ? 'demo' : 'real'}`} type="button" onClick={() => setModalAberto(true)} title="Selecionar origem dos dados do painel">
+        <button className={`mode-badge-btn ${'real'}`} type="button" onClick={() => setModalAberto(true)} title="Selecionar origem dos dados do painel">
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-current"/><span>{ROTULOS_FONTE[fonte]}</span></span>
           <span className="text-[10px]">Trocar</span>
         </button>
