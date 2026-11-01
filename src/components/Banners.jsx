@@ -1,4 +1,3 @@
-import { useAlternarModo } from '../hooks/useAcoes.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 
 /** Faixas de aviso no topo: modo demonstração, alerta crítico e servidor fora do ar. */
@@ -7,7 +6,7 @@ export default function Banners() {
   const conexao = useTelemetria((s) => s.conexao);
   const dispensados = useTelemetria((s) => s.alertasDispensados);
   const dispensar = useTelemetria((s) => s.dispensarAlertas);
-  const { alternar, ocupado } = useAlternarModo();
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
 
   const alertas = (estado?.alertasAtivos ?? []).filter((a) => !dispensados.includes(a.id));
 
@@ -24,17 +23,11 @@ export default function Banners() {
         </div>
       )}
 
-      {estado?.modo === 'demo' && (
-        <div className="demo-alert-banner">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span>
-              <b>MODO DEMONSTRAÇÃO ATIVO:</b> dados sintéticos para apresentação. Nada disso é gravado no histórico real.
-            </span>
+      {fonte !== 'campo' && (
+        <div className="demo-alert-banner" role="status">
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-400"/>
+            <span><b>{fonte === 'prototipo' ? 'MODO PROTÓTIPO EXPERIMENTAL:' : 'MODO DEMONSTRAÇÃO — DADOS FICTÍCIOS:'}</b> {fonte === 'prototipo' ? 'Leituras do projeto físico. Não são medições de campo.' : 'Cenários gerados artificialmente. Não representam riscos reais.'}</span>
           </div>
-          <button className="btn-action-secondary text-xs" onClick={alternar} disabled={ocupado}>
-            Voltar para Modo Real
-          </button>
         </div>
       )}
 
