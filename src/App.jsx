@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { ROTAS } from './rotas.js';
 import { useTempoReal } from './hooks/useTempoReal.js';
@@ -21,6 +21,13 @@ export default function App() {
   useTempoReal();
   const [menuAberto, setMenuAberto] = useState(false);
   const { pathname } = useLocation();
+  useEffect(() => { setMenuAberto(false); }, [pathname]);
+  useEffect(() => {
+    if (!menuAberto) return;
+    const aoTeclado = (e) => { if (e.key === 'Escape') setMenuAberto(false); };
+    window.addEventListener('keydown', aoTeclado);
+    return () => window.removeEventListener('keydown', aoTeclado);
+  }, [menuAberto]);
   const conexao = useTelemetria((s) => s.conexao);
   const temEstado = useTelemetria((s) => Boolean(s.estado));
   const serialConectada = useTelemetria((s) => Boolean(s.estado?.serial?.conectado));
@@ -32,7 +39,7 @@ export default function App() {
     <>
       <header className="mobile-header-bar">
         <div className="flex items-center gap-2">
-          <button className="hamburger-btn" aria-label="Abrir menu" onClick={() => setMenuAberto((v) => !v)}>☰</button>
+          <button className="hamburger-btn" aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="hydra-sidebar" onClick={() => setMenuAberto((v) => !v)}>☰</button>
           <span className="font-bold text-sm text-white">HydraSmart</span>
         </div>
         <div className="flex items-center gap-2">
@@ -41,7 +48,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className={`sidebar-backdrop ${menuAberto ? 'active' : ''}`} onClick={() => setMenuAberto(false)} />
+      <div className={`sidebar-backdrop ${menuAberto ? 'active' : ''}`} onClick={() => setMenuAberto(false)} aria-hidden="true" />
 
       <div className="app-container">
         <Sidebar aberto={menuAberto} aoNavegar={() => setMenuAberto(false)} />
