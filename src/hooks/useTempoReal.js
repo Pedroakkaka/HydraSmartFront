@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { api, urlWebSocket } from '../lib/api.js';
 import { som } from '../lib/som.js';
 import { useTelemetria } from '../store/useTelemetria.js';
+import { useNotificacoesTeste, ehAlertaProtótipo, exibirNotificacaoTeste } from '../lib/notificacoesTeste.js';
 
 /**
  * Mantém a conexão WebSocket com a API e atualiza o estado global.
@@ -14,6 +15,7 @@ export function useTempoReal() {
     let tentativa = 0;
     let timer;
     let ativo = true;
+    const alertasVistos = new Set();
 
     // Fallback HTTP para navegadores/redes que bloqueiam WebSocket.
     const buscarEstadoHttp = async () => {
@@ -45,7 +47,22 @@ export function useTempoReal() {
           return;
         }
         if (msg.tipo === 'estado') definirEstado(msg.dados);
-        if (msg.tipo === 'alerta' && msg.dados?.acao === 'disparado') som.sirene();
+        if (msg.tipo === 'alerta' && msg.dados?.acao === 'disparado') {
+          // Som administrativo no painel permanece separado do aviso opcional ao celular.
+          const fonte = useTelemetria.getState().fonteSelecionada;
+          if ((fonte === 'prototipo' && ehAlertaProtótipo(msg.dados))
+              || (fonte === 'inteligente' && msg.dados.alerta?.simulado === false)) som.sirene();
+          // Só alertas de bancada identificados como TESTE podem acionar os celulares.
+          const optin = useNotificacoesTeste.getState();
+          if (optin.inscrito && ehAlertaProtótipo(msg.dados)) {
+            const id = String(msg.dados.alerta.id ?? msg.dados.alerta.mensagem);
+            if (!alertasVistos.has(id)) {
+              alertasVistos.add(id);
+              if (alertasVistos.size > 100) alertasVistos.delete(alertasVistos.values().next().value);
+              if (exibirNotificacaoTeste()) optin.receber(new Date().toISOString());
+            }
+          }
+        }
       };
 
       socket.onclose = () => {
