@@ -9,6 +9,7 @@ import './styles/scada-layout.css';
 import './styles/components.css';
 import './styles/app.css';
 import './styles/professional.css';
+import './styles/hydra-2026.css';
 
 import App from './App.jsx';
 
