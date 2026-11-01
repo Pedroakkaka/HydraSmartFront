@@ -97,7 +97,7 @@ export default function VisaoGeral(){
       <div className="hs-kpi-row">
         <div className="hs-kpi hs-kpi-status">
           <span className="hs-kpi-title"><span className="hs-icon">◉</span> {inteligente ? 'Monitoramento com dados reais' : 'Status do projeto físico'}</span>
-          <span className={`hs-state-pill ${estadoVisual}`}{inteligente ? (tituloEstacao ? 'Estação consultada' : 'Dados indisponíveis') : status}</span>
+          <span className={`hs-state-pill ${estadoVisual}`}>{inteligente ? (tituloEstacao ? 'Estação consultada' : 'Dados indisponíveis') : status}</span>
           <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
