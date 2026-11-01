@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { api } from '../lib/api.js';
+import { cabecalhoOperador } from '../lib/operador.js';
 import { useNotificacoesTeste, TITULO_TESTE, TEXTO_TESTE, exibirNotificacaoTeste } from '../lib/notificacoesTeste.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 
@@ -8,6 +10,8 @@ export default function AdesaoNotificacoes() {
   const ultima = useNotificacoesTeste(s => s.ultima);
   const conexao = useTelemetria(s => s.conexao);
   const [mensagem, setMensagem] = useState('');
+  const [chave, setChave] = useState('');
+  const [enviando, setEnviando] = useState(false);
   const disponivel = typeof window !== 'undefined' && 'Notification' in window && window.isSecureContext;
   const permissao = disponivel ? Notification.permission : 'unsupported';
 
@@ -36,6 +40,22 @@ export default function AdesaoNotificacoes() {
     setMensagem(enviado ? 'Notificação local de teste exibida neste aparelho.' : 'O navegador não exibiu a notificação. Verifique as permissões e se a página está aberta.');
   }
 
+  async function transmitirTeste(e) {
+    e.preventDefault();
+    const headers = cabecalhoOperador(chave);
+    if (!headers) { setMensagem('Informe a chave de operador para enviar um teste coletivo.'); return; }
+    setEnviando(true);
+    try {
+      await api.post('/notificacoes-teste/disparar', {}, headers);
+      setMensagem('Teste encaminhado ao canal interno. A exibição depende da conexão e da autorização de cada aparelho.');
+      setChave('');
+    } catch (e) {
+      setMensagem('Não foi possível enviar o teste: ' + e.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return <section className="hs-card hs-mobile-notifications" aria-label="Recebimento voluntário de notificações experimentais">
     <div className="hs-card-head">
       <h3><span className="hs-outline-icon">♧</span> Notificações de teste no celular</h3>
@@ -60,6 +80,17 @@ export default function AdesaoNotificacoes() {
         : <button type="button" className="btn-action-secondary" onClick={desativar}>Desativar avisos neste celular</button>}
       <button type="button" className="btn-action-secondary" onClick={testar} disabled={!inscrito}>Testar notificação no meu celular</button>
     </div>
+    <form className="hs-mobile-notification-admin" onSubmit={transmitirTeste}>
+      <label htmlFor="hs-chave-alertas">Operador: transmitir um aviso de teste para celulares inscritos</label>
+      <div className="hs-mobile-notification-controls">
+        <input id="hs-chave-alertas" type="password" autoComplete="off" value={chave}
+          onChange={e => setChave(e.target.value)} placeholder="Chave do operador" />
+        <button type="submit" className="btn-action-secondary" disabled={enviando || !chave.trim()}>
+          {enviando ? 'Enviando…' : 'Enviar teste coletivo'}
+        </button>
+      </div>
+      <small>Envio exclusivamente interno: mensagem de teste sem leitura de sensor e sem comunicação oficial.</small>
+    </form>
     <p className="hs-mobile-notification-status" role="status">
       {inscrito ? '● Cadastrado para testes' : '○ Não cadastrado'}
       {' · '}
