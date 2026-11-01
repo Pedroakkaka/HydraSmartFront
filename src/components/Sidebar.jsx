@@ -16,7 +16,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
       <div>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <div className="brand-icon-box"><img src="/hydrasmart-mark.svg" alt="Símbolo HydraSmart: hidra" /></div>
+            <div className="brand-icon-box"><img src="/hydrasmart-h.svg" alt="Monograma H da HydraSmart" /></div>
             <div>
               <div className="brand-title">HydraSmart</div>
               <div className="brand-subtitle">Monitoramento • Porto Alegre-RS</div>
