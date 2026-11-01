@@ -26,7 +26,7 @@ export default function Sidebar({ aberto, aoNavegar }) {
 
   return (
     <>
-    <aside className={`app-sidebar ${aberto ? 'mobile-open' : ''}`}>
+    <aside id="hydra-sidebar" aria-label="Navegação do HydraSmart" className={`app-sidebar ${aberto ? 'mobile-open' : ''}`}>
       <div>
         <div className="sidebar-header">
           <div className="sidebar-brand">
