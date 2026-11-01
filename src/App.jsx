@@ -6,6 +6,7 @@ import { useTelemetria } from './store/useTelemetria.js';
 import Sidebar from './components/Sidebar.jsx';
 import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
+import PermissaoAlertas from './components/PermissaoAlertas.jsx';
 
 const TEXTO_CONEXAO = {
   online: 'Servidor conectado • tempo real',
@@ -55,6 +56,7 @@ export default function App() {
           <span className="font-bold text-sm text-white">HydraSmart</span>
         </div>
         <div className="flex items-center gap-2">
+          <PermissaoAlertas />
           <span className={`status-dot-indicator ${serialConectada ? 'online' : 'offline'}`} />
           <span className="text-xs font-mono text-slate-400">{serialConectada ? 'USB Conectado' : 'USB Off'}</span>
         </div>
@@ -72,6 +74,7 @@ export default function App() {
               <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">⌖</span>{pathname === '/' ? 'Porto Alegre' : rotaAtual.rotulo}</h1>
             </div>
             <div className="header-status-pills">
+              <span className="hs-alerts-desktop"><PermissaoAlertas /></span>
               <span className={`header-mode-pill ${'real'}`}>{fonte === 'prototipo' ? '● Projeto físico · Experimental' : '● Análise com dados reais'}</span>
               <span className={`server-pill ${conexao}`}>
                 <span className="ponto" />
