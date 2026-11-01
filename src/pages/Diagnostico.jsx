@@ -1,120 +1,83 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useClima } from '../hooks/useConsultas.js';
-import { api } from '../lib/api.js';
+import { useClima, useSaude } from '../hooks/useConsultas.js';
 import { metaRisco, temLeitura } from '../lib/risco.js';
 import { dataHora, num } from '../lib/formato.js';
+import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 
-function Indicador({ titulo, valor, detalhe, destaque = false }) {
-  return (
-    <article className="diag-card" style={{ minHeight: 145 }}>
-      <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{titulo}</div>
-      <div className={`text-2xl font-extrabold mt-3 ${destaque ? 'text-cyan-300' : 'text-white'}`}>{valor}</div>
-      <p className="text-xs text-slate-400 mt-2">{detalhe}</p>
-    </article>
-  );
+function Resumo({ titulo, valor, apoio, classe = '' }) {
+  return <article className="diag-summary">
+    <span>{titulo}</span><strong className={classe}>{valor}</strong><small>{apoio}</small>
+  </article>;
 }
 
 export default function Diagnostico() {
-  const estado = useTelemetria((s) => s.estado);
+  const [detalhes, setDetalhes] = useState(false);
+  const estado = useTelemetria(s => s.estado);
+  const conexao = useTelemetria(s => s.conexao);
   const { data: clima } = useClima();
-  const relatorio = useQuery({
-    queryKey: ['relatorio-automatico-ia'],
-    queryFn: () => api.get('/ia/relatorio'),
-    refetchInterval: 5 * 60_000,
-    retry: false
-  });
+  const { data: saude } = useSaude();
+  const pontos = Object.entries(estado?.bueiros || {});
+  const validos = pontos.filter(([, b]) => temLeitura(b) && !b.desatualizado);
+  const nivel = validos.length ? Math.max(...validos.map(([, b]) => Number(b.nivelPct) || 0)) : null;
+  const riscoId = validos.some(([, b]) => b.risco === 'critico') ? 'critico'
+    : validos.some(([, b]) => b.risco === 'atencao') ? 'atencao'
+    : validos.length ? 'normal' : null;
+  const situacao = riscoId ? metaRisco(riscoId).rotulo : 'Indeterminada';
+  const serial = estado?.serial;
+  const chuva = clima?.precipitacaoObservadaMm;
 
-  const bueiros = Object.entries(estado?.bueiros ?? {});
-  const validos = bueiros.filter(([, b]) => temLeitura(b) && !b.desatualizado);
-  const maiorNivel = validos.length ? Math.max(...validos.map(([, b]) => Number(b.nivelPct) || 0)) : null;
-  const maiorRisco = validos.some(([, b]) => b.risco === 'critico')
-    ? 'critico' : validos.some(([, b]) => b.risco === 'atencao') ? 'atencao' : validos.length ? 'normal' : 'desconhecido';
-  const risco = metaRisco(maiorRisco);
-  const simulacao = estado?.modo === 'prototipo' || estado?.modo === 'simulacao' || validos.some(([, b]) => b.origem === 'simulador');
-
-
-  return (
-    <div className="space-y-5">
-      <header className="diag-card">
-        <div className="text-xs font-bold tracking-widest text-cyan-400">HYDRASMART • DIAGNÓSTICO INTELIGENTE</div>
-        <h1 className="text-2xl font-extrabold text-white mt-2">Análise do comportamento da água</h1>
-        <p className="text-sm text-slate-300 mt-2">
-          Indicadores medidos pelo sistema e interpretações complementares da IA, apresentados separadamente para evitar previsões sem validação.
-        </p>
-        <span className={`badge-pill mt-3 ${simulacao ? 'warning' : 'normal'}`}>
-          {simulacao ? 'Dados de simulação / protótipo' : 'Modo de monitoramento'}
-        </span>
-      </header>
-
-      <section aria-label="Indicadores essenciais">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-white">Indicadores essenciais</h2>
-          <span className="text-xs text-slate-400">Atualizados pela telemetria</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <Indicador titulo="Nível atual máximo" valor={maiorNivel == null ? 'Sem leitura' : `${num(maiorNivel)}%`}
-            detalhe="Maior nível entre os pontos com leitura válida e atual." destaque />
-          <Indicador titulo="Situação de risco" valor={validos.length ? risco.rotulo : 'Indeterminada'}
-            detalhe="Classificação calculada pelo sistema, não pela IA." />
-          <Indicador titulo="Tempo até enchimento" valor="Não estimado"
-            detalhe="Requer histórico temporal, tendência e modelo hidráulico validado." />
-          <Indicador titulo="Chance de alagamento" valor="Não calculada"
-            detalhe="Probabilidade só será exibida após validação de modelo preditivo." />
-        </div>
-      </section>
-
-      <section className="diag-card" aria-label="Leituras por ponto">
-        <h2 className="text-base font-bold text-white mb-3">Níveis monitorados</h2>
-        {bueiros.length === 0 ? <p className="text-sm text-slate-400">Aguardando telemetria dos sensores.</p> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {bueiros.map(([id, b]) => {
-              const atual = temLeitura(b) && !b.desatualizado;
-              return <div key={id} className="rounded-xl border border-slate-700 p-4 bg-slate-950/50">
-                <div className="flex justify-between gap-2 items-center">
-                  <strong className="text-sm text-white">{id.replaceAll('_', ' ').toUpperCase()}</strong>
-                  <span className={`badge-pill ${atual ? metaRisco(b.risco).classe : 'muted'}`}>
-                    {atual ? metaRisco(b.risco).rotulo : 'Sem leitura atual'}
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-cyan-300 mt-2">{atual ? `${num(b.nivelPct)}%` : '--'}</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  {atual ? `${num(b.alturaAguaCm)} cm de água • ${dataHora(b.timestamp)}` : 'Aguardando medição válida e recente'}
-                </p>
-              </div>;
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="diag-card">
-        <h2 className="text-sm font-bold text-white">Contexto meteorológico</h2>
-        <p className="text-sm text-slate-300 mt-2">
-          Precipitação observada: {clima?.precipitacaoObservadaMm == null ? 'indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm`}.
-          Esta informação é complementar e não equivale, isoladamente, à probabilidade de alagamento.
-        </p>
-      </section>
-      <section className="diag-card" aria-label="Relatório automático da inteligência artificial">
-        <div>
-          <h2 className="text-base font-bold text-white">🧠 Relatório inteligente da IA</h2>
-          <p className="text-xs text-slate-400 mt-1">Interpretação escrita automaticamente a partir das leituras históricas disponíveis.</p>
-        </div>
-        {relatorio.data?.status === 'disponivel' ? (
-          <div className="mt-4 rounded-xl border border-cyan-900 bg-slate-950/60 p-4">
-            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{relatorio.data.analise}</p>
-            <p className="text-xs text-slate-400 mt-4">
-              {relatorio.data.registrosConsultados} leituras consultadas • Gerado em {dataHora(relatorio.data.geradoEm)}
-            </p>
-            <p className="text-xs text-amber-300 mt-2">{relatorio.data.aviso}</p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 mt-4" role="status">
-            {relatorio.isError ? 'Relatório indisponível: verifique a conexão com a API.' :
-              relatorio.data?.mensagem || 'Consultando análise histórica...'}
-          </p>
-        )}
-      </section>
-
+  return <div className="diag-simple">
+    <div className="diag-intro">
+      <div><span className="diag-kicker">HYDRASMART / DIAGNÓSTICO</span>
+        <h2>Saúde do monitoramento</h2>
+        <p>Leituras, conexões e condições atuais em uma única visão.</p>
+      </div>
+      <span className="diag-mode">{estado?.modo === 'demo' ? 'Demonstração' : 'Modo real'}</span>
     </div>
-  );
+
+    <div className="diag-summary-grid">
+      <Resumo titulo="Situação dos sensores" valor={situacao} apoio={validos.length ? `${validos.length} pontos com leitura válida` : 'Sem leitura física recente'} classe={riscoId === 'critico' ? 'diag-danger' : riscoId === 'atencao' ? 'diag-warning' : 'diag-blue'} />
+      <Resumo titulo="Maior nível medido" valor={nivel === null ? '—' : `${num(nivel)}%`} apoio={nivel === null ? 'Aguardando sensores' : 'Maior leitura válida'} />
+      <Resumo titulo="Conexão do servidor" valor={conexao === 'online' ? 'Tempo real' : saude?.status === 'ok' ? 'API disponível' : 'Verificando'} apoio={conexao === 'online' ? 'WebSocket conectado' : 'Canal em tempo real indisponível'} />
+      <Resumo titulo="Chuva observada" valor={chuva == null ? '—' : `${num(chuva, 1)} mm`} apoio="Fonte meteorológica Open-Meteo" />
+    </div>
+
+    <section className="diag-panel">
+      <div className="diag-section-header"><h3>◉ Sensores monitorados</h3><span>{validos.length} de {pontos.length} com dados atuais</span></div>
+      <div className="diag-sensors">
+        {pontos.map(([id, b]) => {
+          const atual = temLeitura(b) && !b.desatualizado;
+          return <div className="diag-sensor" key={id}>
+            <div><strong>{b.nome || id.replaceAll('_', ' ').toUpperCase()}</strong><small>{atual ? 'Leitura disponível' : 'Aguardando medição'}</small></div>
+            <div className="diag-sensor-value">{atual ? `${num(b.nivelPct)}%` : '—'}</div>
+            <span className={`badge-pill ${atual ? metaRisco(b.risco).classe : 'muted'}`}>{atual ? metaRisco(b.risco).rotulo : 'Sem dados'}</span>
+          </div>;
+        })}
+        {!pontos.length && <p className="diag-empty">Aguardando o estado inicial dos sensores.</p>}
+      </div>
+    </section>
+
+    <section className="diag-panel">
+      <div className="diag-section-header"><h3>▤ Estado técnico</h3><span>Informações essenciais</span></div>
+      <div className="diag-health-grid">
+        <div><span>Banco de dados</span><strong>{saude?.banco ?? 'Consultando…'}</strong></div>
+        <div><span>Arduino / serial</span><strong>{serial?.habilitada ? (serial.conectado ? 'Conectado' : 'Desconectado') : 'Desativado no servidor'}</strong></div>
+        <div><span>IA contextual</span><strong>Relatório consultivo</strong></div>
+      </div>
+      <button type="button" className="diag-details-button" onClick={() => setDetalhes(v => !v)} aria-expanded={detalhes}>
+        {detalhes ? 'Ocultar informações técnicas −' : 'Ver informações técnicas +'}
+      </button>
+      {detalhes && <div className="diag-extra">
+        {pontos.map(([id,b]) => <div key={id}>
+          <h4>{b.nome || id.replaceAll('_', ' ')}</h4>
+          <p>Origem: {b.origem || 'Não informada'} · Última leitura: {b.timestamp ? dataHora(b.timestamp) : 'Não recebida'}</p>
+          <p>Altura: {temLeitura(b) ? `${num(b.alturaAguaCm)} cm` : 'Sem leitura'} · Tendência: {b.tendencia || 'Não informada'}</p>
+        </div>)}
+        <p>Previsões de enchimento e probabilidades de alagamento não estão validadas. A ausência de leituras não indica normalidade.</p>
+      </div>}
+    </section>
+
+    <AnaliseIntegrada />
+  </div>;
 }
