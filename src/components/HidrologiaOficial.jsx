@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 
 const CODIGOS = ['DCRS-00044', 'DCRS-00054', 'DCRS-00076', 'DCRS-00105'];
@@ -17,6 +18,15 @@ const horario = (v) => {
 };
 
 export default function HidrologiaOficial() {
+  const [agora, setAgora] = useState(0);
+  useEffect(() => {
+    const inicializar = setTimeout(() => setAgora(Date.now()), 0);
+    const timer = setInterval(() => setAgora(Date.now()), 30 * 1000);
+    return () => {
+      clearTimeout(inicializar);
+      clearInterval(timer);
+    };
+  }, []);
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['hidrologia-estacoes-rs'],
     queryFn: () => api.get('/hidrologia/estacoes'),
@@ -38,11 +48,12 @@ export default function HidrologiaOficial() {
       </div>
       {isLoading && <p className="text-xs text-slate-400 mt-3">Consultando estações oficiais...</p>}
       {isError && <p role="status" className="text-xs text-amber-400 mt-3">Não foi possível consultar a Defesa Civil RS. Confira a conexão com o backend.</p>}
+      {data?.status === 'desatualizado' && <p role="status" className="text-xs text-amber-400 mt-3">Consulta atual indisponível. Os valores abaixo vêm da última resposta válida ({data.consultadoEm ? horario(data.consultadoEm) : 'horário não informado'}).</p>}
       {!isLoading && !isError && estacoes.length === 0 && <p className="text-xs text-slate-400 mt-3">Nenhuma estação selecionada retornou dados.</p>}
       <div className="grid-2-md mt-3">
         {estacoes.map((e) => {
           const dataLeitura = e.horarioLeitura ? new Date(e.horarioLeitura.endsWith('Z') ? e.horarioLeitura : e.horarioLeitura + 'Z') : null;
-          const antiga = dataLeitura && !Number.isNaN(dataLeitura.getTime()) && Date.now() - dataLeitura.getTime() > 30 * 60 * 1000;
+          const antiga = dataLeitura && !Number.isNaN(dataLeitura.getTime()) && agora - dataLeitura.getTime() > 30 * 60 * 1000;
           return (
             <article key={e.codigo} className="history-card">
               <div className="history-card-header">

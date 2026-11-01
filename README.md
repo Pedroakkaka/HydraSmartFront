@@ -1,6 +1,6 @@
 # HydraSmart Front
 
-Painel web do **HydraSmart**, a plataforma de monitoramento de drenagem urbana e prevenção de alagamentos de Cáceres-MT.
+Painel web do **HydraSmart**, a plataforma de monitoramento de drenagem urbana e prevenção de alagamentos de Porto Alegre-RS.
 
 Mostra em tempo real o nível de água dos bueiros, os alertas críticos, o mapa da cidade, a meteorologia, o histórico gravado e uma maquete 3D com simulação de alagamento. Todos os dados vêm da [HydraSmartAPI](https://github.com/Pedroakkaka/HydraSmartAPI).
 

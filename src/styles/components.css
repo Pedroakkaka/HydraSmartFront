@@ -156,6 +156,16 @@
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+.alert-status-card.unknown-state {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.alert-status-card.unknown-state .alert-icon-wrap {
+  background: rgba(100, 116, 139, 0.2);
+  color: #cbd5e1;
+}
+
 .alert-icon-wrap {
   width: 36px;
   height: 36px;

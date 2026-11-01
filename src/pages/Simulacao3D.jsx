@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { UrbanScene } from '../features/maquete3d/UrbanScene.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useCenarios } from '../hooks/useConsultas.js';
-import { useAcao } from '../hooks/useAcoes.js';
+import { useAcaoProtegida } from '../hooks/useAcoes.js';
 import { api } from '../lib/api.js';
 
 const ROTULO_FONTE = { simulado: 'Simulação Ativa', real: 'Dados Físicos Reais', indisponivel: 'Indisponível' };
@@ -13,7 +13,7 @@ export default function Simulacao3D() {
   const maquete = useTelemetria((s) => s.estado.maquete3D);
   const simulacao = useTelemetria((s) => s.estado.simulacao);
   const { data: cenarios } = useCenarios();
-  const { executar, ocupado } = useAcao();
+  const { executarProtegida, ocupado } = useAcaoProtegida();
 
   const [cenarioEscolhido, setCenarioEscolhido] = useState(simulacao.cenario || 'chuva_moderada');
   const [foco, setFoco] = useState('todos');
@@ -38,7 +38,7 @@ export default function Simulacao3D() {
 
   const trocarCenario = (id) => {
     setCenarioEscolhido(id);
-    if (simulacao.ativo) executar(() => api.put('/simulacao/cenario', { cenario: id }), { beep: 750 });
+    if (simulacao.ativo) executarProtegida((headers) => api.put('/simulacao/cenario', { cenario: id }, headers), { beep: 750 });
   };
 
   return (
@@ -63,19 +63,19 @@ export default function Simulacao3D() {
 
         <div className="sim-action-bar">
           <button className="sim-btn-play" disabled={ocupado}
-            onClick={() => executar(() => api.post('/simulacao/iniciar', { cenario: cenarioEscolhido }), { beep: 850 })}>
+            onClick={() => executarProtegida((headers) => api.post('/simulacao/iniciar', { cenario: cenarioEscolhido }, headers), { beep: 850 })}>
             ▶ Iniciar Simulação
           </button>
           <button className="btn-action-secondary text-xs" disabled={ocupado || !simulacao.ativo}
-            onClick={() => executar(() => api.post('/simulacao/pausar'))}>
+            onClick={() => executarProtegida((headers) => api.post('/simulacao/pausar', {}, headers))}>
             {simulacao.pausado ? '▶ Retomar' : '⏸ Pausar'}
           </button>
           <button className="btn-action-secondary text-xs" disabled={ocupado || !simulacao.ativo}
-            onClick={() => executar(() => api.post('/simulacao/reiniciar'), { beep: 900 })}>
+            onClick={() => executarProtegida((headers) => api.post('/simulacao/reiniciar', {}, headers), { beep: 900 })}>
             🔄 Reiniciar
           </button>
           <button className="sim-btn-stop text-xs" disabled={ocupado || !simulacao.ativo}
-            onClick={() => executar(() => api.post('/simulacao/encerrar'), { beep: 600 })}>
+            onClick={() => executarProtegida((headers) => api.post('/simulacao/encerrar', {}, headers), { beep: 600 })}>
             ⏹ Encerrar
           </button>
         </div>

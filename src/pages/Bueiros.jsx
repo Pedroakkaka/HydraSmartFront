@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useAcao } from '../hooks/useAcoes.js';
+import { useAcaoProtegida } from '../hooks/useAcoes.js';
 import { api } from '../lib/api.js';
 import { metaRisco, temLeitura } from '../lib/risco.js';
 import { hora, num } from '../lib/formato.js';
@@ -108,7 +108,7 @@ function FormCalibracao({ bueiro, cor, titulo, valores, aoMudar }) {
 export default function Bueiros() {
   const bueiros = useTelemetria((s) => s.estado.bueiros);
   const { bueiro_1: b1, bueiro_2: b2 } = bueiros;
-  const { executar, ocupado } = useAcao();
+  const { executarProtegida, ocupado } = useAcaoProtegida();
 
   // Formulário local; volta a refletir o servidor quando a calibração muda lá.
   const assinatura = JSON.stringify([valoresDe(b1.calibracao), valoresDe(b2.calibracao)]);
@@ -123,16 +123,16 @@ export default function Bueiros() {
   const paraNumeros = (v) => Object.fromEntries(Object.entries(v).map(([k, x]) => [k, Number(x)]));
 
   const salvar = () =>
-    executar(async () => {
-      await api.put('/bueiros/bueiro_1/calibracao', paraNumeros(form.b1));
-      await api.put('/bueiros/bueiro_2/calibracao', paraNumeros(form.b2));
+    executarProtegida(async (headers) => {
+      await api.put('/bueiros/bueiro_1/calibracao', paraNumeros(form.b1), headers);
+      await api.put('/bueiros/bueiro_2/calibracao', paraNumeros(form.b2), headers);
       setForm((f) => ({ ...f, editando: false, assinatura: '' }));
     }, { sucesso: 'Calibração salva no servidor e aplicada às próximas leituras.', beep: 1000 });
 
   const restaurar = () => {
     if (!window.confirm('Restaurar as dimensões e limiares padrão dos dois bueiros?')) return;
-    executar(async () => {
-      await api.post('/bueiros/calibracao/restaurar');
+    executarProtegida(async (headers) => {
+      await api.post('/bueiros/calibracao/restaurar', {}, headers);
       setForm((f) => ({ ...f, editando: false, assinatura: '' }));
     }, { sucesso: 'Calibração padrão restaurada.', beep: 600 });
   };

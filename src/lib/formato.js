@@ -1,4 +1,4 @@
-const FUSO = 'America/Cuiaba';
+const FUSO = 'America/Sao_Paulo';
 
 export const hora = (ts) =>
   ts ? new Date(ts).toLocaleTimeString('pt-BR', { timeZone: FUSO }) : '--:--:--';

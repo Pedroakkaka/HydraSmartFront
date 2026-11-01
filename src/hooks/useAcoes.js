@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../lib/api.js';
 import { som } from '../lib/som.js';
 import { avisar, useTelemetria } from '../store/useTelemetria.js';
+import { cabecalhoOperador } from '../lib/operador.js';
 
 /**
  * Executa uma ação na API com estado de "ocupado" e aviso de erro.
@@ -26,23 +27,32 @@ export function useAcao() {
   return { executar, ocupado };
 }
 
+/** Solicita a chave só para a ação atual; não a persiste no estado do frontend. */
+export function useAcaoProtegida() {
+  const { executar, ocupado } = useAcao();
+  const executarProtegida = (fn, opcoes) => {
+    const chave = window.prompt('Informe a chave de operador configurada no backend (OPERATOR_API_KEY):');
+    if (chave === null) return undefined;
+    const headers = cabecalhoOperador(chave);
+    if (!headers) {
+      avisar('Informe a chave de operador para executar esta ação.', 'erro');
+      return undefined;
+    }
+    return executar(() => fn(headers), opcoes);
+  };
+  return { executarProtegida, ocupado };
+}
+
 /** Liga/desliga a simulação com autenticação explícita do operador.
  * A chave nunca é armazenada no frontend nem incluída no código publicado.
  */
 export function useAlternarModo() {
-  const { executar, ocupado } = useAcao();
+  const { executarProtegida, ocupado } = useAcaoProtegida();
   const alternar = () => {
     const modo = useTelemetria.getState().estado?.modo;
-    const chave = window.prompt('Informe a chave de operador configurada no backend (OPERATOR_API_KEY):');
-    if (chave === null) return;
-    if (!chave.trim()) {
-      avisar('Informe a chave de operador para alternar o modo.', 'erro');
-      return;
-    }
-    const headers = { 'X-Operator-Key': chave.trim() };
     return modo === 'demo'
-      ? executar(() => api.post('/simulacao/encerrar', {}, headers), { beep: 850, sucesso: 'Modo real reativado' })
-      : executar(() => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers), { beep: 650, sucesso: 'Modo demonstração ativado' });
+      ? executarProtegida((headers) => api.post('/simulacao/encerrar', {}, headers), { beep: 850, sucesso: 'Modo real reativado' })
+      : executarProtegida((headers) => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers), { beep: 650, sucesso: 'Modo demonstração ativado' });
   };
   return { alternar, ocupado };
 }

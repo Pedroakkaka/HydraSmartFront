@@ -46,8 +46,8 @@ async function requisitar(metodo, caminho, corpo, headersExtras = {}) {
 export const api = {
   get: (caminho) => requisitar('GET', caminho),
   post: (caminho, corpo = {}, headers = {}) => requisitar('POST', caminho, corpo, headers),
-  put: (caminho, corpo) => requisitar('PUT', caminho, corpo),
-  del: (caminho) => requisitar('DELETE', caminho)
+  put: (caminho, corpo, headers = {}) => requisitar('PUT', caminho, corpo, headers),
+  del: (caminho, headers = {}) => requisitar('DELETE', caminho, undefined, headers)
 };
 
 /** URL para downloads (CSV / JSON) servidos pela API. */

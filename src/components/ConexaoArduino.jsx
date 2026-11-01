@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { som } from '../lib/som.js';
 import { avisar, useTelemetria } from '../store/useTelemetria.js';
+import { cabecalhoOperador } from '../lib/operador.js';
 
 /**
  * Cartão do menu lateral para conectar o Arduino.
@@ -25,13 +26,20 @@ export default function ConexaoArduino() {
   const conectado = Boolean(serial?.conectado);
 
   const alternar = async () => {
+    const chave = window.prompt('Informe a chave de operador configurada no backend (OPERATOR_API_KEY):');
+    if (chave === null) return;
+    const headers = cabecalhoOperador(chave);
+    if (!headers) {
+      avisar('Informe a chave de operador para controlar a conexão serial.', 'erro');
+      return;
+    }
     setOcupado(true);
     try {
       if (conectado) {
-        await api.post('/serial/desconectar');
+        await api.post('/serial/desconectar', {}, headers);
         som.beep(600);
       } else {
-        const r = await api.post('/serial/conectar', { porta, baudRate: Number(baud) });
+        const r = await api.post('/serial/conectar', { porta, baudRate: Number(baud) }, headers);
         som.beep(900, 0.08);
         avisar(`Arduino conectado em ${r.porta}`);
       }
