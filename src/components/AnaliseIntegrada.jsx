@@ -20,7 +20,21 @@ function extrairResumo(texto) {
   }
   if (atual.linhas.length) secoes.push(atual);
   const resumoSecao = secoes.find((s) => /resumo|conclus[aã]o/i.test(s.titulo));
-  const resumo = (resumoSecao?.linhas.join(' ') || secoes[0]?.linhas.join(' ') || '').slice(0, 350);
+  // Resumos curtos devem terminar em uma frase completa; nunca cortar palavras,
+  // entidades HTML ou marcações Markdown no meio.
+  const original = (resumoSecao?.linhas.join(' ') || secoes[0]?.linhas.join(' ') || '')
+    .replace(/&#(x[0-9a-fA-F]+|[0-9]+);/g, (token, code) => {
+      const numero = code.startsWith('x') ? parseInt(code.slice(1), 16) : parseInt(code, 10);
+      return numero > 0 && numero <= 0x10ffff ? String.fromCodePoint(numero) : token;
+    })
+    .replace(/&(?:nbsp|amp|quot|apos|lt|gt);/g, (token) => ({
+      '&nbsp;': ' ', '&amp;': '&', '&quot;': '"', '&apos;': "'", '&lt;': '<', '&gt;': '>'
+    })[token])
+    .replace(/\\*\\*|__/g, '')
+    .replace(/\\s+/g, ' ')
+    .trim();
+  const frases = original.match(/[^.!?]+[.!?]+(?=\\s|$)/g) || [];
+  const resumo = frases.length ? frases.slice(0, 2).join(' ').trim() : original;
   const tendencias = secoes.find((s) => /tend[eê]ncias|limita[cç][oõ]es/i.test(s.titulo));
   const observacoes = secoes.find((s) => /observa[cç][oõ]es atuais/i.test(s.titulo));
   const achados = [...(observacoes?.linhas || []), ...(tendencias?.linhas || [])].slice(0, 3);
