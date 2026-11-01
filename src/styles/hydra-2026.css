@@ -579,3 +579,17 @@ input,select,textarea{color-scheme:light}
   .hs-rain-icon{display:none}
   .hs-modal-option-icon{font-size:1.2rem}
 }
+
+
+/* Correção de navegação móvel: não manter alturas/âncoras da aba anterior. */
+@media (max-width:900px) {
+  html{scroll-padding-top:0;overflow-anchor:none}
+  body,#root,.app-container{min-height:0;height:auto}
+  .app-container{display:block!important}
+  .app-main-content{display:block!important;min-height:0!important;height:auto!important;padding-top:0!important;margin-top:0!important;overflow:visible}
+  .page-container{display:block!important;flex:none!important;min-height:0!important;height:auto!important;margin:0 auto!important;padding-top:12px!important;overflow:visible}
+  .page-section,.page-section.active{min-height:0!important;height:auto!important;margin-top:0!important;padding-top:0!important;position:relative}
+  .sidebar-backdrop:not(.active){display:none!important;pointer-events:none!important}
+  .app-sidebar:not(.mobile-open){transform:translateX(-110%)!important;pointer-events:none}
+  .top-context-bar{margin-top:0!important}
+}
