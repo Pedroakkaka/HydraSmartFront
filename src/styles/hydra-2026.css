@@ -100,3 +100,110 @@ html,body{background:#f4f7fc;color:#10243e}
 @media(max-width:1220px){.hydra-dashboard{grid-template-columns:1fr}.hydra-ai{position:static}}
 @media(max-width:700px){.hydra-kpis{grid-template-columns:1fr 1fr}.hydra-kpi-feature{grid-column:1/-1}.hydra-info-pair{grid-template-columns:1fr}.hydra-station{grid-template-columns:1fr 1fr}.hydra-station strong{grid-column:1/-1}}
 @media(max-width:500px){.hydra-kpis{grid-template-columns:1fr}.hydra-kpi-feature{grid-column:auto}.hydra-insights{grid-template-columns:1fr 1fr}.hydra-ai-header{align-items:flex-start;flex-direction:column}}
+
+
+/* == HydraSmart reference-faithful dashboard layout · November 2026 == */
+.app-sidebar{width:268px!important;background:linear-gradient(165deg,#05172c,#03162c 68%,#07365a)!important;position:sticky}
+.app-sidebar:before{content:"H";position:absolute;pointer-events:none;bottom:14%;left:2px;font-family:cursive;font-style:italic;font-size:250px;line-height:1;color:#0e568e;opacity:.42;transform:rotate(-12deg);z-index:-0}
+.app-sidebar:after{content:"";pointer-events:none;position:absolute;left:0;right:0;bottom:0;height:190px;background:repeating-radial-gradient(ellipse at 48% 110%,transparent 0 9px,rgba(33,149,233,.2) 10px 11px,transparent 12px 22px);opacity:.65}
+.sidebar-header{padding:21px 22px 22px!important;margin:0 16px 5px;border-bottom:1px solid #7891ad!important}
+.sidebar-brand{gap:6px}.brand-icon-box{height:68px;width:61px;flex:0 0 61px}.brand-icon-box img{width:100%;height:100%}
+.brand-title{font-size:1.28rem;font-weight:850;letter-spacing:-.04em}.brand-subtitle{display:none}
+.sidebar-nav{padding:15px 12px;gap:7px;position:relative;z-index:1}.nav-link-btn{font-size:.96rem;font-weight:620;min-height:49px;gap:13px}
+.nav-link-btn.active{background:#1e4676!important;border:1px solid #4d91d3;box-shadow:none}
+.nav-icon{font-size:1.3rem;width:26px}
+.sidebar-footer{z-index:1;background:rgba(2,17,35,.38);padding:.65rem .75rem}
+.top-context-bar{position:relative;min-height:110px;padding:16px 35px!important;border:0!important;background:linear-gradient(90deg,rgba(4,21,42,.97) 0%,rgba(6,24,46,.58) 55%,rgba(3,18,39,.1) 100%),url('/porto-skyline.svg') center 63%/cover no-repeat!important}
+.top-context-bar .page-heading-group{position:relative;z-index:1}
+.top-context-bar .page-heading-eyebrow{font-size:.68rem;color:#e5f3ff;letter-spacing:.25em;font-weight:850}
+.top-context-bar .page-title-heading{font-size:2rem;letter-spacing:-.04em;color:#fff}
+.top-context-bar .header-status-pills{position:relative;z-index:1;gap:8px}
+.header-mode-pill,.server-pill{background:rgba(3,25,49,.76)!important;border:1px solid rgba(199,223,245,.38)!important;backdrop-filter:blur(5px)}
+.page-container{padding:20px 19px 32px!important;max-width:1900px!important}
+.page-section.active{width:100%}
+.hs-dashboard{display:grid;grid-template-columns:minmax(0,1.58fr) minmax(390px,1fr);align-items:stretch;gap:16px}
+.hs-left{display:flex;flex-direction:column;gap:15px;min-width:0}
+.hs-kpi-row{display:grid;grid-template-columns:1.55fr .86fr .9fr;gap:12px}
+.hs-kpi,.hs-card{min-width:0;border:1px solid #d4e0eb;border-radius:17px;background:#fff;box-shadow:0 5px 16px rgba(12,43,77,.07)}
+.hs-kpi{min-height:134px;padding:16px 18px;position:relative;overflow:hidden}
+.hs-kpi-title{font-weight:800;font-size:.84rem;line-height:1.35;color:#0e2e4e;display:flex;align-items:flex-start;gap:9px}
+.hs-icon{font-size:1.28rem;color:#00518b;line-height:1}
+.hs-kpi-number{font-size:clamp(1.4rem,2.2vw,2.12rem);line-height:1.12;color:#071726;font-weight:850;letter-spacing:-.05em;margin:17px 0 5px}
+.hs-kpi-caption{font-size:.7rem;line-height:1.4;color:#526a83}
+.hs-kpi-soft{background:linear-gradient(150deg,#fff,#eefaf2)}
+.hs-kpi-status{background:linear-gradient(120deg,#00283b,#01536d);border-color:#00617b}
+.hs-kpi-status .hs-kpi-title{color:#f4feff;font-size:.89rem}
+.hs-kpi-status .hs-icon{color:#def5ff}
+.hs-kpi-status .hs-kpi-caption{color:#d1eff6;position:relative;z-index:1;margin-top:8px}
+.hs-state-pill{display:inline-block;margin-top:11px;padding:5px 14px;border-radius:99px;background:#d8e8f3;color:#123d67;font-size:1.1rem;font-weight:850;position:relative;z-index:1}
+.hs-state-pill.normal{background:#068a35;color:#fff}.hs-state-pill.atencao{background:#ffde59;color:#513900}.hs-state-pill.critico{background:#b10021;color:#fff}
+.hs-wave-lines{position:absolute;right:-10px;bottom:-23px;width:140px;height:105px;border:1px solid #05c3e4;border-radius:50%;opacity:.5;box-shadow:0 0 0 11px #008aae29,0 0 0 26px #008aae26,0 0 0 42px #008aae1c;transform:rotate(-28deg)}
+.hs-measure-row{display:grid;grid-template-columns:1.52fr .85fr;gap:12px}
+.hs-card{padding:17px 18px}
+.hs-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.hs-card-head h3{display:flex;align-items:center;gap:10px;color:#0b2745;font-size:.9rem;font-weight:850}
+.hs-outline-icon{font-size:1.3rem;color:#0066a8}
+.hs-text-link,.hs-period{border:1px solid #cddded;border-radius:8px;background:#fff;color:#184a7e;font-size:.72rem;font-weight:700;cursor:pointer;padding:7px 9px;white-space:nowrap}
+.hs-level-content{display:grid;grid-template-columns:.9fr 1.1fr;gap:17px;align-items:center}
+.hs-level-main strong{font-size:clamp(1.35rem,2.3vw,2.32rem);line-height:1.1;font-weight:850;letter-spacing:-.045em;color:#081b2d}
+.hs-level-main p{font-size:.7rem;color:#526a83;margin-top:10px}
+.hs-level-main span{display:block;font-size:.7rem;color:#067a1c;margin-top:12px}
+.hs-sensor-measures{border-left:1px solid #e4edf7;padding-left:13px}
+.hs-meter-cell+.hs-meter-cell{margin-top:12px}
+.hs-meter-title{font-size:.73rem;color:#435872;font-weight:760}
+.hs-meter-cell strong{color:#123f6c;display:block;font-size:.96rem;margin-top:5px}
+.hs-meter-cell span{font-size:.65rem;color:#697f93}
+.hs-meter-rail{height:7px;background:#edf4fc;overflow:hidden;border-radius:99px;margin:6px 0 3px}
+.hs-meter-rail i{display:block;height:100%;background:linear-gradient(90deg,#65bcfa,#006ad1);border-radius:99px}
+.hs-rain-body{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:112px}
+.hs-rain-body strong{font-size:clamp(1.4rem,2vw,2rem);color:#0a1e32;letter-spacing:-.05em}
+.hs-rain-body p{font-size:.7rem;color:#6b7e90;line-height:1.4;margin-top:9px}
+.hs-rain-icon{font-size:2rem;color:#228bd7;letter-spacing:2px;align-self:flex-end}
+.hs-chart{min-height:254px}
+.hs-chart-caption{font-size:.72rem;color:#667990;margin-top:-5px;margin-bottom:10px}
+.hs-chart-graphic{height:190px;position:relative}
+.hs-chart-empty{min-height:180px;background:linear-gradient(180deg,transparent,#f5f9ff),repeating-linear-gradient(0deg,transparent 0 35px,#dfeaf5 36px 37px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border-radius:9px;color:#4c6580;text-align:center}
+.hs-chart-empty span{font-size:2.1rem;color:#1881cf}.hs-chart-empty strong{font-size:.86rem}.hs-chart-empty small{font-size:.74rem}
+.hs-stations{min-height:190px}
+.hs-subtle-state{font-size:.71rem;color:#16753c;white-space:nowrap}
+.hs-table-wrap{overflow-x:auto}
+.hs-stations table{width:100%;border-collapse:collapse;font-size:.75rem;color:#253e58}
+.hs-stations th{padding:9px;text-align:left;background:#ebf2fc;color:#16375e;font-weight:790}
+.hs-stations td{padding:9px;border-bottom:1px solid #e2eaf3}
+.hs-stations th:first-child{border-radius:8px 0 0 8px}
+.hs-stations th:last-child{border-radius:0 8px 8px 0}
+.hs-stations .hs-val{font-weight:820;color:#102b4c}.hs-pin{color:#0065a4;font-size:1.1rem}
+.hs-status-tag{color:#1d7542;background:#e0f6e7;border-radius:99px;padding:4px 7px;font-size:.68rem;display:inline-block;white-space:nowrap}
+.hs-inline-empty{padding:20px 0;color:#71829a;font-size:.75rem}
+.hs-card-foot{font-size:.68rem;color:#768aa0;margin-top:12px;line-height:1.4}
+.hs-dashboard .hydra-ai{position:static;align-self:stretch;border:1px solid #cdddea!important;box-shadow:0 6px 18px rgba(12,43,77,.09);border-radius:17px;padding:0!important;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.hs-dashboard .hydra-ai-header{background:linear-gradient(105deg,#071b35,#0a3765);padding:18px 17px;min-height:62px}
+.hs-dashboard .hydra-ai-header h2{font-size:clamp(.83rem,1.05vw,.99rem);white-space:normal;line-height:1.4}
+.hs-dashboard .hydra-ai-header span{font-size:.62rem}
+.hs-dashboard .hydra-ai-body{padding:16px;display:flex;flex-direction:column;flex:1}
+.hs-dashboard .hydra-ai-summary{margin-bottom:13px;padding:15px;background:linear-gradient(120deg,#eeecff,#dceeff)}
+.hs-dashboard .hydra-ai-summary p{font-size:.78rem;line-height:1.55}
+.hs-dashboard .hydra-insights{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0 0 15px}
+.hs-dashboard .hydra-insight{padding:11px 8px;min-height:119px;display:flex;flex-direction:column;gap:3px;background:#f0f7fb;border:0}
+.hs-dashboard .hydra-insight:nth-child(2){background:#edf9f0}
+.hs-dashboard .hydra-insight:nth-child(3){background:#e9f5ff}
+.hs-dashboard .hydra-insight:nth-child(4){background:#fff5dc}
+.hs-dashboard .hydra-insight .hs-insight-icon{font-size:1.3rem;line-height:1.1;color:#076ab2}
+.hs-dashboard .hydra-insight:nth-child(2) .hs-insight-icon{color:#067a1c}
+.hs-dashboard .hydra-insight:nth-child(4) .hs-insight-icon{color:#d59e00}
+.hs-dashboard .hydra-insight span:not(.hs-insight-icon){font-size:.67rem;color:#243a52;font-weight:740}
+.hs-dashboard .hydra-insight strong{font-size:.96rem;color:#0c243d;letter-spacing:-.025em;white-space:normal;word-break:normal;margin-top:3px}
+.hs-dashboard .hydra-insight small{font-size:.59rem;color:#6c8093;line-height:1.25}
+.hs-dashboard .hydra-ai-section{padding-top:18px;margin-top:9px}
+.hs-dashboard .hydra-ai-section h3{font-weight:850;font-size:.95rem}
+.hs-dashboard .hydra-findings{gap:11px;margin:0}
+.hs-dashboard .hydra-findings li{font-size:.76rem;line-height:1.5}
+.hs-dashboard .hydra-source{background:#dceaff;color:#184273;padding:8px 10px}
+.hs-dashboard .hydra-ai-btn{margin-top:auto;min-height:51px;font-size:.91rem;background:linear-gradient(100deg,#073d79,#0051a3)}
+.hs-dashboard .hydra-ai-details{margin-top:14px}
+.hs-dashboard .hydra-ai-footnote{font-size:.65rem}
+@media(max-width:1450px){.hs-dashboard{grid-template-columns:minmax(0,1.5fr) minmax(355px,1fr)}.hs-kpi-row{grid-template-columns:1.3fr 1fr 1fr}.hs-dashboard .hydra-insights{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-dashboard .hydra-insight{min-height:82px}}
+@media(max-width:1160px){.hs-dashboard{grid-template-columns:1fr}.hs-dashboard .hydra-ai{max-width:none}.hs-dashboard .hydra-insights{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:900px){.top-context-bar{min-height:100px}.app-sidebar{width:min(290px,86vw)!important}.hs-measure-row{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.hs-kpi-row{grid-template-columns:1fr 1fr}.hs-kpi-status{grid-column:1/-1}.hs-measure-row{grid-template-columns:1fr}.hs-dashboard .hydra-insights{grid-template-columns:1fr 1fr}.top-context-bar .page-title-heading{font-size:1.5rem}}
+@media(max-width:500px){.hs-kpi-row{grid-template-columns:1fr}.hs-kpi-status{grid-column:auto}.hs-level-content{grid-template-columns:1fr}.hs-sensor-measures{border-left:0;border-top:1px solid #e4edf7;padding-left:0;padding-top:12px}.hs-dashboard .hydra-ai-header{flex-direction:column;align-items:flex-start}.hs-dashboard .hydra-ai-header span{white-space:normal}}
