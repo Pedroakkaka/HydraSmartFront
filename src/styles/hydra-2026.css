@@ -327,3 +327,22 @@ input,select,textarea{color-scheme:dark}
 @media(max-width:1000px){.diag-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.diag-health-grid{grid-template-columns:1fr}.diag-sensors{grid-template-columns:1fr}.diag-intro{align-items:flex-start;flex-direction:column}}
 @media(max-width:480px){.diag-summary-grid{grid-template-columns:1fr}}
+
+
+/* Transparência de procedência das leituras */
+.hs-origins{padding:17px 18px}
+.hs-origins-note{font-size:.72rem;color:#bdd0e5}
+.hs-origins-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.hs-origin{padding:15px 13px;border:1px solid #39617e;background:#193854;border-radius:13px;min-width:0}
+.hs-origin-prototipo{border-top:3px solid #79beff}
+.hs-origin-demonstracao{border-top:3px solid #ffe07c}
+.hs-origin-campo{border-top:3px solid #5cdeaa}
+.hs-origin-badge{display:inline-block;border:1px solid #537c9b;background:#244b68;color:#d5ecff;border-radius:99px;font-size:.6rem;letter-spacing:.04em;font-weight:850;padding:4px 8px}
+.hs-origin-demonstracao .hs-origin-badge{background:#51442d;border-color:#968045;color:#ffe9a6}
+.hs-origin-campo .hs-origin-badge{background:#193f3f;border-color:#377d69;color:#adf3cf}
+.hs-origin h4{font-size:.85rem;font-weight:800;color:#f1f8ff;margin-top:12px}
+.hs-origin h4 span{font-size:1.1rem;margin-right:5px}
+.hs-origin-value{font-size:1.3rem;font-weight:850;color:#fff;margin:12px 0 6px}
+.hs-origin p{font-size:.72rem;color:#c5daec;line-height:1.5;min-height:55px}
+.hs-origin small{display:block;margin-top:11px;font-size:.67rem;color:#afc7df}
+@media(max-width:700px){.hs-origins-grid{grid-template-columns:1fr}.hs-origin p{min-height:0}}
