@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { ROTAS } from './rotas.js';
 import { useTempoReal } from './hooks/useTempoReal.js';
@@ -21,7 +21,19 @@ export default function App() {
   useTempoReal();
   const [menuAberto, setMenuAberto] = useState(false);
   const { pathname } = useLocation();
-  useEffect(() => { setMenuAberto(false); }, [pathname]);
+  // React Router não redefine automaticamente a posição de rolagem.
+  // Em celulares, a próxima aba podia abrir na posição da página longa anterior,
+  // aparentando uma enorme tela branca acima das informações.
+  useLayoutEffect(() => {
+    setMenuAberto(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    for (const seletor of ['.app-main-content', '.page-container']) {
+      const elemento = document.querySelector(seletor);
+      if (elemento) elemento.scrollTop = 0;
+    }
+  }, [pathname]);
   useEffect(() => {
     if (!menuAberto) return;
     const aoTeclado = (e) => { if (e.key === 'Escape') setMenuAberto(false); };
