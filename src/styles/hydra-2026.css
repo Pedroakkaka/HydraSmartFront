@@ -207,3 +207,123 @@ html,body{background:#f4f7fc;color:#10243e}
 @media(max-width:900px){.top-context-bar{min-height:100px}.app-sidebar{width:min(290px,86vw)!important}.hs-measure-row{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.hs-kpi-row{grid-template-columns:1fr 1fr}.hs-kpi-status{grid-column:1/-1}.hs-measure-row{grid-template-columns:1fr}.hs-dashboard .hydra-insights{grid-template-columns:1fr 1fr}.top-context-bar .page-title-heading{font-size:1.5rem}}
 @media(max-width:500px){.hs-kpi-row{grid-template-columns:1fr}.hs-kpi-status{grid-column:auto}.hs-level-content{grid-template-columns:1fr}.hs-sensor-measures{border-left:0;border-top:1px solid #e4edf7;padding-left:0;padding-top:12px}.hs-dashboard .hydra-ai-header{flex-direction:column;align-items:flex-start}.hs-dashboard .hydra-ai-header span{white-space:normal}}
+
+
+/* =====================================================
+   HydraSmart · contraste técnico (visual escuro, 2026)
+   Preserva grid/layout existente; adapta TODAS as páginas.
+   ===================================================== */
+:root {
+  --bg-app:#08182b;--bg-surface:#102a46;--bg-surface-elevated:#173653;
+  --bg-surface-card:#122a43;--bg-surface-hover:#1a3956;--bg-surface-active:#224568;
+  --border-subtle:#294763;--border-medium:#3b5e7d;
+  --border-accent:#3f89bd;--accent-cyan:#78c4fc;--accent-cyan-hover:#b0dcff;
+  --accent-cyan-subtle:#143d62;--text-primary:#f3f8ff;--text-secondary:#c4d6ea;
+  --text-muted:#a3b9d0;--text-cyan:#92d0ff;
+  --status-normal:#43d995;--status-warning:#ffe07c;--status-danger:#ff8797;
+  --shadow-sm:0 4px 15px rgba(0,6,18,.16);--shadow-md:0 9px 28px rgba(0,6,18,.22)
+}
+html,body{background:var(--bg-app);color:var(--text-primary)}
+.app-main-content{background:linear-gradient(155deg,#08182b,#0a213a)!important}
+.page-container{background:transparent}
+.hs-kpi:not(.hs-kpi-status),.hs-card,.hydra-panel,.card-base,.preview-map-box,
+.manhole-card-detailed,.weather-metric-box,.diag-card,.coord-config-card,.history-card,
+.forecast-day-card,.metric-sub-card,.gauge-level-container{
+  background:#122a43!important;border-color:#33516d!important;color:#f3f8ff!important;
+  box-shadow:0 6px 20px rgba(0,5,18,.16)
+}
+.hs-kpi-soft{background:linear-gradient(145deg,#142f4a,#153e54)!important}
+.hs-kpi:not(.hs-kpi-status) .hs-kpi-title,
+.hs-kpi:not(.hs-kpi-status) .hs-kpi-number,
+.hs-card-head h3,.hs-level-main strong,.hs-meter-cell strong,.hs-rain-body strong,
+.hs-stations .hs-val,.hydra-panel h3,.hydra-number,
+.metric-sub-val,.diag-card-title,.value-large,.history-title{color:#f5faff!important}
+.hs-kpi-caption,.hs-level-main p,.hs-meter-cell span,.hs-rain-body p,.hs-chart-caption,
+.hs-card-foot,.hs-inline-empty,.hs-subtle-state,.hydra-muted,
+.card-title-text,.card-meta-text,.value-unit{color:#bdd0e5!important}
+.hs-level-main span{color:#7be7ab!important}
+.hs-meter-title,.hs-stations table,.hs-stations td{color:#dae9f7!important}
+.hs-stations th{background:#244869!important;color:#edf7ff!important}
+.hs-stations td{border-color:#31516e}
+.hs-text-link,.hs-period{background:#183b5a!important;color:#c5e8ff!important;border-color:#3b698c!important}
+.hs-meter-rail,.hydra-level-track{background:#2d506e!important}
+.hs-chart-empty{background:repeating-linear-gradient(0deg,#142f4a 0 35px,#2a4762 36px 37px)!important;color:#d7e9fc!important}
+.hs-chart-empty strong,.hs-chart-empty small{color:#d7e9fc!important}
+.hs-status-tag{background:#173c38!important;color:#8ef2b4!important}
+.hs-dashboard .hydra-ai{background:#122a43!important;border-color:#33516d!important}
+.hs-dashboard .hydra-ai-summary,.hydra-ai-summary{background:linear-gradient(110deg,#20385c,#1b4666)!important;border-color:#406486!important}
+.hydra-ai-summary strong{color:#b2d8ff!important}
+.hydra-ai-summary p{color:#edf5ff!important}
+.hs-dashboard .hydra-insight,.hydra-insight{background:#1c3955!important;border:1px solid #335674!important}
+.hs-dashboard .hydra-insight:nth-child(2){background:#183c3c!important}
+.hs-dashboard .hydra-insight:nth-child(3){background:#1a3c59!important}
+.hs-dashboard .hydra-insight:nth-child(4){background:#4a3d29!important}
+.hs-dashboard .hydra-insight span:not(.hs-insight-icon),.hydra-insight span{color:#d0dff0!important}
+.hs-dashboard .hydra-insight strong,.hydra-insight strong{color:#fff!important}
+.hs-dashboard .hydra-insight small{color:#bdd3ea!important}
+.hydra-ai-section{border-color:#35536e!important}
+.hydra-ai-section h3{color:#f0f7ff!important}
+.hydra-findings li,.hydra-ai-details{color:#d7e5f5!important}
+.hydra-ai-details summary{color:#9bd0ff!important}
+.hydra-source{background:#234c75!important;color:#e5f5ff!important}
+.hydra-ai-footnote{color:#bed0e3!important}
+.card-base:hover{background:#173753!important;border-color:#4d789d!important}
+.card-base .text-white,.preview-map-box .text-white,.diag-card .text-white,
+.manhole-card-detailed .text-white,.weather-metric-box .text-white,
+.card-base .text-slate-200,.card-base .text-slate-300,.preview-map-box .text-slate-300,
+.diag-card .text-slate-300{color:#f2f8ff!important}
+.card-base .text-slate-400,.preview-map-box .text-slate-400,.diag-card .text-slate-400,
+.diag-card .text-slate-500,.card-base .text-slate-500{color:#b6cbe0!important}
+.text-cyan-300,.text-cyan-400{color:#8bdbff!important}
+.text-slate-300,.text-slate-400{color:#b9cde1!important}
+.text-white{color:#f3f9ff}
+.btn-action-secondary{background:#204363!important;border-color:#477298!important;color:#e3f3ff!important}
+.btn-action-primary{background:#0055a9!important;color:#fff!important;border-color:#2c80ce!important}
+.map-toolbar{background:#142d47!important}
+.map-control-btn{background:#21425e!important;color:#f0f7ff!important;border-color:#406987!important}
+.tabela-alertas th{background:#20415e!important;color:#e2f0ff!important}
+.tabela-alertas td{color:#dce9f7!important;border-color:#36536f!important}
+.history-desc{color:#c3d6ea!important}
+.hs-rain-icon{color:#56b9ff}
+.hs-outline-icon{color:#76c7ff}
+.hs-pin{color:#83ceff}
+.hs-dashboard .hydra-insight .hs-insight-icon{color:#8bdaff}
+.hs-dashboard .hydra-insight:nth-child(2) .hs-insight-icon{color:#70e9a8}
+.hs-dashboard .hydra-insight:nth-child(4) .hs-insight-icon{color:#ffe07c}
+.hs-kpi-status{background:linear-gradient(125deg,#003449,#01667c)!important}
+.hs-dashboard .hydra-ai-header{background:#071b32}
+.campo-numero,.port-selector{background:#0c243d!important;color:#edf7ff!important;border-color:#476784!important}
+input,select,textarea{color-scheme:dark}
+.diag-simple{display:flex;flex-direction:column;gap:16px;max-width:1320px;margin:0 auto}
+.diag-intro,.diag-panel,.diag-summary{border:1px solid #355774;background:#122b45;border-radius:17px;box-shadow:0 5px 20px rgba(0,4,16,.16)}
+.diag-intro{padding:23px 25px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.diag-kicker{color:#83c9ff;font-size:.67rem;letter-spacing:.16em;font-weight:800}
+.diag-intro h2{color:#f6fbff;font-size:1.4rem;font-weight:850;margin:8px 0}
+.diag-intro p{color:#c2d5e8;font-size:.81rem}
+.diag-mode{font-size:.72rem;color:#adebca;border:1px solid #31775e;background:#1b453d;padding:9px 13px;border-radius:999px;white-space:nowrap}
+.diag-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.diag-summary{padding:17px;min-height:128px}
+.diag-summary span,.diag-summary small{display:block;color:#bdcfe2;font-size:.74rem}
+.diag-summary strong{display:block;font-size:clamp(1.1rem,1.8vw,1.52rem);line-height:1.2;color:#f6fbff;font-weight:850;margin:17px 0 8px;overflow-wrap:anywhere}
+.diag-summary .diag-blue{color:#8bcfff}.diag-summary .diag-danger{color:#ff93a1}.diag-summary .diag-warning{color:#ffe18c}
+.diag-panel{padding:21px}
+.diag-section-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.diag-section-header h3{font-size:1rem;color:#f4faff;font-weight:840}
+.diag-section-header>span{color:#acc4db;font-size:.72rem}
+.diag-sensors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.diag-sensor{background:#1a3955;border:1px solid #365a79;border-radius:12px;padding:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.diag-sensor strong{font-size:.81rem;color:#f1f9ff;display:block}
+.diag-sensor small{font-size:.72rem;color:#c0d4e6;display:block;margin-top:5px}
+.diag-sensor-value{font-size:1.4rem;color:#8bd1ff;font-weight:850}
+.diag-health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.diag-health-grid>div{background:#1b3a57;padding:15px;border-radius:12px}
+.diag-health-grid span,.diag-health-grid strong{display:block}
+.diag-health-grid span{font-size:.73rem;color:#c1d2e5}
+.diag-health-grid strong{font-size:.86rem;color:#f6fbff;margin-top:8px;overflow-wrap:anywhere}
+.diag-details-button{display:block;margin-top:16px;background:#204b70;color:#dff3ff;border:1px solid #4c7ca2;border-radius:10px;padding:10px 14px;font-weight:770;font-size:.76rem;cursor:pointer}
+.diag-extra{margin-top:13px;color:#c6d9eb;font-size:.79rem;line-height:1.6;border-top:1px solid #355774;padding-top:13px}
+.diag-extra>div{margin:12px 0}.diag-extra h4{color:#f1f9ff}
+.diag-empty{color:#b8cbdd}
+@media(max-width:1000px){.diag-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.diag-health-grid{grid-template-columns:1fr}.diag-sensors{grid-template-columns:1fr}.diag-intro{align-items:flex-start;flex-direction:column}}
+@media(max-width:480px){.diag-summary-grid{grid-template-columns:1fr}}
