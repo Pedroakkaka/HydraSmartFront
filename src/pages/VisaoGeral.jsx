@@ -8,6 +8,8 @@ import { useClima } from '../hooks/useConsultas.js';
 import { situacaoGeral, temLeitura } from '../lib/risco.js';
 import { num } from '../lib/formato.js';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
+import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
+import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
 
 const ESTACOES = {
   'DCRS-00044': 'Viamão · Itapuã',
@@ -32,14 +34,14 @@ function NivelSensor({ bueiro, titulo }) {
     <div className="hs-meter-title">{titulo}</div>
     <strong>{valido ? numero(bueiro.alturaAguaCm,' cm') : 'Sem leitura'}</strong>
     <div className="hs-meter-rail"><i style={{width:`${pct}%`}} /></div>
-    <span>{valido ? `${numero(bueiro.nivelPct,'%')} da altura útil` : 'Sensor físico não conectado'}</span>
+    <span>{valido ? `${numero(bueiro.nivelPct,'%')} da altura útil` : 'Sem leitura recente'}</span>
   </div>;
 }
 function GraficoNivel({ b1, b2 }) {
   const bases = [b1,b2].map(b=>Array.isArray(b?.historicoNiveis)?b.historicoNiveis:[]);
   const labelsOriginais = (b1?.historicoTimestamps?.length||0) >= (b2?.historicoTimestamps?.length||0) ? b1?.historicoTimestamps : b2?.historicoTimestamps;
   const comprimento = Math.max(bases[0].length,bases[1].length);
-  if (!comprimento) return <div className="hs-chart-empty"><span>⌁</span><strong>Aguardando as primeiras leituras</strong><small>As curvas serão exibidas quando os sensores enviarem medições reais.</small></div>;
+  if (!comprimento) return <div className="hs-chart-empty"><span>⌁</span><strong>Aguardando as primeiras leituras</strong><small>As curvas serão exibidas com leituras recentes da fonte selecionada.</small></div>;
   const labels = Array.from({length:comprimento},(_,i) => {
     const valor = labelsOriginais?.[i];
     if(!valor) return `Leitura ${i+1}`;
@@ -86,8 +88,8 @@ export default function VisaoGeral(){
   const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
   const estacaoDestaque=(hidrologia?.estacoes||[]).find(e=>e.codigo==='DCRS-00054')||(hidrologia?.estacoes||[]).find(e=>e.rio?.nivelMetros!=null);
   const chuva=clima?.precipitacaoObservadaMm;
-  const fonte=useTelemetria.getState().fonteSelecionada;
-  const isCampo=fonte==='campo';
+  const fonte=useTelemetria(s=>s.fonteSelecionada);
+  const inteligente=fonte==='inteligente';
   return <div className="hs-dashboard">
     <div className="hs-left">
       <div className="hs-kpi-row">
@@ -104,7 +106,7 @@ export default function VisaoGeral(){
         <section className="hs-card hs-level">
           <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
           <div className="hs-level-content">
-            <div className="hs-level-main"><strong>{temDado(b1)?numero(b1.alturaAguaCm,' cm'):'Sem leitura'}</strong><p>{fonte === 'campo' ? 'Sensor de campo · Bueiro 01' : fonte === 'prototipo' ? 'Protótipo experimental · Bueiro 01' : 'Cenário fictício · Bueiro 01'}</p><span>{ambos?'Medições válidas de ambos os sensores':'Sem medições físicas recentes'}</span></div>
+            <div className="hs-level-main"><strong>{temDado(b1)?numero(b1.alturaAguaCm,' cm'):'Sem leitura'}</strong><p>{inteligente ? 'Sensor de campo · Bueiro 01' : 'Protótipo experimental · Bueiro 01'}</p><span>{ambos?'Medições válidas de ambos os sensores':'Sem medições físicas recentes'}</span></div>
             <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Entrada · B01"/><NivelSensor bueiro={b2} titulo="Saída · B02"/></div>
           </div>
         </section>
@@ -115,11 +117,13 @@ export default function VisaoGeral(){
       </div>
       <section className="hs-card hs-chart">
         <div className="hs-card-head"><h3><span className="hs-outline-icon">▥</span> Evolução do nível da água</h3><button className="hs-period" onClick={()=>navegar('/graficos')}>Ver histórico completo ⌄</button></div>
-        <p className="hs-chart-caption">{fonte === 'campo' ? 'Medições reais de campo' : fonte === 'prototipo' ? 'Leituras experimentais do protótipo' : 'Leituras sintéticas de demonstração'} · percentual da altura útil</p>
+        <p className="hs-chart-caption">{inteligente ? 'Sensores reais de campo (se conectados)' : 'Leituras experimentais do protótipo'} · percentual da altura útil</p>
         <GraficoNivel b1={b1} b2={b2}/>
       </section>
-      <Estacoes data={hidrologia} loading={hidroCarregando} error={hidroErro}/>
+      {inteligente && <Estacoes data={hidrologia} loading={hidroCarregando} error={hidroErro}/>}
+      {inteligente && <DemonstracaoAssistida />}
+      <ReceptorSimulado />
     </div>
-    {isCampo ? <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/> : <aside className="hs-card hs-mode-context"><h3>{fonte === 'prototipo' ? '⌁ Protótipo físico' : '◈ Demonstração fictícia'}</h3><p>{fonte === 'prototipo' ? 'Acompanhe somente as medições experimentais recebidas do Arduino. Os dados meteorológicos e as estações oficiais são referências externas independentes.' : 'Este modo apresenta exclusivamente valores sintéticos nos cartões dos sensores. Nenhum resultado representa medição em campo ou alerta real.'}</p><span>Sem notificações externas à Defesa Civil.</span></aside>}
+    {inteligente ? <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/> : <aside className="hs-card hs-mode-context"><h3>Protótipo físico</h3><p>Leituras experimentais da bancada. Não são medições de campo. Os dados meteorológicos são fontes externas independentes.</p><span>Alertas de teste não são enviados externamente.</span></aside>}
   </div>;
 }
