@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useCemaden, useClima, useSaude } from '../hooks/useConsultas.js';
+import { useCemaden, useClima, useSaude, useHistoricoOficial } from '../hooks/useConsultas.js';
 import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
 import { hora, num } from '../lib/formato.js';
 import { useRelogio } from '../hooks/useRelogio.js';
@@ -71,6 +71,7 @@ export default function VisaoGeral() {
   const { data: clima } = useClima();
   const { data: cemaden } = useCemaden();
   const saude = useSaude();
+  const { data: historicoOficial } = useHistoricoOficial();
 
   const { bueiro_1: b1, bueiro_2: b2 } = estado.bueiros;
   const s = SITUACAO[situacaoGeral(estado.bueiros)];
@@ -116,6 +117,15 @@ export default function VisaoGeral() {
         </div>
       </div>
 
+      <div className="card-base mt-3">
+        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Porto Alegre</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+          <div><strong className="text-white">Chuva observada</strong><div>{clima?.precipitacaoObservadaMm == null ? 'Fonte meteorológica indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm (Open-Meteo)`}</div></div>
+          <div><strong className="text-white">Referências históricas</strong><div>{Array.isArray(historicoOficial) ? `${historicoOficial.length} registros/referências cadastrados` : 'Aguardando histórico oficial'}</div></div>
+          <div><strong className="text-white">Protótipo físico B1 / B2</strong><div>{[b1,b2].map((b,i) => `B${i+1}: ${temLeitura(b) && !b.desatualizado && b.origem !== 'simulador' ? num(b.nivelPct) + '% de nível' : 'sem leitura física atual'}`).join(' • ')}</div></div>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-2">A análise reúne fontes distintas, sem atribuir causalidade automaticamente. Nível de água não equivale a vazão (L/s): para medir vazão são necessários sensor adequado e calibração hidráulica. No modo demonstração os valores gerados são sintéticos; para medições reais use Modo Real e conecte o dispositivo.</p>
+      </div>
       <div className="overview-central-layout">
         <div className="preview-map-box">
           <div className="preview-map-header">
