@@ -59,14 +59,14 @@ export default function AdesaoNotificacoes() {
   return <section className="hs-card hs-mobile-notifications" aria-label="Recebimento voluntário de notificações experimentais">
     <div className="hs-card-head">
       <h3><span className="hs-outline-icon">♧</span> Notificações de teste no celular</h3>
-      <span className="hs-test-tag">SOMENTE DEMONSTRAÇÃO</span>
+      <span className="hs-test-tag">AUTOMÁTICO · SOMENTE TESTE</span>
     </div>
     <div className="hs-mobile-notification-preview">
       <strong>{TITULO_TESTE}</strong>
       <p>{TEXTO_TESTE}</p>
     </div>
     <p className="hs-card-foot">
-      Autorize neste próprio celular para receber avisos de ensaio do projeto físico quando houver alerta crítico.
+      Autorize neste próprio celular. Depois disso, o HydraSmart avisa automaticamente quando o sensor do projeto físico entrar no nível de atenção ou crítico — sem precisar apertar nenhum botão.
       Não é um serviço de emergência, não substitui avisos oficiais e nunca envia mensagens à Defesa Civil.
     </p>
     <p className="hs-card-foot">
@@ -89,7 +89,7 @@ export default function AdesaoNotificacoes() {
           {enviando ? 'Enviando…' : 'Enviar teste coletivo'}
         </button>
       </div>
-      <small>Envio exclusivamente interno: mensagem de teste sem leitura de sensor e sem comunicação oficial.</small>
+      <small>Este botão é opcional, apenas para verificar o envio coletivo. Os avisos de nível alto do sensor são automáticos, sem envio oficial.</small>
     </form>
     <p className="hs-mobile-notification-status" role="status">
       {inscrito ? '● Cadastrado para testes' : '○ Não cadastrado'}
