@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useClima } from '../hooks/useConsultas.js';
 import { api } from '../lib/api.js';
@@ -18,9 +18,12 @@ function Indicador({ titulo, valor, detalhe, destaque = false }) {
 export default function Diagnostico() {
   const estado = useTelemetria((s) => s.estado);
   const { data: clima } = useClima();
-  const [analise, setAnalise] = useState(null);
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
+  const relatorio = useQuery({
+    queryKey: ['relatorio-automatico-ia'],
+    queryFn: () => api.get('/ia/relatorio'),
+    refetchInterval: 5 * 60_000,
+    retry: false
+  });
 
   const bueiros = Object.entries(estado?.bueiros ?? {});
   const validos = bueiros.filter(([, b]) => temLeitura(b) && !b.desatualizado);
@@ -30,23 +33,6 @@ export default function Diagnostico() {
   const risco = metaRisco(maiorRisco);
   const simulacao = estado?.modo === 'prototipo' || estado?.modo === 'simulacao' || validos.some(([, b]) => b.origem === 'simulador');
 
-  async function solicitarAnalise() {
-    setCarregando(true);
-    setErro('');
-    try {
-      const resultado = await api.post('/ia/analisar', {
-        pergunta: 'Analise exclusivamente os dados disponíveis e identifique tendências, anomalias e observações úteis sobre nível de água e drenagem. Diferencie medição de simulação. Não invente probabilidade de alagamento nem tempo de enchimento; somente apresente estimativas numéricas se houver modelo quantitativo validado e dados suficientes. Explique incertezas e limitações.',
-        limite: 60
-      });
-      setAnalise({ ...resultado, consultadoEm: new Date().toISOString() });
-    } catch (e) {
-      setErro(e.status === 503
-        ? 'A análise Gemini está desabilitada no servidor por segurança. Os indicadores de sensores continuam disponíveis.'
-        : e.message || 'Não foi possível consultar a inteligência artificial.');
-    } finally {
-      setCarregando(false);
-    }
-  }
 
   return (
     <div className="space-y-5">
@@ -101,36 +87,6 @@ export default function Diagnostico() {
         )}
       </section>
 
-      <section className="diag-card" aria-label="Interpretação dinâmica da inteligência artificial">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold text-white">🧠 Descobertas e observações da IA</h2>
-            <p className="text-xs text-slate-400 mt-1">Campo aberto para tendências, anomalias, relações e hipóteses identificadas a partir dos registros.</p>
-          </div>
-          <button className="btn-action-primary text-xs" onClick={solicitarAnalise} disabled={carregando}>
-            {carregando ? 'Analisando...' : 'Gerar análise com IA'}
-          </button>
-        </div>
-        {erro && <p role="status" className="text-sm text-amber-300 mt-4">{erro}</p>}
-        {analise?.analise ? (
-          <div className="mt-4 rounded-xl border border-cyan-900 bg-slate-950/60 p-4">
-            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{analise.analise}</p>
-            <p className="text-xs text-slate-400 mt-4">
-              {analise.registrosConsultados ?? 'Quantidade não informada'} registros consultados • Análise em {dataHora(analise.consultadoEm)}
-            </p>
-            {analise.aviso && <p className="text-xs text-amber-300 mt-2">{analise.aviso}</p>}
-          </div>
-        ) : !erro && (
-          <div className="mt-4 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">
-            Nenhuma análise gerada nesta sessão. Quando a IA estiver habilitada de forma segura, suas observações aparecerão aqui, sem limitar a resposta a campos pré-definidos.
-          </div>
-        )}
-        <p className="text-xs text-slate-500 mt-3">
-          A IA interpreta dados disponíveis; não aprende autonomamente nem valida previsões apenas por gerar texto.
-          Aprendizado contínuo exigirá armazenamento histórico, avaliação de acertos e atualização controlada do modelo.
-        </p>
-      </section>
-
       <section className="diag-card">
         <h2 className="text-sm font-bold text-white">Contexto meteorológico</h2>
         <p className="text-sm text-slate-300 mt-2">
@@ -138,6 +94,27 @@ export default function Diagnostico() {
           Esta informação é complementar e não equivale, isoladamente, à probabilidade de alagamento.
         </p>
       </section>
+      <section className="diag-card" aria-label="Relatório automático da inteligência artificial">
+        <div>
+          <h2 className="text-base font-bold text-white">🧠 Relatório inteligente da IA</h2>
+          <p className="text-xs text-slate-400 mt-1">Interpretação escrita automaticamente a partir das leituras históricas disponíveis.</p>
+        </div>
+        {relatorio.data?.status === 'disponivel' ? (
+          <div className="mt-4 rounded-xl border border-cyan-900 bg-slate-950/60 p-4">
+            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{relatorio.data.analise}</p>
+            <p className="text-xs text-slate-400 mt-4">
+              {relatorio.data.registrosConsultados} leituras consultadas • Gerado em {dataHora(relatorio.data.geradoEm)}
+            </p>
+            <p className="text-xs text-amber-300 mt-2">{relatorio.data.aviso}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 mt-4" role="status">
+            {relatorio.isError ? 'Relatório indisponível: verifique a conexão com a API.' :
+              relatorio.data?.mensagem || 'Consultando análise histórica...'}
+          </p>
+        )}
+      </section>
+
     </div>
   );
 }
