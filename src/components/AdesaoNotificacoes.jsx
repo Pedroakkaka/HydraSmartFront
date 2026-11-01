@@ -34,9 +34,9 @@ export default function AdesaoNotificacoes() {
     definirInscricao(false);
     setMensagem('Recebimento de alertas de teste desativado neste aparelho.');
   }
-  function testar() {
+  async function testar() {
     if (!inscrito) { setMensagem('Ative o recebimento antes de testar.'); return; }
-    const enviado = exibirNotificacaoTeste();
+    const enviado = await exibirNotificacaoTeste();
     setMensagem(enviado ? 'Notificação local de teste exibida neste aparelho.' : 'O navegador não exibiu a notificação. Verifique as permissões e se a página está aberta.');
   }
 
