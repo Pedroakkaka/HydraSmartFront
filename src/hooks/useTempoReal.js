@@ -59,7 +59,9 @@ export function useTempoReal() {
             if (!alertasVistos.has(id)) {
               alertasVistos.add(id);
               if (alertasVistos.size > 100) alertasVistos.delete(alertasVistos.values().next().value);
-              if (exibirNotificacaoTeste()) optin.receber(new Date().toISOString());
+              exibirNotificacaoTeste().then(exibida => {
+                if (exibida) useNotificacoesTeste.getState().receber(new Date().toISOString());
+              });
             }
           }
         }
