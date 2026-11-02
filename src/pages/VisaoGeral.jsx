@@ -6,7 +6,7 @@ import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
 import { hora, num } from '../lib/formato.js';
 import { useRelogio } from '../hooks/useRelogio.js';
 
-const CENTRO_CACERES = [-16.0718, -57.6789];
+const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
 
 const SITUACAO = {
   critico: {
@@ -58,7 +58,7 @@ function CardBueiro({ bueiro, titulo, onClick }) {
 
 function statusCemaden(c) {
   if (!c) return ['text-slate-400', 'Consultando...'];
-  if (c.status === 'sucesso') return ['text-emerald-400', 'Estações de Cáceres com dados recentes'];
+  if (c.status === 'sucesso') return ['text-emerald-400', 'Estações de Porto Alegre com dados recentes'];
   if (c.status === 'sem_dados_recentes') return ['text-amber-400', 'Sem dados recentes'];
   if (c.status === 'sem_token') return ['text-slate-400', 'Sem token configurado'];
   return ['text-rose-400', 'Falha de conexão'];
@@ -93,7 +93,7 @@ export default function VisaoGeral() {
             <span className={`value-large ${s.valor[0]}`}>{s.valor[1]}</span>
           </div>
           <div className="card-meta-text">
-            <span>Cáceres - Mato Grosso</span>
+            <span>Porto Alegre - Rio Grande do Sul</span>
             <span>{relogio} (GMT-3)</span>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function VisaoGeral() {
       </div>
 
       <div className="card-base mt-3">
-        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Cáceres</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
+        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Porto Alegre</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
           <div><strong className="text-white">Chuva observada</strong><div>{clima?.precipitacaoObservadaMm == null ? 'Fonte meteorológica indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm (Open-Meteo)`}</div></div>
           <div><strong className="text-white">Referências históricas</strong><div>{Array.isArray(historicoOficial) ? `${historicoOficial.length} registros/referências cadastrados` : 'Aguardando histórico oficial'}</div></div>
@@ -131,7 +131,7 @@ export default function VisaoGeral() {
           <div className="preview-map-header">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>🗺️</span> Malha Cartográfica de Cáceres-MT (OpenStreetMap)
+                <span>🗺️</span> Malha Cartográfica de Porto Alegre-RS (OpenStreetMap)
               </h3>
               <p className="text-xs text-slate-400">
                 Base cartográfica OpenStreetMap; cadastro municipal de bocas de lobo disponível no mapa completo.
@@ -143,7 +143,7 @@ export default function VisaoGeral() {
           </div>
           <div className="preview-map-frame" style={{ cursor: 'pointer' }} onClick={() => navegar('/mapa')}>
             <MapContainer
-              center={CENTRO_CACERES}
+              center={CENTRO_PORTO_ALEGRE}
               zoom={13}
               zoomControl={false}
               dragging={false}
@@ -184,7 +184,7 @@ export default function VisaoGeral() {
                 <span className={`font-mono ${serial.errosParser ? 'text-amber-400' : 'text-emerald-400'}`}>{serial.errosParser} erros</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">CEMADEN Cáceres:</span>
+                <span className="text-slate-400">CEMADEN Porto Alegre:</span>
                 <span className={corCemaden}>{textoCemaden}</span>
               </div>
               <div className="flex justify-between">
