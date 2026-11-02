@@ -57,18 +57,18 @@ function interpretarSensores(bueiros = {}, demonstracao = false) {
 export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao = false }) {
   const [expandido, setExpandido] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['analise-historica-cloudflare', demonstracao],
+    queryKey: ['analise-historica-cloudflare'],
     enabled: !demonstracao,
     queryFn: () => api.get('/ia/relatorio'),
     retry: false,
-    staleTime: 25_000,
-    refetchInterval: 30_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
     refetchOnWindowFocus: false
   });
   const texto = typeof (data?.analise || data?.relatorio) === 'string' ? (data.analise || data.relatorio) : '';
   const oficial = extrairResumo(texto);
   const contextual = interpretarSensores(bueiros, demonstracao);
-  const { resumo, achados, secoes } = demonstracao ? { ...contextual, secoes: [] } : oficial;
+  const { resumo, achados, secoes } = { ...contextual, secoes: oficial.secoes };
   
   const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
   const sensoresValidos = Object.values(bueiros || {}).filter(b => b?.valido && b?.conectado && !b?.desatualizado);
@@ -81,20 +81,21 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
     <section className="hydra-panel hydra-ai" aria-label="Análise contextual do histórico">
       <header className="hydra-ai-header">
         <h2>▱ Análise contextual do histórico</h2>
-        <span>{demonstracao ? 'Atualização conforme telemetria da bancada' : data?.verificadoEm ? `Verificado: ${new Date(data.verificadoEm).toLocaleTimeString('pt-BR')}` : data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Verificação a cada 30 s'}</span>
+        <span>{demonstracao ? 'Atualização conforme telemetria da bancada' : data?.verificadoEm ? `Verificado: ${new Date(data.verificadoEm).toLocaleTimeString('pt-BR')}` : data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Verificação a cada 5 s'}</span>
       </header>
       <div className="hydra-ai-body">
         <div className="hydra-ai-summary">
-          <strong>{demonstracao ? '✦ Análise contextual · projeto físico' : '✦ Resumo da IA · fontes oficiais'}</strong>
-          <p>{demonstracao ? resumo : isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
+          <strong>{'✦ Análise contextual · ' + (demonstracao ? 'projeto físico' : 'dados reais')}</strong>
+          <p>{resumo}</p>
         </div>
-        <p className="hydra-ai-footnote">{demonstracao ? 'Análise local atualizada com as leituras do protótipo; sem chamada paga de IA.' : 'Dados oficiais verificados a cada 30 segundos. A frequência de atualização depende das fontes.'}</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'Análise local atualizada com as leituras do protótipo; sem chamada paga de IA.' : 'Análise contextual atualizada com a telemetria; relatório consultivo oficial consultado a cada 5 segundos (respeitando cache do servidor).'}</p>
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>{demonstracao ? 'Nível do protótipo' : 'Nível oficial'}</span><strong>{demonstracao ? formatar(sensorMaior?.nivelPct, '%') : formatar(nivel, ' m')}</strong><small>{demonstracao ? 'Bueiro de bancada' : estacao?.codigo ?? 'Sem estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Tendência do protótipo' : 'Tendência oficial'}</span><strong>{demonstracao ? sensorMaior?.tendencia || '—' : formatar(tendencia, ' m')}</strong><small>{demonstracao ? 'Calculada com leituras recebidas' : 'Valor informado pela estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>Janela crítica</span><strong>—</strong><small>Não calculada</small></div>
         </div>
+        {!demonstracao && <div className="hydra-ai-section"><h3>Relatório consultivo de IA · dados oficiais</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p></div>}
         <div className="hydra-ai-section">
           <h3>◎ Principais achados</h3>
           {achados.length ? <ul className="hydra-findings">{achados.map((item, index) => <li key={index}>{item}</li>)}</ul>
@@ -111,7 +112,7 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
         </details>}
         {data?.desatualizado && <p className="hydra-muted" role="status">Exibindo o último relatório disponível: a atualização recente falhou.</p>}
         {data?.avisosFontes?.length > 0 && <p className="hydra-muted">{data.avisosFontes.join('; ')}</p>}
-        <p className="hydra-ai-footnote">{demonstracao ? 'Análise automática determinística da bancada, sem IA generativa. Leituras simuladas ou experimentais não são registros oficiais.' : 'A IA interpreta registros oficiais e históricos. Não é previsão validada de alagamento nem substitui alertas da Defesa Civil.'}</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'Análise automática determinística da bancada, sem IA generativa. Leituras simuladas ou experimentais não são registros oficiais.' : 'A mesma análise determinística interpreta os sensores em ambos os modos. A IA generativa, quando habilitada, complementa somente o relatório de fontes oficiais; não define riscos ou alertas.'}</p>
       </div>
     </section>
   );
