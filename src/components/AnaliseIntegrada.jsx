@@ -41,10 +41,24 @@ function extrairResumo(texto) {
   return { resumo, achados, secoes };
 }
 
-export default function AnaliseIntegrada({ estacao, chuva }) {
+function interpretarSensores(bueiros = {}, demonstracao = false) {
+  const leituras = Object.values(bueiros).filter(b => b?.valido && b?.conectado && !b?.desatualizado && Number.isFinite(Number(b.nivelPct)));
+  const origem = demonstracao ? 'Demonstração do protótipo' : 'Sensores de campo';
+  if (!leituras.length) return { resumo: `${origem}: aguardando leituras atuais. Não é possível concluir a condição dos bueiros.`, achados: ['Sem leituras recentes para análise.'] };
+  const maior = leituras.reduce((a,b) => Number(a.nivelPct) >= Number(b.nivelPct) ? a : b);
+  const nivel = Number(maior.nivelPct).toFixed(1);
+  const classe = maior.risco === 'critico' ? 'crítico' : maior.risco === 'atencao' ? 'de atenção' : 'normal';
+  const tendencia = maior.tendencia === 'elevacao' ? 'em elevação' : maior.tendencia === 'queda' ? 'em queda' : 'sem tendência de elevação confirmada';
+  const achados = [`${leituras.length} sensor(es) com leitura atual.`, `Maior nível: ${nivel}% (${classe}); tendência ${tendencia}.`];
+  if (maior.confiabilidadeTendencia?.confiavel === false) achados.push('Tendência ainda sem confiança suficiente: ' + maior.confiabilidadeTendencia.motivo);
+  return { resumo: `${origem}: maior nível observado de ${nivel}%, situação ${classe}, ${tendencia}. ${demonstracao ? 'Dados experimentais/simulados de demonstração; não representam condição real da cidade.' : 'Leituras instrumentais; confirmar calibração e atualidade.'}`, achados };
+}
+
+export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao = false }) {
   const [expandido, setExpandido] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['analise-historica-cloudflare'],
+    queryKey: ['analise-historica-cloudflare', demonstracao],
+    enabled: !demonstracao,
     queryFn: () => api.get('/ia/relatorio'),
     retry: false,
     staleTime: 25_000,
@@ -52,7 +66,9 @@ export default function AnaliseIntegrada({ estacao, chuva }) {
     refetchOnWindowFocus: false
   });
   const texto = typeof (data?.analise || data?.relatorio) === 'string' ? (data.analise || data.relatorio) : '';
-  const { resumo, achados, secoes } = extrairResumo(texto);
+  const oficial = extrairResumo(texto);
+  const contextual = interpretarSensores(bueiros, demonstracao);
+  const { resumo, achados, secoes } = demonstracao ? { ...contextual, secoes: [] } : oficial;
   
   const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
   const nivel = estacao?.rio?.nivelMetros;
@@ -67,10 +83,10 @@ export default function AnaliseIntegrada({ estacao, chuva }) {
       </header>
       <div className="hydra-ai-body">
         <div className="hydra-ai-summary">
-          <strong>✦ Resumo da IA</strong>
-          <p>{isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
+          <strong>{demonstracao ? '✦ Análise contextual · projeto físico' : '✦ Resumo da IA · fontes oficiais'}</strong>
+          <p>{demonstracao ? resumo : isLoading ? 'Consultando as fontes oficiais…' : isError ? 'Não foi possível obter a análise neste momento.' : resumo || data?.mensagem || 'Sem relatório disponível.'}</p>
         </div>
-        <p className="hydra-ai-footnote">Dados verificados a cada 30 segundos. Uma nova análise é gerada quando as fontes apresentam alterações; a atualização depende da frequência de cada fonte oficial.</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'Análise local atualizada com as leituras do protótipo; sem chamada paga de IA.' : 'Dados oficiais verificados a cada 30 segundos. A frequência de atualização depende das fontes.'}</p>
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>Nível oficial</span><strong>{formatar(nivel, ' m')}</strong><small>{estacao?.codigo ?? 'Sem estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>Tendência oficial</span><strong>{formatar(tendencia, ' m')}</strong><small>Valor informado pela estação</small></div>
@@ -86,14 +102,14 @@ export default function AnaliseIntegrada({ estacao, chuva }) {
           <h3>▤ Fontes consultadas</h3>
           <div className="hydra-sources">{fontes.length ? fontes.map((fonte) => <span className="hydra-source" key={fonte}>{fonte}</span>) : <span className="hydra-muted">Nenhuma fonte informada.</span>}</div>
         </div>
-        <button type="button" className="hydra-ai-btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>
+        <button type="button" className="hydra-ai-btn" onClick={() => !demonstracao && refetch()} disabled={demonstracao || isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>
         {texto && <details className="hydra-ai-details" open={expandido} onToggle={(e) => setExpandido(e.currentTarget.open)}>
           <summary>Ver relatório técnico completo</summary>
           {secoes.map((secao, index) => <div key={index}><strong>{secao.titulo}</strong>{secao.linhas.map((linha, i) => <p key={i}>{linha}</p>)}</div>)}
         </details>}
         {data?.desatualizado && <p className="hydra-muted" role="status">Exibindo o último relatório disponível: a atualização recente falhou.</p>}
         {data?.avisosFontes?.length > 0 && <p className="hydra-muted">{data.avisosFontes.join('; ')}</p>}
-        <p className="hydra-ai-footnote">A IA interpreta registros oficiais e históricos. Não é previsão validada de alagamento nem substitui alertas da Defesa Civil.</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'Análise automática determinística da bancada, sem IA generativa. Leituras simuladas ou experimentais não são registros oficiais.' : 'A IA interpreta registros oficiais e históricos. Não é previsão validada de alagamento nem substitui alertas da Defesa Civil.'}</p>
       </div>
     </section>
   );
