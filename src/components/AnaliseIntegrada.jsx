@@ -71,6 +71,8 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
   const { resumo, achados, secoes } = demonstracao ? { ...contextual, secoes: [] } : oficial;
   
   const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
+  const sensoresValidos = Object.values(bueiros || {}).filter(b => b?.valido && b?.conectado && !b?.desatualizado);
+  const sensorMaior = sensoresValidos.reduce((max, b) => !max || Number(b.nivelPct) > Number(max.nivelPct) ? b : max, null);
   const nivel = estacao?.rio?.nivelMetros;
   const tendencia = estacao?.rio?.tendenciaMetros;
   const formatar = (v, unidade = '') => v == null || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR', {maximumFractionDigits: 2})}${unidade}`;
@@ -79,7 +81,7 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
     <section className="hydra-panel hydra-ai" aria-label="Análise contextual do histórico">
       <header className="hydra-ai-header">
         <h2>▱ Análise contextual do histórico</h2>
-        <span>{data?.verificadoEm ? `Verificado: ${new Date(data.verificadoEm).toLocaleTimeString('pt-BR')}` : data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Verificação a cada 30 s'}</span>
+        <span>{demonstracao ? 'Atualização conforme telemetria da bancada' : data?.verificadoEm ? `Verificado: ${new Date(data.verificadoEm).toLocaleTimeString('pt-BR')}` : data?.geradoEm ? new Date(data.geradoEm).toLocaleString('pt-BR') : 'Verificação a cada 30 s'}</span>
       </header>
       <div className="hydra-ai-body">
         <div className="hydra-ai-summary">
@@ -88,8 +90,8 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
         </div>
         <p className="hydra-ai-footnote">{demonstracao ? 'Análise local atualizada com as leituras do protótipo; sem chamada paga de IA.' : 'Dados oficiais verificados a cada 30 segundos. A frequência de atualização depende das fontes.'}</p>
         <div className="hydra-insights">
-          <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>Nível oficial</span><strong>{formatar(nivel, ' m')}</strong><small>{estacao?.codigo ?? 'Sem estação'}</small></div>
-          <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>Tendência oficial</span><strong>{formatar(tendencia, ' m')}</strong><small>Valor informado pela estação</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>{demonstracao ? 'Nível do protótipo' : 'Nível oficial'}</span><strong>{demonstracao ? formatar(sensorMaior?.nivelPct, '%') : formatar(nivel, ' m')}</strong><small>{demonstracao ? 'Bueiro de bancada' : estacao?.codigo ?? 'Sem estação'}</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Tendência do protótipo' : 'Tendência oficial'}</span><strong>{demonstracao ? sensorMaior?.tendencia || '—' : formatar(tendencia, ' m')}</strong><small>{demonstracao ? 'Calculada com leituras recebidas' : 'Valor informado pela estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>Janela crítica</span><strong>—</strong><small>Não calculada</small></div>
         </div>
@@ -100,9 +102,9 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
         </div>
         <div className="hydra-ai-section">
           <h3>▤ Fontes consultadas</h3>
-          <div className="hydra-sources">{fontes.length ? fontes.map((fonte) => <span className="hydra-source" key={fonte}>{fonte}</span>) : <span className="hydra-muted">Nenhuma fonte informada.</span>}</div>
+          <div className="hydra-sources">{demonstracao ? <span className="hydra-source">Sensores do projeto físico · bancada</span> : fontes.length ? fontes.map((fonte) => <span className="hydra-source" key={fonte}>{fonte}</span>) : <span className="hydra-muted">Nenhuma fonte informada.</span>}</div>
         </div>
-        <button type="button" className="hydra-ai-btn" onClick={() => !demonstracao && refetch()} disabled={demonstracao || isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>
+        {!demonstracao && <button type="button" className="hydra-ai-btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>}
         {texto && <details className="hydra-ai-details" open={expandido} onToggle={(e) => setExpandido(e.currentTarget.open)}>
           <summary>Ver relatório técnico completo</summary>
           {secoes.map((secao, index) => <div key={index}><strong>{secao.titulo}</strong>{secao.linhas.map((linha, i) => <p key={i}>{linha}</p>)}</div>)}
