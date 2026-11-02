@@ -17,6 +17,7 @@ export function useTempoReal() {
     let ativo = true;
     const alertasVistos = new Set();
     const faixasAvisadas = new Map();
+    const faixasPendentes = new Set();
 
 
     const avisarCelular = (evento, faixa = null) => {
@@ -25,15 +26,21 @@ export function useTempoReal() {
       const idSensor = evento.alerta.bueiroId;
       if (!idSensor) return;
       const novaFaixa = faixa || (evento.dadosFaixa || (evento.acao === 'nivel_alto_teste' ? 'atencao' : 'critico'));
-      if (faixasAvisadas.get(idSensor) === novaFaixa) return;
-      faixasAvisadas.set(idSensor, novaFaixa);
+      const chaveFaixa = idSensor + ':' + novaFaixa;
+      if (faixasAvisadas.get(idSensor) === novaFaixa || faixasPendentes.has(chaveFaixa)) return;
       const idEvento = String(evento.alerta.id ?? evento.alerta.mensagem);
       if (alertasVistos.has(idEvento)) return;
-      alertasVistos.add(idEvento);
-      if (alertasVistos.size > 100) alertasVistos.delete(alertasVistos.values().next().value);
+      faixasPendentes.add(chaveFaixa);
       exibirNotificacaoTeste(evento).then(exibida => {
-        if (exibida) useNotificacoesTeste.getState().receber(new Date().toISOString());
-      });
+        if (exibida) {
+          faixasAvisadas.set(idSensor, novaFaixa);
+          alertasVistos.add(idEvento);
+          if (alertasVistos.size > 100) alertasVistos.delete(alertasVistos.values().next().value);
+          useNotificacoesTeste.getState().receber(new Date().toISOString());
+        }
+      }).catch(() => {
+        // Não marcar como entregue caso o navegador tenha recusado a notificação.
+      }).finally(() => faixasPendentes.delete(chaveFaixa));
     };
 
     // Redundância no navegador: reage às leituras genuínas do canal de bancada,
