@@ -5,7 +5,7 @@ import { useDrenosOsm, useBocasLoboOficiais } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
 import { num } from '../lib/formato.js';
 
-const CENTRO = [-30.0346, -51.2177];
+const CENTRO = [-16.0718, -57.6789];
 function Recentralizar({ sinal }) {
   const map = useMap();
   useEffect(() => { if (sinal) map.flyTo(CENTRO, 14); }, [sinal, map]);
@@ -37,7 +37,7 @@ export default function Mapa() {
             </button>
           ))}
         </div>
-        <button className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Porto Alegre</button>
+        <button className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Cáceres</button>
       </div>
       <p className="text-xs text-slate-400 mb-2">Dois pontos próximos do cadastro municipal são vinculados automaticamente ao protótipo B1/B2. Vínculo demonstrativo: não representa instalação de sensores nesses locais.</p>
       <div className="map-canvas-full">
