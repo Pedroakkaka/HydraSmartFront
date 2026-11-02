@@ -10,7 +10,7 @@ import { num } from '../lib/formato.js';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
 import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
-import { estimarTempoExtravasamento, avaliarCondicaoObservada } from '../lib/indicadoresReais.js';
+import { estimarTempoExtravasamento, avaliarCondicaoObservada, selecionarEstacaoOficial, estacaoAtual } from '../lib/indicadoresReais.js';
 
 const ESTACOES = {
   'DCRS-00044': 'Viamão · Itapuã',
@@ -64,9 +64,9 @@ function Estacoes({ data, loading, error }) {
       <table><thead><tr><th>Estação</th><th>Nível atual</th><th>Tendência</th><th>Situação oficial</th></tr></thead>
       <tbody>{estacoes.map(e=><tr key={e.codigo}>
         <td><span className="hs-pin">⌖</span> {ESTACOES[e.codigo]}</td>
-        <td className="hs-val">{numero(e.rio?.nivelMetros,' m')}</td>
-        <td>{numero(e.rio?.tendenciaMetros,' m')}</td>
-        <td><span className="hs-status-tag">{e.rio?.situacaoOficial||'Não informada'}</span></td>
+        <td className="hs-val">{estacaoAtual(e) ? numero(e.rio?.nivelMetros,' m') : 'Desatualizado'}</td>
+        <td>{estacaoAtual(e) ? numero(e.rio?.tendenciaMetros,' m') : '—'}</td>
+        <td><span className="hs-status-tag">{estacaoAtual(e) ? (e.rio?.situacaoOficial || 'Não informada') : 'Sem leitura recente'}</span></td>
       </tr>)}</tbody></table>
       {!estacoes.length && <p className="hs-inline-empty">{error?'Estações temporariamente indisponíveis.':'Aguardando dados oficiais.'}</p>}
     </div>
@@ -87,7 +87,7 @@ export default function VisaoGeral(){
   const situacao=estado?.bueiros?situacaoGeral(estado.bueiros):'desconhecido';
   const status=!ambos?'Sem leituras':situacao==='normal'?'Estável':situacao==='atencao'?'Atenção':situacao==='critico'?'Crítico':'Indeterminado';
   const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
-  const estacaoDestaque=(hidrologia?.estacoes||[]).find(e=>e.codigo==='DCRS-00054')||(hidrologia?.estacoes||[]).find(e=>e.rio?.nivelMetros!=null);
+  const estacaoDestaque=hidrologia?.status === 'desatualizado' ? null : selecionarEstacaoOficial(hidrologia?.estacoes);
   const chuva=clima?.precipitacaoObservadaMm;
   const fonte=useTelemetria(s=>s.fonteSelecionada);
   const inteligente=fonte==='inteligente';
@@ -100,7 +100,7 @@ export default function VisaoGeral(){
       <div className="hs-kpi-row">
         <div className="hs-kpi hs-kpi-status">
           <span className="hs-kpi-title"><span className="hs-icon">◉</span> {inteligente ? 'Monitoramento com dados reais' : 'Status do projeto físico'}</span>
-          <span className={`hs-state-pill ${estadoVisual}`}>{inteligente ? (tituloEstacao ? 'Estação consultada' : 'Dados indisponíveis') : status}</span>
+          <span className={`hs-state-pill ${estadoVisual}`}>{inteligente ? (tituloEstacao ? 'Estação com leitura recente' : 'Sem leitura recente') : status}</span>
           <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
