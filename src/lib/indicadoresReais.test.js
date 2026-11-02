@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimarTempoExtravasamento, avaliarCondicaoObservada } from './indicadoresReais.js';
+import { estimarTempoExtravasamento, avaliarCondicaoObservada, selecionarEstacaoOficial } from './indicadoresReais.js';
 
 describe('indicadores com dados reais', () => {
   it('não cria ETA quando não há sensores de campo', () => {
@@ -18,12 +18,22 @@ describe('indicadores com dados reais', () => {
     expect(resultado.detalhe).toContain('Não é previsão validada');
   });
   it('não confunde nível de estação oficial com nível do bueiro', () => {
-    const estacao = {codigo:'DCRS-00054',rio:{nivelMetros:2.7,tendenciaMetros:0.08,situacaoOficial:'Atenção'}};
+    const estacao = {codigo:'DCRS-00054',horarioLeitura:new Date().toISOString(),rio:{nivelMetros:2.7,tendenciaMetros:0.08,situacaoOficial:'Atenção'}};
     const condicao = avaliarCondicaoObservada(estacao,null);
     expect(condicao.valor).toBe('Atenção');
     expect(condicao.detalhe).toContain('2,7 m');
     expect(condicao.detalhe).toContain('não probabilidade para 6 h');
     expect(estimarTempoExtravasamento({}).natureza).toBe('indisponivel');
+  });
+  it('não usa dados de estação com data antiga, mesmo contendo nível numérico', () => {
+    const antiga = {codigo:'DCRS-00054',horarioLeitura:'2025-01-01T12:00:00Z',rio:{nivelMetros:3.2,situacaoOficial:'normalidade'}};
+    expect(selecionarEstacaoOficial([antiga])).toBe(null);
+    expect(avaliarCondicaoObservada(antiga,null).natureza).toBe('indisponivel');
+  });
+  it('seleciona estação alternativa recente quando a preferida está desatualizada', () => {
+    const antiga = {codigo:'DCRS-00054',horarioLeitura:'2025-01-01T12:00:00Z',rio:{nivelMetros:2}};
+    const recente = {codigo:'DCRS-00076',horarioLeitura:new Date().toISOString(),rio:{nivelMetros:1.5}};
+    expect(selecionarEstacaoOficial([antiga,recente])).toBe(recente);
   });
   it('não inventa categoria normal quando a fonte é desconhecida', () => {
     expect(avaliarCondicaoObservada(null,null).natureza).toBe('indisponivel');
