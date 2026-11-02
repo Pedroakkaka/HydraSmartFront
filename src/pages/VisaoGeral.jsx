@@ -129,6 +129,6 @@ export default function VisaoGeral(){
       {inteligente && <DemonstracaoAssistida />}
       <ReceptorSimulado />
     </div>
-    {inteligente ? <AnaliseIntegrada estacao={estacaoDestaque} chuva={chuva}/> : <aside className="hs-card hs-mode-context"><h3>Protótipo físico</h3><p>Leituras experimentais da bancada. Não são medições de campo. Os dados meteorológicos são fontes externas independentes.</p><span>Alertas de teste não são enviados externamente.</span></aside>}
+    <AnaliseIntegrada estacao={inteligente ? estacaoDestaque : null} chuva={chuva} bueiros={estado?.bueiros} demonstracao={!inteligente}/>
   </div>;
 }
