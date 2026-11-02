@@ -98,7 +98,7 @@ export default function Clima() {
 
         <div className="card-base">
           <div className="card-header-line">
-            <span className="card-title-text">📅 Previsão Diária dos Próximos 7 Dias (Porto Alegre-RS)</span>
+            <span className="card-title-text">📅 Previsão Diária dos Próximos 7 Dias (Cáceres-MT)</span>
             <span className="text-[11px] text-slate-400">Fuso: {clima?.fusoHorario ?? 'America/Sao_Paulo'}</span>
           </div>
           <div className="forecast-days-grid mt-2">
