@@ -43,7 +43,29 @@ export function estimarTempoExtravasamento(bueiros = {}) {
     detalhe:'Extrapolação experimental de tendência · ' + maisProximo.nome + '. Não é previsão validada.',natureza:'estimativa'};
 }
 
-export function avaliarCondicaoObservada(estacao, chuva) {
+// Observações oficiais têm frequência própria; a consulta do painel não renova a medição.
+export const MAX_IDADE_ESTACAO_MS = 6 * 60 * 60 * 1000;
+export function horarioEstacao(estacao) {
+  const bruto = estacao?.horarioLeitura;
+  if (!bruto) return null;
+  const t = typeof bruto === 'number' ? (bruto < 1e11 ? bruto * 1000 : bruto) : Date.parse(bruto);
+  return Number.isFinite(t) ? t : null;
+}
+export function estacaoAtual(estacao, agora = Date.now()) {
+  const t = horarioEstacao(estacao);
+  return t !== null && t <= agora + 5 * 60_000 && agora - t <= MAX_IDADE_ESTACAO_MS;
+}
+export function selecionarEstacaoOficial(estacoes = [], agora = Date.now()) {
+  const validas = (Array.isArray(estacoes) ? estacoes : []).filter(e =>
+    estacaoAtual(e, agora) && valido(e?.rio?.nivelMetros) && e?.manutencao !== true
+  );
+  // Privilegia a estação principal somente quando tem observação atual.
+  return validas.find(e => e.codigo === 'DCRS-00054') ||
+    validas.sort((a,b) => horarioEstacao(b) - horarioEstacao(a))[0] || null;
+}
+
+export function avaliarCondicaoObservada(estacao, chuva, agora = Date.now()) {
+  if (!estacaoAtual(estacao, agora)) return {valor:'Sem leitura recente', detalhe:'Estação oficial sem observação dos últimos 6 h. Não é possível afirmar a condição atual.', natureza:'indisponivel'};
   const rio = estacao?.rio;
   const nome = estacao?.nome || estacao?.codigo || 'estação oficial';
   const nivel = valido(rio?.nivelMetros) ? decimal(rio.nivelMetros,2) + ' m' : null;
