@@ -57,9 +57,8 @@ function interpretarSensores(bueiros = {}, demonstracao = false) {
 export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao = false }) {
   const [expandido, setExpandido] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['analise-historica-cloudflare'],
-    enabled: !demonstracao,
-    queryFn: () => api.get('/ia/relatorio'),
+    queryKey: ['analise-generativa-compartilhada', demonstracao ? 'prototipo' : 'real'],
+    queryFn: () => api.get(`/ia/relatorio-contextual?modo=${demonstracao ? 'prototipo' : 'real'}`),
     retry: false,
     staleTime: 5_000,
     refetchInterval: 5_000,
@@ -88,14 +87,14 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
           <strong>{'✦ Análise contextual · ' + (demonstracao ? 'projeto físico' : 'dados reais')}</strong>
           <p>{resumo}</p>
         </div>
-        <p className="hydra-ai-footnote">{demonstracao ? 'Análise local atualizada com as leituras do protótipo; sem chamada paga de IA.' : 'Análise contextual atualizada com a telemetria; relatório consultivo oficial consultado a cada 5 segundos (respeitando cache do servidor).'}</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'Análise determinística local contínua; interpretação generativa opcional com cache no servidor.' : 'Análise contextual atualizada com a telemetria; relatório consultivo oficial consultado a cada 5 segundos (respeitando cache do servidor).'}</p>
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>{demonstracao ? 'Nível do protótipo' : 'Nível oficial'}</span><strong>{demonstracao ? formatar(sensorMaior?.nivelPct, '%') : formatar(nivel, ' m')}</strong><small>{demonstracao ? 'Bueiro de bancada' : estacao?.codigo ?? 'Sem estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Tendência do protótipo' : 'Tendência oficial'}</span><strong>{demonstracao ? sensorMaior?.tendencia || '—' : formatar(tendencia, ' m')}</strong><small>{demonstracao ? 'Calculada com leituras recebidas' : 'Valor informado pela estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>Janela crítica</span><strong>—</strong><small>Não calculada</small></div>
         </div>
-        {!demonstracao && <div className="hydra-ai-section"><h3>Relatório consultivo de IA · dados oficiais</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p></div>}
+        {<div className="hydra-ai-section"><h3>IA generativa · {demonstracao ? 'protótipo experimental' : 'dados reais'}</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p></div>}
         <div className="hydra-ai-section">
           <h3>◎ Principais achados</h3>
           {achados.length ? <ul className="hydra-findings">{achados.map((item, index) => <li key={index}>{item}</li>)}</ul>
@@ -105,14 +104,14 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
           <h3>▤ Fontes consultadas</h3>
           <div className="hydra-sources">{demonstracao ? <span className="hydra-source">Sensores do projeto físico · bancada</span> : fontes.length ? fontes.map((fonte) => <span className="hydra-source" key={fonte}>{fonte}</span>) : <span className="hydra-muted">Nenhuma fonte informada.</span>}</div>
         </div>
-        {!demonstracao && <button type="button" className="hydra-ai-btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>}
+        {<button type="button" className="hydra-ai-btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Atualizando…' : '↻ Atualizar análise'}</button>}
         {texto && <details className="hydra-ai-details" open={expandido} onToggle={(e) => setExpandido(e.currentTarget.open)}>
           <summary>Ver relatório técnico completo</summary>
           {secoes.map((secao, index) => <div key={index}><strong>{secao.titulo}</strong>{secao.linhas.map((linha, i) => <p key={i}>{linha}</p>)}</div>)}
         </details>}
         {data?.desatualizado && <p className="hydra-muted" role="status">Exibindo o último relatório disponível: a atualização recente falhou.</p>}
         {data?.avisosFontes?.length > 0 && <p className="hydra-muted">{data.avisosFontes.join('; ')}</p>}
-        <p className="hydra-ai-footnote">{demonstracao ? 'Análise automática determinística da bancada, sem IA generativa. Leituras simuladas ou experimentais não são registros oficiais.' : 'A mesma análise determinística interpreta os sensores em ambos os modos. A IA generativa, quando habilitada, complementa somente o relatório de fontes oficiais; não define riscos ou alertas.'}</p>
+        <p className="hydra-ai-footnote">{demonstracao ? 'A análise determinística continua disponível sem IA. A interpretação generativa do protótipo requer habilitação no servidor; dados experimentais não são registros oficiais.' : 'A mesma IA generativa, quando habilitada, interpreta a fonte selecionada, com cache independente por modo. Não define riscos nem alertas.'}</p>
       </div>
     </section>
   );
