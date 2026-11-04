@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useAcaoProtegida } from '../hooks/useAcoes.js';
 import { api } from '../lib/api.js';
@@ -106,15 +107,34 @@ function FormCalibracao({ bueiro, cor, titulo, valores, aoMudar }) {
 }
 
 export default function Bueiros() {
-  const bueiros = useTelemetria((s) => s.estado.bueiros);
+  const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
+  const estadoBruto = useTelemetria((s) => s.estadoBruto);
+  const simulacaoAtiva = fonte === 'prototipo' && estadoBruto?.modo === 'demo' && estadoBruto?.simulacao?.ativo === true;
+  const { data: calibracoesSimuladas, refetch: atualizarCalibracoes } = useQuery({
+    queryKey: ['calibracao-simulacao'],
+    queryFn: () => api.get('/simulacao/calibracao'),
+    enabled: simulacaoAtiva,
+    refetchOnWindowFocus: false
+  });
+  const parametros = simulacaoAtiva ? calibracoesSimuladas?.calibracoes : null;
   const { bueiro_1: b1, bueiro_2: b2 } = bueiros;
+  const iniciarSimulacao = () => executarProtegida(async headers => {
+    await api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers);
+    await atualizarCalibracoes();
+  }, { sucesso: 'Simulação do protótipo iniciada (dados sintéticos).', beep: 0 });
+  const encerrarSimulacao = () => executarProtegida(async headers => {
+    await api.post('/simulacao/encerrar', {}, headers);
+  }, { sucesso: 'Simulação encerrada. Aguardando leituras físicas.', beep: 0 });
   const { executarProtegida, ocupado } = useAcaoProtegida();
 
   // Formulário local; volta a refletir o servidor quando a calibração muda lá.
-  const assinatura = JSON.stringify([valoresDe(b1.calibracao), valoresDe(b2.calibracao)]);
-  const [form, setForm] = useState({ assinatura, b1: valoresDe(b1.calibracao), b2: valoresDe(b2.calibracao) });
+  const cfg1 = parametros?.bueiro_1 || b1?.calibracao;
+  const cfg2 = parametros?.bueiro_2 || b2?.calibracao;
+  const assinatura = JSON.stringify([cfg1 && valoresDe(cfg1), cfg2 && valoresDe(cfg2)]);
+  const [form, setForm] = useState({ assinatura, b1: cfg1 ? valoresDe(cfg1) : {}, b2: cfg2 ? valoresDe(cfg2) : {} });
   if (form.assinatura !== assinatura && !form.editando) {
-    setForm({ assinatura, b1: valoresDe(b1.calibracao), b2: valoresDe(b2.calibracao) });
+    setForm({ assinatura, b1: cfg1 ? valoresDe(cfg1) : {}, b2: cfg2 ? valoresDe(cfg2) : {} });
   }
 
   const mudar = (qual) => (campo, valor) =>
@@ -122,19 +142,24 @@ export default function Bueiros() {
 
   const paraNumeros = (v) => Object.fromEntries(Object.entries(v).map(([k, x]) => [k, Number(x)]));
 
-  const salvar = () =>
-    executarProtegida(async (headers) => {
-      await api.put('/bueiros/bueiro_1/calibracao', paraNumeros(form.b1), headers);
-      await api.put('/bueiros/bueiro_2/calibracao', paraNumeros(form.b2), headers);
+  const salvar = () => {
+    if (!simulacaoAtiva) return;
+    return executarProtegida(async (headers) => {
+      await api.put('/simulacao/calibracao/bueiro_1', paraNumeros(form.b1), headers);
+      await api.put('/simulacao/calibracao/bueiro_2', paraNumeros(form.b2), headers);
+      await atualizarCalibracoes();
       setForm((f) => ({ ...f, editando: false, assinatura: '' }));
-    }, { sucesso: 'Calibração salva no servidor e aplicada às próximas leituras.', beep: 1000 });
+    }, { sucesso: 'Parâmetros da simulação atualizados (sem alterar os sensores reais).', beep: 0 });
+  };
 
   const restaurar = () => {
-    if (!window.confirm('Restaurar as dimensões e limiares padrão dos dois bueiros?')) return;
+    if (!simulacaoAtiva) return;
+    if (!window.confirm('Restaurar somente os parâmetros da simulação?')) return;
     executarProtegida(async (headers) => {
-      await api.post('/bueiros/calibracao/restaurar', {}, headers);
+      await api.post('/simulacao/calibracao/restaurar', {}, headers);
+      await atualizarCalibracoes();
       setForm((f) => ({ ...f, editando: false, assinatura: '' }));
-    }, { sucesso: 'Calibração padrão restaurada.', beep: 600 });
+    }, { sucesso: 'Parâmetros da simulação restaurados.', beep: 0 });
   };
 
   return (
@@ -144,14 +169,18 @@ export default function Bueiros() {
         <BueiroDetalhado bueiro={b2} sigla="B02" />
       </div>
 
-      <div className="card-base">
+      {fonte === 'prototipo' && !simulacaoAtiva && <div className="card-base">
+        <div className="card-header-line"><span className="card-title-text">Parâmetros protegidos</span></div>
+        <p className="text-xs text-slate-300 mb-3">A calibração dos sensores físicos é fixa nesta interface. Para testar outros valores sem afetar equipamentos reais, inicie uma simulação do protótipo.</p>
+        <button type="button" className="btn-action-secondary" onClick={iniciarSimulacao} disabled={ocupado}>Iniciar simulação de teste</button>
+      </div>}
+      {simulacaoAtiva && <div className="card-base">
         <div className="card-header-line">
-          <span className="card-title-text">⚙️ Parâmetros de Calibração Dimensional dos Reservatórios</span>
+          <span className="card-title-text">⚙️ Parâmetros exclusivos da simulação</span>
           <span className="text-xs text-slate-400 font-mono">H_água = H_total − d_medida</span>
         </div>
         <p className="text-xs text-slate-300 mb-4">
-          Ajuste as dimensões reais dos reservatórios do protótipo. O servidor calcula a coluna d&apos;água útil
-          descontando a zona cega do sensor e usa os limiares abaixo para classificar o risco e disparar alertas.
+          Ajuste apenas os reservatórios simulados. Estas alterações ficam temporariamente em memória e não modificam a calibração do Arduino nem dos sensores reais.
         </p>
 
         <div className="grid-2-md text-xs">
@@ -160,10 +189,11 @@ export default function Bueiros() {
         </div>
 
         <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-800">
+          <button type="button" className="btn-action-secondary" onClick={encerrarSimulacao} disabled={ocupado}>Encerrar simulação</button>
           <button className="btn-action-secondary" onClick={restaurar} disabled={ocupado}>Restaurar Padrões</button>
-          <button className="btn-action-primary" onClick={salvar} disabled={ocupado}>Salvar Parâmetros</button>
+          <button className="btn-action-primary" onClick={salvar} disabled={ocupado || !calibracoesSimuladas}>Aplicar somente à simulação</button>
         </div>
-      </div>
+      </div>}
     </>
   );
 }
