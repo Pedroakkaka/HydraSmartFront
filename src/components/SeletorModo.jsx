@@ -51,7 +51,7 @@ export default function SeletorModo({ aberto, fechar }) {
       await api.get('/operador/validar', headers);
       // O modo fictício legado não participa dos dois modos atuais.
       // Se havia cenário ativo, encerramos antes da mudança de contexto.
-      if (modoApi === 'demo') {
+      if (modoApi === 'demo' && escolha !== 'prototipo') {
         await api.post('/simulacao/encerrar', {}, headers);
       }
       selecionarFonte(escolha);
