@@ -10,7 +10,8 @@ const CANAIS = ['prototipo', 'inteligente'];
 function selecionarCanal(snapshot, fonte) {
   if (!snapshot) return null;
   const canais = snapshot.canais || {};
-  const leituras = canais[fonte === 'inteligente' ? 'campo' : 'prototipo'] || {};
+  const simulando = fonte === 'prototipo' && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
+  const leituras = canais[fonte === 'inteligente' ? 'campo' : simulando ? 'demonstracao' : 'prototipo'] || {};
   const bueiros = Object.fromEntries(Object.entries(snapshot.bueiros || {}).map(([id, original]) => {
     const leitura = leituras[id];
     const recente = leitura && Date.now() - Number(leitura.timestamp) <= 30000;
@@ -34,7 +35,7 @@ function selecionarCanal(snapshot, fonte) {
     : a.simulado && (a.mensagem || '').startsWith('[TESTE PROTÓTIPO]'));
   return {
     ...snapshot, bueiros, alertasAtivos: ativos,
-    modo: 'real',
+    modo: simulando ? 'demo' : 'real',
     fonteSelecionada: fonte
   };
 }
