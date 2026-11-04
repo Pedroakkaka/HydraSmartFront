@@ -24,6 +24,7 @@ function selecionarCanal(snapshot, fonte) {
     }];
     return [id, {
       ...original, ...leitura, valido: true, conectado: true, desatualizado: false,
+      calibracao: simulando ? { ...original.calibracao, ...(snapshot.simulacaoCalibracoes?.[id] || {}) } : original.calibracao,
       distanciaMedidaCm: leitura.distanciaCm,
       historicoNiveis: leitura.historicoNiveis || [leitura.nivelPct],
       historicoTimestamps: leitura.historicoTimestamps || [leitura.timestamp],
