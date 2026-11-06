@@ -26,15 +26,21 @@ const PERIODOS = [
 ];
 
 function GraficoAoVivo({ b1, b2 }) {
-  const base = b1.historicoTimestamps.length >= b2.historicoTimestamps.length ? b1 : b2;
-  const labels = base.historicoTimestamps.map((t) => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  // As duas réguas têm relógios e frequências independentes; índices de arrays
+  // não representam a mesma hora. Unimos timestamps e criamos lacunas explícitas.
+  const tempos = [...new Set([...b1.historicoTimestamps, ...b2.historicoTimestamps].filter(Number.isFinite))].sort((a,b)=>a-b);
+  const labels = tempos.map(t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const mapear = b => {
+    const mapa = new Map(b.historicoTimestamps.map((t,i)=>[t,b.historicoNiveis[i]]));
+    return tempos.map(t => mapa.has(t) ? mapa.get(t) : null);
+  };
   const n = Math.max(labels.length, 1);
 
   const dados = {
     labels: labels.length ? labels : ['Aguardando leituras'],
     datasets: [
-      { label: 'Bueiro 01 — Entrada (%)', data: b1.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
-      ...(b2.historicoNiveis.length ? [{ label: 'Bueiro 02 — Saída (%)', data: b2.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
+      { label: 'Bueiro 01 — Entrada (%)', data: mapear(b1), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
+      ...(b2.historicoNiveis.length ? [{ label: 'Bueiro 02 — Saída (%)', data: mapear(b2), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
       linhaLimiar(`Atenção (${b1.calibracao.limiteAtencaoPct}%)`, b1.calibracao.limiteAtencaoPct, 'rgba(251, 191, 36, 0.5)', n),
       linhaLimiar(`Crítico (${b1.calibracao.limiteCriticoPct}%)`, b1.calibracao.limiteCriticoPct, 'rgba(244, 63, 94, 0.65)', n)
     ]
@@ -102,6 +108,7 @@ export default function Graficos() {
   const { data: alertas } = useAlertas();
   const canalLocal = useTelemetria((s) => s.canalLocal);
   const localB1 = canalLocal.bueiro_1;
+  const localB2 = canalLocal.bueiro_2;
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
 
   return (
@@ -119,7 +126,8 @@ export default function Graficos() {
           </div>
         </div>
         {fonte === 'prototipo' && <p className="text-xs text-slate-300 mt-2" role="status">
-          <strong>Régua de contatos:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} medições locais · última leitura ${hora(localB1.timestamp)}` : 'Aguardando primeira leitura serial válida do Arduino.'}
+          <strong>B01:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} leituras` : 'Aguardando leitura'}
+          {' · '}<strong>B02:</strong> {localB2?.timestamp ? `${Number(localB2.nivelPct).toLocaleString('pt-BR')}% · ${localB2.historicoNiveis.length} leituras` : 'Aguardando segunda régua'}.
           {' '}A curva atualiza quando cada novo nível é recebido; nenhuma chave de API é necessária para visualizar neste computador.
         </p>}
         <div className="h-72 w-full relative mt-2">
