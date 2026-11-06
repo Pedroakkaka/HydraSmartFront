@@ -33,7 +33,7 @@ function NivelSensor({ bueiro, titulo }) {
   const pct = valido ? Math.min(100,Math.max(0,Number(bueiro.nivelPct)||0)) : 0;
   return <div className="hs-meter-cell">
     <div className="hs-meter-title">{titulo}</div>
-    <strong>{valido ? numero(bueiro.alturaAguaCm,' cm') : 'Sem leitura'}</strong>
+    <strong>{valido ? numero(bueiro.tipoMedicao === 'nivel_percentual' ? bueiro.nivelPct : bueiro.alturaAguaCm,bueiro.tipoMedicao === 'nivel_percentual' ? '%' : ' cm') : 'Sem leitura'}</strong>
     <div className="hs-meter-rail"><i style={{width:`${pct}%`}} /></div>
     <span>{valido ? `${numero(bueiro.nivelPct,'%')} da altura útil` : 'Sem leitura recente'}</span>
   </div>;
@@ -83,18 +83,19 @@ export default function VisaoGeral(){
   });
   const b1=estado?.bueiros?.bueiro_1;
   const b2=estado?.bueiros?.bueiro_2;
-  const ambos=temDado(b1)&&temDado(b2);
+  const fonte=useTelemetria(s=>s.fonteSelecionada);
+  const ambos=fonte==='prototipo' ? temDado(b1) : temDado(b1)&&temDado(b2);
   const situacao=estado?.bueiros?situacaoGeral(estado.bueiros):'desconhecido';
   const status=!ambos?'Sem leituras':situacao==='normal'?'Estável':situacao==='atencao'?'Atenção':situacao==='critico'?'Crítico':'Indeterminado';
   const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
   const estacaoDestaque=hidrologia?.status === 'desatualizado' ? null : selecionarEstacaoOficial(hidrologia?.estacoes);
   const chuva=clima?.precipitacaoObservadaMm;
-  const fonte=useTelemetria(s=>s.fonteSelecionada);
   const inteligente=fonte==='inteligente';
   const medicaoOficial = estacaoDestaque?.rio?.nivelMetros;
   const tituloEstacao = estacaoDestaque ? (ESTACOES[estacaoDestaque.codigo] || estacaoDestaque.codigo) : null;
   const tempoExtravasamento = estimarTempoExtravasamento(estado?.bueiros || {});
   const condicaoOficial = avaliarCondicaoObservada(estacaoDestaque, chuva);
+  const eletrodosAtivos = !inteligente && estado?.modo !== 'demo' && b1?.tipoMedicao === 'nivel_percentual';
   return <div className="hs-dashboard">
     <div className="hs-left">
       <div className="hs-kpi-row">
@@ -111,8 +112,8 @@ export default function VisaoGeral(){
         <section className="hs-card hs-level">
           <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
           <div className="hs-level-content">
-            <div className="hs-level-main"><strong>{inteligente ? numero(medicaoOficial,' m') : temDado(b1) ? numero(b1.alturaAguaCm,' cm') : 'Sem leitura'}</strong><p>{inteligente ? (tituloEstacao ? 'Estação oficial · ' + tituloEstacao : 'Aguardando estação oficial') : 'Protótipo experimental · Bueiro 01'}</p><span>{inteligente ? 'Medições da estação não equivalem ao nível de um bueiro.' : ambos ? 'Sensores experimentais disponíveis' : 'Sem medições da bancada'}</span></div>
-            <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Entrada · B01"/><NivelSensor bueiro={b2} titulo="Saída · B02"/></div>
+            <div className="hs-level-main"><strong>{inteligente ? numero(medicaoOficial,' m') : temDado(b1) ? numero(eletrodosAtivos ? b1.nivelPct : b1.alturaAguaCm,eletrodosAtivos ? '%' : ' cm') : 'Sem leitura'}</strong><p>{inteligente ? (tituloEstacao ? 'Estação oficial · ' + tituloEstacao : 'Aguardando estação oficial') : 'Protótipo experimental · Bueiro 01'}</p><span>{inteligente ? 'Medições da estação não equivalem ao nível de um bueiro.' : ambos ? 'Sensores experimentais disponíveis' : 'Sem medições da bancada'}</span></div>
+            <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Monitor de nível · B01"/>{inteligente || (estado?.modo === 'demo') ? <NivelSensor bueiro={b2} titulo="Saída · B02"/> : null}</div>
           </div>
         </section>
         <section className="hs-card hs-rain">
