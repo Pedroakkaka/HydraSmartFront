@@ -37,25 +37,31 @@ export default function RiscosPertoDeMim({ localizacao, limpar, regiao, oficial,
     Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)) &&
     distanciaKm([localizacao.latitude, localizacao.longitude], [Number(p.lat), Number(p.lon)]) <= 0.5
   );
-  return <section className="card-base" aria-label="Condições meteorológicas perto de você">
-    <div className="card-header-line">
-      <strong>📍 Condições perto de você</strong>
-      <button type="button" className="map-control-btn" onClick={limpar}>Limpar localização</button>
+  const formataMm = valor => valor == null ? '—' : Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  return <section className="hs-map-panel hs-map-local" aria-label="Condições meteorológicas perto de você">
+    <div className="hs-map-panel-header">
+      <div><span className="hs-map-eyebrow">MONITORAMENTO POR LOCALIZAÇÃO</span><h3>📍 Condições perto de você</h3></div>
+      <button type="button" className="hs-map-outline-btn" onClick={limpar}>Limpar localização</button>
     </div>
-    <p className="text-xs text-slate-300">Posição aproximada, compartilhada com sua permissão. O site não acompanha seu deslocamento.</p>
-    {isLoading ? <p>Consultando previsão de chuva da sua região…</p>
-    : isError || !data ? <p className="text-xs text-amber-400">Dados meteorológicos indisponíveis.</p>
+    <p className="hs-map-description">Localização aproximada autorizada por você. Sem rastreamento contínuo.</p>
+    {isLoading ? <p className="hs-map-loading" role="status">Consultando dados meteorológicos…</p>
+    : isError || !data ? <p className="hs-map-alert" role="status">Dados meteorológicos indisponíveis nesta consulta.</p>
     : <div>
-      <p><strong>Chuva atual:</strong> {data.precipAtualMm == null ? 'Indisponível' : data.precipAtualMm + ' mm'} · <strong>Próximas 6 horas:</strong> {data.previsao6hMm == null ? 'Indisponível' : data.previsao6hMm + ' mm previstos'}</p>
-      <p className="text-xs text-slate-300">{data.interpretacao} · Fonte: {data.fonte}</p>
+      <div className="hs-map-metrics">
+        <div className="hs-map-metric"><span>Chuva observada</span><strong>{formataMm(data.precipAtualMm)} <small>mm</small></strong><small>Observação disponível</small></div>
+        <div className="hs-map-metric"><span>Próximas 6 horas</span><strong>{formataMm(data.previsao6hMm)} <small>mm</small></strong><small>Precipitação prevista</small></div>
+        <div className="hs-map-metric hs-map-metric-context"><span>Condição meteorológica</span><strong>{data.interpretacao || 'Sem avaliação'}</strong><small>Fonte: {data.fonte || 'Open-Meteo'}</small></div>
+      </div>
     </div>}
-    {regiao === 'porto_alegre' && <p className="text-xs text-slate-300">
-      {oficialCarregando ? 'Consultando pontos de drenagem próximos…'
-      : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro municipal indisponível.'
-      : (perto?.length || 0) + ' bocas de lobo cadastradas até 500 m da posição aproximada, na área consultada (sem telemetria confirmada).'}
-    </p>}
-    {regiao === 'blumenau' && <p className="text-xs text-slate-300">Consulte o nível do Rio Itajaí-Açu e o mapa oficial de cotas abaixo; a leitura do rio não corresponde à inundação de um endereço.</p>}
-    {regiao === 'brasil' && <p className="text-xs text-slate-300">Não há cadastro municipal conectado para esta posição; somente condições meteorológicas foram consultadas.</p>}
-    <p className="text-xs text-amber-400">Não é um diagnóstico validado de risco de alagamento. A ausência de chuva prevista ou de sensores não indica segurança. Consulte alertas da Defesa Civil.</p>
+    <div className="hs-map-extra">
+      {regiao === 'porto_alegre' && <p>
+        {oficialCarregando ? 'Consultando pontos de drenagem próximos…'
+        : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro municipal indisponível no momento.'
+        : (perto?.length || 0) + ' bocas de lobo cadastradas a até 500 m na área consultada; sem telemetria confirmada.'}
+      </p>}
+      {regiao === 'blumenau' && <p>Confira as leituras do Rio Itajaí-Açu e as cotas oficiais de inundação. Nível do rio não equivale a risco calculado para o endereço.</p>}
+      {regiao === 'brasil' && <p>Para esta posição, o cadastro municipal ainda não está integrado. A consulta disponível é meteorológica.</p>}
+    </div>
+    <p className="hs-map-safety-note">ⓘ Não é diagnóstico validado de alagamento. Sem chuva prevista ou sensores, não é possível afirmar que a região esteja segura. Consulte a Defesa Civil.</p>
   </section>;
 }
