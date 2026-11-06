@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useAcaoProtegida } from '../hooks/useAcoes.js';
@@ -111,6 +111,19 @@ export default function Bueiros() {
   const fonte = useTelemetria((s) => s.fonteSelecionada);
   const estadoBruto = useTelemetria((s) => s.estadoBruto);
   const definirEstado = useTelemetria((s) => s.definirEstado);
+  // Revalida o estado real do servidor mesmo se o WebSocket ficar conectado,
+  // mas parar de entregar atualizações. Sem leituras falsas de fallback.
+  const { data: snapshotConfirmacao, isError: falhaConsultaEstado } = useQuery({
+    queryKey: ['estado-confirmacao-prototipo'],
+    queryFn: () => api.get('/estado'),
+    enabled: fonte === 'prototipo',
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
+    retry: 1
+  });
+  useEffect(() => {
+    if (fonte === 'prototipo' && snapshotConfirmacao?.canais) definirEstado(snapshotConfirmacao);
+  }, [snapshotConfirmacao, fonte, definirEstado]);
   const simulacaoAtiva = fonte === 'prototipo' && estadoBruto?.modo === 'demo' && estadoBruto?.simulacao?.ativo === true;
   const { data: calibracoesSimuladas, refetch: atualizarCalibracoes } = useQuery({
     queryKey: ['calibracao-simulacao'],
@@ -185,6 +198,9 @@ export default function Bueiros() {
           Esta simulação cria leituras artificiais no painel. Não aciona as duas bombas,
           não lê os 7 contatos metálicos e não modifica a placa Arduino.
         </p>
+        {falhaConsultaEstado && <p className="text-xs text-amber-500" role="alert">
+          Não foi possível consultar o estado atualizado da API. Verifique a conexão com o servidor.
+        </p>}
         {simulacaoAtiva && <p className="text-xs text-slate-300">
           Cenário: {estadoBruto?.simulacao?.cenario || 'chuva_moderada'}.
           As curvas e porcentagens exibidas neste modo são dados de demonstração.
