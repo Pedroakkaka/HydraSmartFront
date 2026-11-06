@@ -8,7 +8,13 @@ const CANAIS = ['prototipo', 'inteligente'];
 
 // Constrói um painel inteiro a partir de uma única fonte; jamais preenche com outra.
 function selecionarCanal(snapshot, fonte, local = {}) {
-  if (!snapshot) return null;
+  if (!snapshot) {
+    if (fonte !== 'prototipo') return null;
+    snapshot = {modo:'real',simulacao:{ativo:false},canais:{prototipo:{}},bueiros:{
+      bueiro_1:{id:'bueiro_1',nome:'Régua de nível · Arduino',calibracao:{limiteAtencaoPct:50,limiteCriticoPct:80}},
+      bueiro_2:{id:'bueiro_2',nome:'Sensor não instalado',calibracao:{limiteAtencaoPct:50,limiteCriticoPct:80}}
+    }};
+  }
   const canais = snapshot.canais || {};
   const temUsbLocal = Object.values(local).some(b => b.timestamp && Date.now() - b.timestamp <= 30000);
   const simulando = fonte === 'prototipo' && !temUsbLocal && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
@@ -28,7 +34,7 @@ function selecionarCanal(snapshot, fonte, local = {}) {
     return [id, {
       ...original, ...leitura, valido: true, conectado: true, desatualizado: false,
       calibracao: simulando ? { ...original.calibracao, ...(snapshot.simulacaoCalibracoes?.[id] || {}) } : original.calibracao,
-      distanciaMedidaCm: leitura.distanciaCm,
+      distanciaMedidaCm: leitura.distanciaCm ?? null,
       historicoNiveis: leitura.historicoNiveis || [leitura.nivelPct],
       historicoTimestamps: leitura.historicoTimestamps || [leitura.timestamp],
       historicoDistancias: leitura.historicoDistancias || [leitura.distanciaCm]
