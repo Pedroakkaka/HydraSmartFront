@@ -10,6 +10,7 @@ import './styles/components.css';
 import './styles/app.css';
 import './styles/professional.css';
 import './styles/hydra-2026.css';
+import './styles/map-experience.css';
 
 import App from './App.jsx';
 
