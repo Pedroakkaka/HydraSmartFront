@@ -9,8 +9,8 @@ export const useClima = () =>
 export const useCemaden = () =>
   useQuery({ queryKey: ['cemaden'], queryFn: () => api.get('/cemaden'), refetchInterval: 5 * 60_000, staleTime: 2 * 60_000 });
 
-export const useBocasLoboOficiais = () =>
-  useQuery({ queryKey: ['bocas-lobo-oficiais'], queryFn: () => api.get('/bocas-de-lobo'), staleTime: 60 * 60_000 });
+export const useBocasLoboOficiais = (bbox, habilitado = true) =>
+  useQuery({ queryKey: ['bocas-lobo-oficiais', bbox], queryFn: () => api.get('/bocas-de-lobo?bbox=' + encodeURIComponent(bbox)), enabled: habilitado && Boolean(bbox), staleTime: 10 * 60_000, retry: 1, refetchOnWindowFocus: false });
 
 export const useDrenosOsm = () =>
   useQuery({ queryKey: ['osm'], queryFn: () => api.get('/osm/drenos'), staleTime: 60 * 60_000 });
