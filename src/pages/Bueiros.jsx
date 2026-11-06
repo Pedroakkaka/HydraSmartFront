@@ -12,7 +12,7 @@ function BueiroDetalhado({ bueiro, sigla, modoFisico }) {
   const ok = temLeitura(bueiro);
   const meta = metaRisco(bueiro.risco);
   const cfg = bueiro.calibracao;
-  const eletrodos = modoFisico && bueiro.tipoMedicao === 'nivel_percentual' && bueiro.origem === 'Arduino USB';
+  const eletrodos = modoFisico && bueiro.tipoMedicao === 'nivel_percentual';
 
   return (
     <div className="manhole-card-detailed">
@@ -20,8 +20,8 @@ function BueiroDetalhado({ bueiro, sigla, modoFisico }) {
         <div className="flex items-center gap-2">
           <span className="manhole-id-pill">{sigla}</span>
           <div>
-            <h2 className="text-sm font-bold text-white">{cfg.nome}</h2>
-            <span className="text-xs text-slate-400">{eletrodos ? 'Régua de eletrodos • A0–A5 + GND • Experimental' : modoFisico ? 'Aguardando leitura da régua de eletrodos' : 'Simulação ou monitoramento por telemetria'}</span>
+            <h2 className="text-sm font-bold text-white">{modoFisico ? `Bueiro ${sigla === 'B01' ? '01' : '02'} · Régua de nível` : cfg.nome}</h2>
+            <span className="text-xs text-slate-400">{eletrodos ? `Régua de eletrodos • ${sigla === 'B01' ? 'A0–A5' : 'D2–D7'} + GND • Experimental` : modoFisico ? 'Aguardando leitura da régua de eletrodos' : 'Simulação ou monitoramento por telemetria'}</span>
           </div>
         </div>
         <span className={`badge-pill ${ok ? meta.classe : 'muted'}`}>{ok ? meta.rotulo : 'Desconectado'}</span>
@@ -44,15 +44,15 @@ function BueiroDetalhado({ bueiro, sigla, modoFisico }) {
       <div className="manhole-metrics-grid">
         <div className="metric-sub-card">
           <span className="metric-sub-label">{eletrodos ? 'Tipo de leitura' : 'Distância Medida'}</span>
-          <span className="metric-sub-val">{eletrodos ? 'Contatos de água' : ok ? `${num(bueiro.distanciaMedidaCm)} cm` : '-- cm'}</span>
+          <span className="metric-sub-val">{modoFisico ? 'Régua de contatos' : ok ? `${num(bueiro.distanciaMedidaCm)} cm` : '-- cm'}</span>
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Coluna d&apos;Água Útil</span>
-          <span className={`metric-sub-val ${sigla === 'B01' ? 'text-cyan-400' : 'text-amber-400'}`}>{ok ? `${num(bueiro.alturaAguaCm)} cm` : '-- cm'}</span>
+          <span className={`metric-sub-val ${sigla === 'B01' ? 'text-cyan-400' : 'text-amber-400'}`}>{modoFisico ? 'Sem calibração em cm' : ok ? `${num(bueiro.alturaAguaCm)} cm` : '-- cm'}</span>
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Volume do Reservatório</span>
-          <span className="metric-sub-val">{eletrodos ? 'Não calibrado' : ok ? `${bueiro.volumeMl} mL` : '-- mL'}</span>
+          <span className="metric-sub-val">{modoFisico ? 'Não calibrado' : ok ? `${bueiro.volumeMl} mL` : '-- mL'}</span>
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Variação</span>
@@ -189,7 +189,7 @@ export default function Bueiros() {
       </div>
 
       {fonte === 'prototipo' && !simulacaoAtiva && <p className="text-xs text-slate-500">
-        Painel preparado para 2 réguas independentes: B01 (A0–A5 + GND) e B02 (entradas adicionais a definir no Arduino). Cada bueiro só recebe nível quando o firmware envia sua própria leitura; sem conexão permanece aguardando.
+        Painel preparado para 2 réguas independentes: B01 (A0–A5 + GND) e B02 (D2–D7 + GND, com firmware para duas réguas). Cada bueiro só recebe nível quando o firmware envia sua própria leitura; sem conexão permanece aguardando.
       </p>}
       {fonte === 'prototipo' && <section className="card-base" aria-label="Estado do teste de simulação">
         <div className="card-header-line">
