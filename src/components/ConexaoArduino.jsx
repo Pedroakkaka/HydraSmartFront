@@ -22,8 +22,17 @@ function analisarLinha(linha) {
       return leitura;
     };
     const dados = [];
-    const unico = interpretar(obj.bueiro ?? obj.id ?? obj.sensor, obj.dist_cm ?? obj.distancia_cm ?? obj.distancia, obj.raw);
-    if (unico) dados.push(unico);
+    const id = normalizarId(obj.bueiro ?? obj.id ?? obj.sensor);
+    const nivel = obj.nivel_pct ?? obj.nivelPct;
+    if (id && nivel !== undefined && nivel !== null && Number.isFinite(Number(nivel)) &&
+        Number(nivel) >= 0 && Number(nivel) <= 100) {
+      const leitura = { bueiroId: id, nivelPct: Number(nivel) };
+      if (Number.isInteger(obj.raw) && obj.raw >= 0) leitura.raw = obj.raw;
+      dados.push(leitura);
+    } else {
+      const unico = interpretar(obj.bueiro ?? obj.id ?? obj.sensor, obj.dist_cm ?? obj.distancia_cm ?? obj.distancia, obj.raw);
+      if (unico) dados.push(unico);
+    }
     for (const [id, valor] of [[1, obj.b1 ?? obj.bueiro1], [2, obj.b2 ?? obj.bueiro2]]) {
       if (valor == null) continue;
       const leitura = interpretar(id, typeof valor === 'object' ? (valor.dist_cm ?? valor.distancia_cm) : valor);
@@ -172,7 +181,7 @@ export default function ConexaoArduino() {
         <div>
           <span className="hs-arduino-eyebrow">MODO PROJETO FÍSICO · ARDUINO UNO</span>
           <h2 id="hs-usb-title">Conexão USB do Arduino</h2>
-          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. A montagem informada utiliza uma régua com 7 contatos de nível e duas bombas de circulação.</p>
+          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. A montagem informada utiliza 6 entradas A0–A5 e 1 contato de referência GND, com uma bomba de circulação.</p>
         </div>
         <span className={`hs-arduino-status ${conectado ? 'online' : 'offline'}`} role="status">
           <span aria-hidden="true">●</span> {conectado ? 'USB conectada' : 'Aguardando USB'}
@@ -181,7 +190,7 @@ export default function ConexaoArduino() {
       <div className="hs-arduino-steps">
         <div><span className="hs-arduino-step-no">1</span><span>Conecte o cabo USB ao Arduino Uno e feche o Monitor Serial da IDE.</span></div>
         <div><span className="hs-arduino-step-no">2</span><span>Use Chrome ou Edge no computador e clique em <strong>Selecionar porta Arduino</strong>.</span></div>
-        <div><span className="hs-arduino-step-no">3</span><span>Depois da conexão, observe se chegam linhas do Arduino. A régua de 7 contatos requer firmware próprio para transmitir o nível.</span></div>
+        <div><span className="hs-arduino-step-no">3</span><span>Depois da conexão, observe se chegam linhas do Arduino. A régua de 7 contatos requer firmware específico para transmitir o nível percentual.</span></div>
       </div>
       <div className="hs-arduino-fields">
         <div className="hs-arduino-field">
@@ -210,7 +219,7 @@ export default function ConexaoArduino() {
       {conectado && !chave.trim() && <p className="hs-arduino-notice">USB conectada para diagnóstico. Sem a chave do protótipo, nenhuma medição é enviada à API. Desconecte antes de informar a chave.</p>}
       {!suportaWebSerial && <p role="alert" className="hs-arduino-notice">Este navegador não permite selecionar portas USB seriais. Abra o site em Chrome ou Edge atualizado no computador, por HTTPS; no celular, use uma ponte ou dispositivo com Wi-Fi.</p>}
       {erro && <p role="alert" className="hs-arduino-error">{erro}</p>}
-      <p className="hs-arduino-footnote">Apenas conexão e diagnóstico USB. A leitura dos 7 contatos e o acionamento das duas bombas ainda exigem firmware e circuitos apropriados; não há controle remoto das bombas nesta seção.</p>
+      <p className="hs-arduino-footnote">Apenas conexão e diagnóstico USB. A leitura dos eletrodos depende de firmware específico e da ordem física dos contatos. A bomba não é acionada pelo site; controle elétrico exige circuito e validação próprios.</p>
     </section>
   );
 }
