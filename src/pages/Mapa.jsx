@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { divIcon } from 'leaflet';
 import { CircleMarker, Marker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
+import RiscosPertoDeMim, { MarcadorLocal, distanciaKm } from '../components/RiscosPertoDeMim.jsx';
 import { useDrenosOsm, useBocasLoboOficiais, useNivelBlumenau, useFontesBrasil } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
 import { dataHora, num } from '../lib/formato.js';
@@ -53,6 +54,34 @@ function ConsultarAreaVisivel({ regiao, aoAlterar }) {
 export default function Mapa() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const [regiao, setRegiao] = useState('porto_alegre');
+  const [localizacao, setLocalizacao] = useState(null);
+  const [obtendoLocalizacao, setObtendoLocalizacao] = useState(false);
+  const [erroLocalizacao, setErroLocalizacao] = useState('');
+  const localizar = () => {
+    if (!navigator.geolocation) {
+      setErroLocalizacao('Seu navegador não permite consultar a localização.');
+      return;
+    }
+    setObtendoLocalizacao(true);
+    setErroLocalizacao('');
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      const latitude = Math.round(coords.latitude * 100) / 100;
+      const longitude = Math.round(coords.longitude * 100) / 100;
+      if (latitude < -34 || latitude > 6 || longitude < -74 || longitude > -34) {
+        setErroLocalizacao('A consulta meteorológica por posição está disponível apenas no Brasil.');
+        setObtendoLocalizacao(false);
+        return;
+      }
+      setLocalizacao({ latitude, longitude, id: Date.now() });
+      const pos = [latitude, longitude];
+      setRegiao(distanciaKm(pos, REGIOES.porto_alegre.centro) <= 30 ? 'porto_alegre'
+        : distanciaKm(pos, REGIOES.blumenau.centro) <= 25 ? 'blumenau' : 'brasil');
+      setObtendoLocalizacao(false);
+    }, (err) => {
+      setErroLocalizacao(err.code === 1 ? 'Permissão negada. Autorize a localização no navegador.' : 'Localização indisponível; verifique GPS e conexão.');
+      setObtendoLocalizacao(false);
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 120000 });
+  };
   const { data: nivelBlumenau, isLoading: carregandoNivel } = useNivelBlumenau();
   const { data: fontesBrasil } = useFontesBrasil();
   const linkNivel = fontesBrasil?.blumenau?.nivel || 'https://defesacivil.blumenau.sc.gov.br/d/nivel-do-rio';
@@ -87,9 +116,13 @@ export default function Mapa() {
         <div className="map-toolbar-group">
           {Object.entries(REGIOES).map(([id, item]) => <button key={id} type="button" className={`map-control-btn ${regiao === id ? 'active' : ''}`} onClick={() => setRegiao(id)}>{item.nome}</button>)}
           <button type="button" className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Centralizar</button>
+          <button type="button" className="map-control-btn active" disabled={obtendoLocalizacao} onClick={localizar}>{obtendoLocalizacao ? 'Localizando…' : '📍 Riscos perto de mim'}</button>
         </div>
       </div>
       <p className="text-xs text-slate-400 mb-2">{regiao === 'porto_alegre' ? 'Os pontos B1/B2 são vinculados demonstrativamente ao cadastro de Porto Alegre; não representam instalação de sensores.' : regiao === 'blumenau' ? 'Níveis do Rio Itajaí-Açu e cotas de inundação são informações oficiais distintas das leituras de bueiros.' : 'Visão nacional por região. A cobertura de cadastros e sensores de drenagem varia entre municípios.'}</p>
+      {erroLocalizacao && <p role="alert" className="text-xs text-amber-400">{erroLocalizacao}</p>}
+      <RiscosPertoDeMim localizacao={localizacao} limpar={() => setLocalizacao(null)} regiao={regiao}
+        oficial={oficial} oficialCarregando={oficialCarregando} oficialErro={oficialErro} />
       {regiao === 'blumenau' && <section className="card-base" aria-label="Fontes oficiais de Blumenau">
         <div className="card-header-line"><strong>Rio Itajaí-Açu · Defesa Civil Blumenau</strong></div>
         <p>Última leitura disponível: <strong>{nivelBlumenau?.ultimaLeitura ? `${num(nivelBlumenau.ultimaLeitura.nivelMetros, 2)} m` : 'Não disponível'}</strong></p>
@@ -123,6 +156,7 @@ export default function Mapa() {
           />
           <ZoomControl position="bottomright" />
           <Recentralizar sinal={recentralizar} regiao={regiao} />
+          <MarcadorLocal localizacao={localizacao} />
           <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} />
           {regiao === 'brasil' && Object.entries(REGIOES).filter(([id]) => id !== 'brasil').map(([id, item]) => (
             <Marker key={id} position={item.centro} icon={ICONES_REGIAO[id]} zIndexOffset={1000}
