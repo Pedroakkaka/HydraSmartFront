@@ -46,6 +46,8 @@ export const useTelemetria = create((set) => ({
   estado: null,
   fonteSelecionada: 'inteligente',
   conexao: 'conectando',
+  // Estado de bancada separado do canal de campo.
+  canalLocal: {},
   usbLocalConectado: false,
   definirUsbLocal: (conectado) => set({ usbLocalConectado: Boolean(conectado) }),
   alertasDispensados: [],
