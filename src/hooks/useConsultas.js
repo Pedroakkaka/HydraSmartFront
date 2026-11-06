@@ -29,3 +29,5 @@ export const useAlertas = () =>
 
 export const useUltimaLeituraBanco = () =>
   useQuery({ queryKey: ['ultima-leitura'], queryFn: () => api.get('/leituras?limite=1'), refetchInterval: 10_000 });
+
+// Brasil: consulta de fontes oficiais.
