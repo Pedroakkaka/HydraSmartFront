@@ -39,21 +39,28 @@ function NivelSensor({ bueiro, titulo }) {
   </div>;
 }
 function GraficoNivel({ b1, b2 }) {
-  const bases = [b1,b2].map(b=>Array.isArray(b?.historicoNiveis)?b.historicoNiveis:[]);
-  const labelsOriginais = (b1?.historicoTimestamps?.length||0) >= (b2?.historicoTimestamps?.length||0) ? b1?.historicoTimestamps : b2?.historicoTimestamps;
-  const comprimento = Math.max(bases[0].length,bases[1].length);
-  if (!comprimento) return <div className="hs-chart-empty"><span>⌁</span><strong>Aguardando as primeiras leituras</strong><small>As curvas serão exibidas com leituras recentes da fonte selecionada.</small></div>;
-  const labels = Array.from({length:comprimento},(_,i) => {
-    const valor = labelsOriginais?.[i];
-    if(!valor) return `Leitura ${i+1}`;
-    const dt = new Date(valor);
-    return Number.isNaN(dt.getTime()) ? `Leitura ${i+1}` : dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  });
-  const data={labels,datasets:[
-    {label:'Bueiro 01 · Entrada',data:bases[0],borderColor:'#0069e6',backgroundColor:'rgba(0,105,230,.1)',pointRadius:2,tension:.35,fill:true,spanGaps:false},
-    {label:'Bueiro 02 · Saída',data:bases[1],borderColor:'#02a5c7',backgroundColor:'rgba(2,165,199,.06)',pointRadius:2,tension:.35,fill:false,spanGaps:false}
+  const tempos = [...new Set([...(b1?.historicoTimestamps || []),...(b2?.historicoTimestamps || [])]
+    .filter(Number.isFinite))].sort((x,y)=>x-y);
+  if (!tempos.length) return <div className="hs-chart-empty"><span>⌁</span>
+    <strong>Aguardando leituras de B01 ou B02</strong>
+    <small>A curva será atualizada com cada medição da régua correspondente.</small>
+  </div>;
+  const labels = tempos.map(t=>new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const serie = b => {
+    const mapa = new Map((b?.historicoTimestamps||[]).map((t,i)=>[t,b?.historicoNiveis?.[i]]));
+    return tempos.map(t=>mapa.has(t)?mapa.get(t):null);
+  };
+  const data = {labels,datasets:[
+    {label:'Bueiro 01 · régua A0–A5',data:serie(b1),borderColor:'#0069e6',
+      backgroundColor:'rgba(0,105,230,.1)',pointRadius:2,tension:.15,fill:false,spanGaps:true},
+    {label:'Bueiro 02 · segunda régua',data:serie(b2),borderColor:'#02a5c7',
+      backgroundColor:'rgba(2,165,199,.06)',pointRadius:2,tension:.15,fill:false,spanGaps:true}
   ]};
-  const options={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#415875',boxWidth:12,font:{size:11}}},tooltip:{mode:'index',intersect:false}},scales:{x:{grid:{display:false},ticks:{color:'#6b7f96',maxTicksLimit:8}},y:{min:0,max:100,grid:{color:'#e8eef6'},ticks:{color:'#6b7f96',callback:v=>`${v}%`}}}};
+  const options = {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{color:'#415875',boxWidth:12,font:{size:11}}},
+      tooltip:{mode:'index',intersect:false}},
+    scales:{x:{grid:{display:false},ticks:{color:'#6b7f96',maxTicksLimit:8}},
+      y:{min:0,max:100,grid:{color:'#e8eef6'},ticks:{color:'#6b7f96',callback:v=>`${v}%`}}}};
   return <div className="hs-chart-graphic"><Line data={data} options={options}/></div>;
 }
 function Estacoes({ data, loading, error }) {
