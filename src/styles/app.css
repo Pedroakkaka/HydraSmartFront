@@ -234,3 +234,36 @@ a.btn-action-secondary {
 .status-dot-indicator.online { background: #067a1c; }
 .mobile-header-bar { background: #05172c; }
 @media (prefers-reduced-motion: reduce) { .app-main-content { background-attachment: scroll; } }
+
+/* Janela da chave do operador */
+.modal-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(2, 6, 15, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-caixa {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.modal-caixa .campo-numero { font-size: 0.85rem; padding: 0.45rem 0.6rem; }
+.modal-erro {
+  font-size: 0.75rem;
+  color: #fecaca;
+  background: var(--status-danger-subtle);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}

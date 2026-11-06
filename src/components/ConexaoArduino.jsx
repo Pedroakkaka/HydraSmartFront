@@ -36,7 +36,7 @@ export default function ConexaoArduino() {
         avisar(`Arduino conectado em ${r.porta}`);
       }
     } catch (err) {
-      avisar(err.message, 'erro');
+      if (!err.cancelado) avisar(err.message, 'erro');
     } finally {
       setOcupado(false);
     }

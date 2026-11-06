@@ -1,4 +1,5 @@
-const FUSO = 'America/Cuiaba';
+/** Fuso oficial de Porto Alegre-RS (GMT-3). Único lugar do painel que define o fuso. */
+export const FUSO = 'America/Sao_Paulo';
 
 export const hora = (ts) =>
   ts ? new Date(ts).toLocaleTimeString('pt-BR', { timeZone: FUSO }) : '--:--:--';

@@ -6,6 +6,7 @@ import { useTelemetria } from './store/useTelemetria.js';
 import Sidebar from './components/Sidebar.jsx';
 import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
+import ChaveOperadorModal from './components/ChaveOperadorModal.jsx';
 
 const TEXTO_CONEXAO = {
   online: 'Servidor conectado • tempo real',
@@ -81,6 +82,7 @@ export default function App() {
       </div>
 
       <Avisos />
+      <ChaveOperadorModal />
     </>
   );
 }
