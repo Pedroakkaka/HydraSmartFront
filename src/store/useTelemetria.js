@@ -12,7 +12,7 @@ function selecionarCanal(snapshot, fonte, local = {}) {
     if (fonte !== 'prototipo') return null;
     snapshot = {modo:'real',simulacao:{ativo:false},canais:{prototipo:{}},bueiros:{
       bueiro_1:{id:'bueiro_1',nome:'Régua de nível · Arduino',calibracao:{limiteAtencaoPct:50,limiteCriticoPct:80}},
-      bueiro_2:{id:'bueiro_2',nome:'Sensor não instalado',calibracao:{limiteAtencaoPct:50,limiteCriticoPct:80}}
+      bueiro_2:{id:'bueiro_2',nome:'Régua de nível B02 · aguardando hardware',calibracao:{limiteAtencaoPct:50,limiteCriticoPct:80}}
     }};
   }
   const canais = snapshot.canais || {};
