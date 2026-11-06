@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { FUSO } from '../lib/formato.js';
 
 const CODIGOS = ['DCRS-00044', 'DCRS-00054', 'DCRS-00076', 'DCRS-00105'];
 const rotulos = {
@@ -13,11 +14,11 @@ const valor = (v, unidade) => v === null || v === undefined || v === '' || !Numb
 const horario = (v) => {
   if (!v) return 'Não informado';
   const d = new Date(v.endsWith('Z') || /[+-]\d\d:\d\d$/.test(v) ? v : v + 'Z');
-  return Number.isNaN(d.getTime()) ? v : d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString('pt-BR', { timeZone: FUSO });
 };
 
 export default function HidrologiaOficial() {
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, dataUpdatedAt, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['hidrologia-estacoes-rs'],
     queryFn: () => api.get('/hidrologia/estacoes'),
     refetchInterval: 5 * 60 * 1000,
@@ -42,7 +43,7 @@ export default function HidrologiaOficial() {
       <div className="grid-2-md mt-3">
         {estacoes.map((e) => {
           const dataLeitura = e.horarioLeitura ? new Date(e.horarioLeitura.endsWith('Z') ? e.horarioLeitura : e.horarioLeitura + 'Z') : null;
-          const antiga = dataLeitura && !Number.isNaN(dataLeitura.getTime()) && Date.now() - dataLeitura.getTime() > 30 * 60 * 1000;
+          const antiga = dataLeitura && !Number.isNaN(dataLeitura.getTime()) && dataUpdatedAt - dataLeitura.getTime() > 30 * 60 * 1000; // relativo ao momento da consulta
           return (
             <article key={e.codigo} className="history-card">
               <div className="history-card-header">
