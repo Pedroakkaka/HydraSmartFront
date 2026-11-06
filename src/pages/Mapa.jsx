@@ -92,7 +92,7 @@ export default function Mapa() {
   const { data: oficial, isLoading: oficialCarregando, isFetching: oficialAtualizando, isError: oficialErro } = useBocasLoboOficiais(bbox, regiao === 'porto_alegre');
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
   const consultarDrenagem = areaNacional.zoom >= 12 &&
-    (regiao === 'cidade' || regiao === 'blumenau' || regiao === 'porto_alegre');
+    (regiao === 'cidade' || regiao === 'blumenau' || regiao === 'porto_alegre' || regiao === 'brasil');
   const { data: drenosCidade, isLoading: drenagemCarregando, isFetching: drenagemAtualizando, isError: drenagemErro } = useQuery({
     queryKey: ['drenagem-nacional-area', areaNacional.bbox],
     queryFn: () => api.get('/brasil/drenagem-area?bbox=' + encodeURIComponent(areaNacional.bbox)),
