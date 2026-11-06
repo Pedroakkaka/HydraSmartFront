@@ -43,7 +43,7 @@ export default function Mapa() {
     <div className="map-view-layout">
       <div className="map-toolbar">
         <div className="map-toolbar-group">
-          {['oficial', 'prototipo', 'osm'].map(nome => (
+          {regiao === 'porto_alegre' && ['oficial', 'prototipo', 'osm'].map(nome => (
             <button key={nome} className={`map-control-btn ${camadas[nome] ? 'active' : ''}`} onClick={() => alternar(nome)}>
               {nome === 'oficial' ? '🟢 Cadastro municipal' : nome === 'prototipo' ? '🔵 Protótipo B1 / B2' : '🌐 OpenStreetMap'}
             </button>
@@ -80,6 +80,11 @@ export default function Mapa() {
           />
           <ZoomControl position="bottomright" />
           <Recentralizar sinal={recentralizar} regiao={regiao} />
+          {regiao === 'brasil' && Object.entries(REGIOES).filter(([id]) => id !== 'brasil').map(([id, item]) => (
+            <CircleMarker key={id} center={item.centro} radius={9} pathOptions={{ color: '#0284c7', fillColor: '#38bdf8', fillOpacity: .9 }} eventHandlers={{ click: () => setRegiao(id) }}>
+              <Tooltip permanent direction="top">{item.nome} · abrir fontes disponíveis</Tooltip>
+            </CircleMarker>
+          ))}
           {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`of-${p.id ?? i}`} center={[p.lat, p.lon]} radius={3} pathOptions={{ color: '#047857', fillColor: '#10b981', fillOpacity: .7 }}>
               <Tooltip>Boca de lobo cadastrada — sem sensor confirmado</Tooltip>
@@ -121,8 +126,8 @@ export default function Mapa() {
       </div>
       {regiao === 'porto_alegre' && pontos.length < 2 && <p className="text-xs text-amber-400 mt-2">Aguardando ao menos dois pontos válidos da base municipal para vincular B1 e B2.</p>}
       <div className="map-discrete-legend">
-        <div className="legend-item">🟢 Cadastro público municipal (sem telemetria)</div>
-        <div className="legend-item">🔵 B1 e B2: associação demonstrativa com medições independentes</div>
+        <div className="legend-item">{regiao === 'porto_alegre' ? '🟢 Cadastro público municipal (sem telemetria)' : '🌎 Navegação nacional: selecione uma cidade para consultar as fontes disponíveis'}</div>
+        {regiao === 'porto_alegre' && <div className="legend-item">🔵 B1 e B2: associação demonstrativa com medições independentes</div>}
       </div>
     </div>
   );
