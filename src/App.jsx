@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar.jsx';
 import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
 import PermissaoAlertas from './components/PermissaoAlertas.jsx';
+import ConexaoArduino from './components/ConexaoArduino.jsx';
 
 const TEXTO_CONEXAO = {
   online: 'Servidor conectado • tempo real',
@@ -84,6 +85,8 @@ export default function App() {
           </div>
 
           <Banners />
+
+          {fonte === 'prototipo' && <ConexaoArduino />}
 
           <div className="page-container">
             {!temEstado ? (
