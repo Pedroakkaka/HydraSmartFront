@@ -1,18 +1,29 @@
 import { useMemo, useState, useEffect } from 'react';
 import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useDrenosOsm, useBocasLoboOficiais } from '../hooks/useConsultas.js';
+import { useDrenosOsm, useBocasLoboOficiais, useNivelBlumenau, useFontesBrasil } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
 import { dataHora, num } from '../lib/formato.js';
 
 const CENTRO = [-30.0346, -51.2177];
-function Recentralizar({ sinal }) {
+const REGIOES = {
+  brasil: { centro: [-14.235, -51.9253], zoom: 4, nome: 'Brasil' },
+  porto_alegre: { centro: CENTRO, zoom: 14, nome: 'Porto Alegre - RS' },
+  blumenau: { centro: [-26.9187, -49.0661], zoom: 12, nome: 'Blumenau - SC' }
+};
+function Recentralizar({ sinal, regiao }) {
   const map = useMap();
-  useEffect(() => { if (sinal) map.flyTo(CENTRO, 14); }, [sinal, map]);
+  useEffect(() => { const r = REGIOES[regiao]; map.flyTo(r.centro, r.zoom); }, [sinal, regiao, map]);
   return null;
 }
 export default function Mapa() {
-  const bueiros = useTelemetria((s) => s.estado.bueiros);
+  const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
+  const [regiao, setRegiao] = useState('porto_alegre');
+  const { data: nivelBlumenau, isLoading: carregandoNivel } = useNivelBlumenau();
+  const { data: fontesBrasil } = useFontesBrasil();
+  const linkNivel = fontesBrasil?.blumenau?.nivel || 'https://defesacivil.blumenau.sc.gov.br/d/nivel-do-rio';
+  const linkInundacao = fontesBrasil?.blumenau?.inundacao || 'https://defesacivil.blumenau.sc.gov.br/m/inundacao';
+  const linkInmet = fontesBrasil?.inmet?.anomaliaMensal || 'https://clima.inmet.gov.br/prec';
   const { data: oficial, isLoading: oficialCarregando, isError: oficialErro } = useBocasLoboOficiais();
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
@@ -38,9 +49,24 @@ export default function Mapa() {
             </button>
           ))}
         </div>
-        <button className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Porto Alegre</button>
+        <div className="map-toolbar-group">
+          {Object.entries(REGIOES).map(([id, item]) => <button key={id} type="button" className={`map-control-btn ${regiao === id ? 'active' : ''}`} onClick={() => setRegiao(id)}>{item.nome}</button>)}
+          <button type="button" className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Centralizar</button>
+        </div>
       </div>
-      <p className="text-xs text-slate-400 mb-2">Dois pontos próximos do cadastro municipal são vinculados automaticamente ao protótipo B1/B2. Vínculo demonstrativo: não representa instalação de sensores nesses locais.</p>
+      <p className="text-xs text-slate-400 mb-2">{regiao === 'porto_alegre' ? 'Os pontos B1/B2 são vinculados demonstrativamente ao cadastro de Porto Alegre; não representam instalação de sensores.' : regiao === 'blumenau' ? 'Níveis do Rio Itajaí-Açu e cotas de inundação são informações oficiais distintas das leituras de bueiros.' : 'Visão nacional por região. A cobertura de cadastros e sensores de drenagem varia entre municípios.'}</p>
+      {regiao === 'blumenau' && <section className="card-base" aria-label="Fontes oficiais de Blumenau">
+        <div className="card-header-line"><strong>Rio Itajaí-Açu · Defesa Civil Blumenau</strong></div>
+        <p>Última leitura disponível: <strong>{nivelBlumenau?.ultimaLeitura ? `${num(nivelBlumenau.ultimaLeitura.nivelMetros, 2)} m` : 'Não disponível'}</strong></p>
+        <p className="text-xs text-slate-400">{carregandoNivel ? 'Consultando fonte oficial...' : nivelBlumenau?.ultimaLeitura ? `Horário: ${dataHora(nivelBlumenau.ultimaLeitura.horario)} · ${nivelBlumenau.status === 'sucesso' ? 'Leitura recente' : 'Dados desatualizados'}` : 'Sem leitura verificável no momento; consultar fonte oficial.'}</p>
+        <p className="text-xs text-slate-400">O mapa de inundação apresenta cotas consultivas e não informa a extensão de uma cheia atual. Estações de rio não representam sensores dos bueiros.</p>
+        <div className="flex flex-wrap gap-3 mt-2"><a href={linkNivel} target="_blank" rel="noopener noreferrer">Nível do rio · AlertaBlu ↗</a><a href={linkInundacao} target="_blank" rel="noopener noreferrer">Mapa oficial de inundação ↗</a></div>
+      </section>}
+      {(regiao === 'brasil' || regiao === 'blumenau') && <section className="card-base" aria-label="Dados meteorológicos INMET">
+        <div className="card-header-line"><strong>INMET · Anomalias de precipitação</strong></div>
+        <p className="text-xs text-slate-400">Compare chuva observada e climatologia em mapas oficiais mensais. Anomalias históricas não são previsões de alagamento.</p>
+        <a href={linkInmet} target="_blank" rel="noopener noreferrer">Consultar mapas mensais INMET ↗</a>
+      </section>}
       <div className="map-canvas-full">
         <MapContainer center={CENTRO} zoom={14} zoomControl={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
@@ -53,18 +79,18 @@ export default function Mapa() {
             }}
           />
           <ZoomControl position="bottomright" />
-          <Recentralizar sinal={recentralizar} />
-          {camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
+          <Recentralizar sinal={recentralizar} regiao={regiao} />
+          {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`of-${p.id ?? i}`} center={[p.lat, p.lon]} radius={3} pathOptions={{ color: '#047857', fillColor: '#10b981', fillOpacity: .7 }}>
               <Tooltip>Boca de lobo cadastrada — sem sensor confirmado</Tooltip>
             </CircleMarker>
           ))}
-          {camadas.osm && (osm?.elementos ?? []).map((p, i) => (
+          {regiao === 'porto_alegre' && camadas.osm && (osm?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`osm-${p.id ?? i}`} center={[p.lat, p.lon]} radius={3} pathOptions={{ color: '#0284c7' }}>
               <Tooltip>Registro OpenStreetMap — sem telemetria</Tooltip>
             </CircleMarker>
           ))}
-          {camadas.prototipo && pontos.map(p => {
+          {regiao === 'porto_alegre' && camadas.prototipo && pontos.map(p => {
             const b = bueiros[p.idSensor];
             const ativo = b && temLeitura(b) && !b.desatualizado;
             return <CircleMarker key={p.idSensor} center={[p.lat, p.lon]} radius={10}
@@ -84,16 +110,16 @@ export default function Mapa() {
             ? 'Algumas imagens da base cartográfica OpenStreetMap falharam; o mapa pode aparecer parcialmente.'
             : 'Base cartográfica OpenStreetMap indisponível; marcadores de sensores e cadastros são consultados separadamente.'}
         </p>}
-        {camadas.oficial && oficialCarregando && <p role="status" className="text-xs text-slate-400">Consultando o cadastro público municipal…</p>}
-        {camadas.oficial && (oficialErro || oficial?.status === 'indisponivel') && <p role="status" className="text-xs text-amber-400">Cadastro municipal indisponível; nenhum ponto desse cadastro está sendo apresentado como sensor.</p>}
-        {camadas.oficial && oficial?.status === 'sucesso' && oficial.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta ao cadastro municipal não retornou pontos para esta área.</p>}
-        {camadas.osm && osmCarregando && <p role="status" className="text-xs text-slate-400">Consultando elementos de drenagem do OpenStreetMap…</p>}
-        {camadas.osm && osmErro && <p role="status" className="text-xs text-amber-400">Não foi possível consultar o serviço OSM. Os sensores físicos e o cadastro municipal são camadas independentes.</p>}
-        {camadas.osm && osm?.status === 'desatualizado' && <p role="status" className="text-xs text-amber-400">OpenStreetMap indisponível agora; os pontos mostrados vêm do último cache válido ({dataHora(osm.consultadoEm)}).</p>}
+        {regiao === 'porto_alegre' && camadas.oficial && oficialCarregando && <p role="status" className="text-xs text-slate-400">Consultando o cadastro público municipal…</p>}
+        {regiao === 'porto_alegre' && camadas.oficial && (oficialErro || oficial?.status === 'indisponivel') && <p role="status" className="text-xs text-amber-400">Cadastro municipal indisponível; nenhum ponto desse cadastro está sendo apresentado como sensor.</p>}
+        {regiao === 'porto_alegre' && camadas.oficial && oficial?.status === 'sucesso' && oficial.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta ao cadastro municipal não retornou pontos para esta área.</p>}
+        {regiao === 'porto_alegre' && camadas.osm && osmCarregando && <p role="status" className="text-xs text-slate-400">Consultando elementos de drenagem do OpenStreetMap…</p>}
+        {regiao === 'porto_alegre' && camadas.osm && osmErro && <p role="status" className="text-xs text-amber-400">Não foi possível consultar o serviço OSM. Os sensores físicos e o cadastro municipal são camadas independentes.</p>}
+        {regiao === 'porto_alegre' && camadas.osm && osm?.status === 'desatualizado' && <p role="status" className="text-xs text-amber-400">OpenStreetMap indisponível agora; os pontos mostrados vêm do último cache válido ({dataHora(osm.consultadoEm)}).</p>}
         {camadas.osm && osm?.status === 'indisponivel' && <p role="status" className="text-xs text-amber-400">Serviço de consulta OpenStreetMap indisponível; nenhum elemento OSM está sendo mostrado.</p>}
         {camadas.osm && osm?.status === 'sucesso' && osm.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta OSM não encontrou elementos mapeados nesta área; cobertura não exaustiva.</p>}
       </div>
-      {pontos.length < 2 && <p className="text-xs text-amber-400 mt-2">Aguardando ao menos dois pontos válidos da base municipal para vincular B1 e B2.</p>}
+      {regiao === 'porto_alegre' && pontos.length < 2 && <p className="text-xs text-amber-400 mt-2">Aguardando ao menos dois pontos válidos da base municipal para vincular B1 e B2.</p>}
       <div className="map-discrete-legend">
         <div className="legend-item">🟢 Cadastro público municipal (sem telemetria)</div>
         <div className="legend-item">🔵 B1 e B2: associação demonstrativa com medições independentes</div>
