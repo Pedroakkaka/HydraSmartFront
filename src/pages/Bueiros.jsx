@@ -8,10 +8,11 @@ import { hora, num } from '../lib/formato.js';
 
 const TENDENCIA = { elevacao: '▲ Subindo', queda: '▼ Baixando', estavel: '● Estável', indeterminado: '● Aguardando dados' };
 
-function BueiroDetalhado({ bueiro, sigla }) {
+function BueiroDetalhado({ bueiro, sigla, modoFisico }) {
   const ok = temLeitura(bueiro);
   const meta = metaRisco(bueiro.risco);
   const cfg = bueiro.calibracao;
+  const eletrodos = modoFisico && bueiro.tipoMedicao === 'nivel_percentual' && bueiro.origem === 'Arduino USB';
 
   return (
     <div className="manhole-card-detailed">
@@ -20,7 +21,7 @@ function BueiroDetalhado({ bueiro, sigla }) {
           <span className="manhole-id-pill">{sigla}</span>
           <div>
             <h2 className="text-sm font-bold text-white">{cfg.nome}</h2>
-            <span className="text-xs text-slate-400">Sensor Ultrassônico HC-SR04 • TRIG {cfg.pinoTrig} / ECHO {cfg.pinoEcho}</span>
+            <span className="text-xs text-slate-400">{eletrodos ? 'Régua de eletrodos • A0–A5 + GND • Experimental' : modoFisico ? 'Aguardando leitura da régua de eletrodos' : 'Simulação ou monitoramento por telemetria'}</span>
           </div>
         </div>
         <span className={`badge-pill ${ok ? meta.classe : 'muted'}`}>{ok ? meta.rotulo : 'Desconectado'}</span>
@@ -33,7 +34,7 @@ function BueiroDetalhado({ bueiro, sigla }) {
           {ok && <span className="text-lg font-bold text-cyan-400">%</span>}
         </div>
         <div className="text-xs mt-1 font-semibold uppercase" style={{ color: ok ? meta.cor : 'var(--text-muted)' }}>
-          {ok ? `${meta.rotulo} • ${TENDENCIA[bueiro.tendencia] ?? ''}` : 'Aguardando leituras do sensor'}
+          {ok ? `${meta.rotulo} • ${TENDENCIA[bueiro.tendencia] ?? ''}` : 'Aguardando dados da fonte selecionada'}
         </div>
         <div className="gauge-progress-track">
           <div className="gauge-progress-bar" style={{ width: `${ok ? Math.min(100, bueiro.nivelPct) : 0}%`, backgroundColor: meta.cor }} />
@@ -42,8 +43,8 @@ function BueiroDetalhado({ bueiro, sigla }) {
 
       <div className="manhole-metrics-grid">
         <div className="metric-sub-card">
-          <span className="metric-sub-label">Distância Medida</span>
-          <span className="metric-sub-val">{ok ? `${num(bueiro.distanciaMedidaCm)} cm` : '-- cm'}</span>
+          <span className="metric-sub-label">{eletrodos ? 'Tipo de leitura' : 'Distância Medida'}</span>
+          <span className="metric-sub-val">{eletrodos ? 'Contatos de água' : ok ? `${num(bueiro.distanciaMedidaCm)} cm` : '-- cm'}</span>
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Coluna d&apos;Água Útil</span>
@@ -51,7 +52,7 @@ function BueiroDetalhado({ bueiro, sigla }) {
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Volume do Reservatório</span>
-          <span className="metric-sub-val">{ok ? `${bueiro.volumeMl} mL` : '-- mL'}</span>
+          <span className="metric-sub-val">{eletrodos ? 'Não calibrado' : ok ? `${bueiro.volumeMl} mL` : '-- mL'}</span>
         </div>
         <div className="metric-sub-card">
           <span className="metric-sub-label">Variação</span>
@@ -183,8 +184,8 @@ export default function Bueiros() {
   return (
     <>
       <div className="bueiros-page-grid">
-        <BueiroDetalhado bueiro={b1} sigla="B01" />
-        <BueiroDetalhado bueiro={b2} sigla="B02" />
+        <BueiroDetalhado bueiro={b1} sigla="B01" modoFisico={fonte === 'prototipo' && !simulacaoAtiva} />
+        <BueiroDetalhado bueiro={b2} sigla="B02" modoFisico={fonte === 'prototipo' && !simulacaoAtiva} />
       </div>
 
       {fonte === 'prototipo' && <section className="card-base" aria-label="Estado do teste de simulação">
@@ -195,7 +196,7 @@ export default function Bueiros() {
           </strong>
         </div>
         <p className="text-xs text-slate-300 mb-2">
-          Esta simulação cria leituras artificiais no painel. Não aciona as duas bombas,
+          Esta simulação cria leituras artificiais no painel. Não aciona a bomba,
           não lê os 7 contatos metálicos e não modifica a placa Arduino.
         </p>
         {falhaConsultaEstado && <p className="text-xs text-amber-500" role="alert">
