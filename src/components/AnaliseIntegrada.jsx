@@ -51,7 +51,14 @@ function interpretarSensores(bueiros = {}, demonstracao = false) {
   const tendencia = maior.tendencia === 'elevacao' ? 'em elevação' : maior.tendencia === 'queda' ? 'em queda' : 'sem tendência de elevação confirmada';
   const achados = [`${leituras.length} sensor(es) com leitura atual.`, `Maior nível: ${nivel}% (${classe}); tendência ${tendencia}.`];
   if (maior.diagnostico) {
-    achados.push(`Variação observada: ${maior.diagnostico.taxaPctMin == null ? 'não calculada' : maior.diagnostico.taxaPctMin + ' %/min'}. ${maior.diagnostico.motivo}`);
+    const d = maior.diagnostico;
+    const taxa = d.taxaPctMin == null ? 'ainda não calculada' : `${Number(d.taxaPctMin).toLocaleString('pt-BR',{maximumFractionDigits:2})} % por minuto`;
+    const tempo = d.tempoAte100Min === 0 ? 'O contato superior já foi atingido.'
+      : d.confiavel && d.tempoAte100Min != null
+        ? `Mantida a velocidade observada, o nível pode atingir o contato superior em aproximadamente ${Number(d.tempoAte100Min).toLocaleString('pt-BR',{maximumFractionDigits:1})} minuto(s). Esta é uma extrapolação experimental, não um prazo garantido.`
+        : 'Ainda não é possível prever quando encherá com segurança.';
+    achados.push(`Velocidade de variação: ${taxa}. ${tempo}`);
+    achados.push(d.motivo);
   } else if (maior.confiabilidadeTendencia?.confiavel === false) achados.push('Tendência ainda sem confiança suficiente: ' + maior.confiabilidadeTendencia.motivo);
   return { resumo: `${origem}: maior nível observado de ${nivel}%, situação ${classe}, ${tendencia}. ${demonstracao ? 'Dados experimentais/simulados de demonstração; não representam condição real da cidade.' : 'Leituras instrumentais; confirmar calibração e atualidade.'}`, achados };
 }
@@ -95,7 +102,7 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>{demonstracao ? 'Nível do protótipo' : 'Nível oficial'}</span><strong>{demonstracao ? formatar(sensorMaior?.nivelPct, '%') : formatar(nivel, ' m')}</strong><small>{demonstracao ? 'Bueiro de bancada' : estacao?.codigo ?? 'Sem estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Velocidade de subida' : 'Tendência oficial'}</span><strong>{demonstracao ? (diagnostico?.taxaPctMin != null ? formatar(diagnostico.taxaPctMin, ' %/min') : '—') : formatar(tendencia, ' m')}</strong><small>{demonstracao ? (diagnostico?.tendencia || 'Aguardando série') : 'Valor informado pela estação'}</small></div>
-          <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>{demonstracao ? 'Contatos ativados' : 'Precipitação'}</span><strong>{demonstracao ? (sensorMaior?.tipoMedicao === 'nivel_percentual' ? `${Math.round(Number(sensorMaior.nivelPct)/100*6)} de 6` : '—') : formatar(chuva, ' mm')}</strong><small>{demonstracao ? 'Régua de eletrodos, se conectada' : 'Open-Meteo'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>{demonstracao ? 'Tempo até 100% · bancada' : 'Janela crítica'}</span><strong>{demonstracao ? tempoEncher : '—'}</strong><small>{demonstracao ? (diagnostico?.motivo || 'Aguardando histórico físico') : 'Não calculada'}</small></div>
         </div>
         {<div className="hydra-ai-section"><h3>IA generativa · {demonstracao ? 'protótipo experimental' : 'dados reais'}</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p><small>{data?.geradoEm ? `Texto gerado em ${new Date(data.geradoEm).toLocaleTimeString('pt-BR')}. Atualizações da telemetria a cada leitura; a geração de texto usa cache e depende de habilitação no servidor.` : 'Sem texto gerado confirmado nesta sessão.'}</small></div>}
