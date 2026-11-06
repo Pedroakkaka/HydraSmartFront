@@ -65,8 +65,8 @@ export default function Mapa() {
     setObtendoLocalizacao(true);
     setErroLocalizacao('');
     navigator.geolocation.getCurrentPosition(({ coords }) => {
-      const latitude = Math.round(coords.latitude * 100) / 100;
-      const longitude = Math.round(coords.longitude * 100) / 100;
+      const latitude = Math.round(coords.latitude * 1000) / 1000;
+      const longitude = Math.round(coords.longitude * 1000) / 1000;
       if (latitude < -34 || latitude > 6 || longitude < -74 || longitude > -34) {
         setErroLocalizacao('A consulta meteorológica por posição está disponível apenas no Brasil.');
         setObtendoLocalizacao(false);
