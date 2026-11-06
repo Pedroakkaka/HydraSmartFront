@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap } from 'react-leaflet';
+import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useDrenosOsm, useBocasLoboOficiais, useNivelBlumenau, useFontesBrasil } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
@@ -16,6 +16,27 @@ function Recentralizar({ sinal, regiao }) {
   useEffect(() => { const r = REGIOES[regiao]; map.flyTo(r.centro, r.zoom); }, [sinal, regiao, map]);
   return null;
 }
+const BBOX_INICIAL = '-51.24,-30.055,-51.19,-30.015';
+
+// O cadastro oficial é consultado na área efetivamente visível, não em
+// coordenadas fixas. A API limita as consultas a pequenas extensões.
+function ConsultarAreaVisivel({ regiao, aoAlterar }) {
+  const map = useMapEvents({
+    moveend: () => {
+      if (regiao !== 'porto_alegre') return;
+      const limites = map.getBounds();
+      const centro = limites.getCenter();
+      const meiaLargura = Math.min(0.115, (limites.getEast() - limites.getWest()) / 2);
+      const meiaAltura = Math.min(0.115, (limites.getNorth() - limites.getSouth()) / 2);
+      const bbox = [centro.lng - meiaLargura, centro.lat - meiaAltura,
+        centro.lng + meiaLargura, centro.lat + meiaAltura]
+        .map(n => n.toFixed(4)).join(',');
+      aoAlterar(atual => atual === bbox ? atual : bbox);
+    }
+  });
+  return null;
+}
+
 export default function Mapa() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const [regiao, setRegiao] = useState('porto_alegre');
@@ -24,7 +45,8 @@ export default function Mapa() {
   const linkNivel = fontesBrasil?.blumenau?.nivel || 'https://defesacivil.blumenau.sc.gov.br/d/nivel-do-rio';
   const linkInundacao = fontesBrasil?.blumenau?.inundacao || 'https://defesacivil.blumenau.sc.gov.br/m/inundacao';
   const linkInmet = fontesBrasil?.inmet?.anomaliaMensal || 'https://clima.inmet.gov.br/prec';
-  const { data: oficial, isLoading: oficialCarregando, isError: oficialErro } = useBocasLoboOficiais();
+  const [bbox, setBbox] = useState(BBOX_INICIAL);
+  const { data: oficial, isLoading: oficialCarregando, isFetching: oficialAtualizando, isError: oficialErro } = useBocasLoboOficiais(bbox, regiao === 'porto_alegre');
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
   const [recentralizar, setRecentralizar] = useState(0);
@@ -68,7 +90,7 @@ export default function Mapa() {
         <a href={linkInmet} target="_blank" rel="noopener noreferrer">Consultar mapas mensais INMET ↗</a>
       </section>}
       <div className="map-canvas-full">
-        <MapContainer center={CENTRO} zoom={14} zoomControl={false} style={{ height: '100%', width: '100%' }}>
+        <MapContainer center={CENTRO} zoom={14} preferCanvas={true} zoomControl={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
@@ -80,14 +102,15 @@ export default function Mapa() {
           />
           <ZoomControl position="bottomright" />
           <Recentralizar sinal={recentralizar} regiao={regiao} />
+          <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} />
           {regiao === 'brasil' && Object.entries(REGIOES).filter(([id]) => id !== 'brasil').map(([id, item]) => (
-            <CircleMarker key={id} center={item.centro} radius={9} pathOptions={{ color: '#0284c7', fillColor: '#38bdf8', fillOpacity: .9 }} eventHandlers={{ click: () => setRegiao(id) }}>
-              <Tooltip permanent direction="top">{item.nome} · abrir fontes disponíveis</Tooltip>
+            <CircleMarker key={id} center={item.centro} radius={9} pathOptions={{ color: id === 'porto_alegre' ? '#047857' : '#0284c7', fillColor: id === 'porto_alegre' ? '#10b981' : '#38bdf8', fillOpacity: .9 }} eventHandlers={{ click: () => setRegiao(id) }}>
+              <Tooltip permanent direction="top">{item.nome} · {id === 'porto_alegre' ? 'abrir cadastro municipal de bocas de lobo' : 'abrir fontes disponíveis'}</Tooltip>
             </CircleMarker>
           ))}
           {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
-            <CircleMarker key={`of-${p.id ?? i}`} center={[p.lat, p.lon]} radius={3} pathOptions={{ color: '#047857', fillColor: '#10b981', fillOpacity: .7 }}>
-              <Tooltip>Boca de lobo cadastrada — sem sensor confirmado</Tooltip>
+            <CircleMarker key={`of-${p.id ?? i}`} center={[Number(p.lat), Number(p.lon)]} radius={5} pathOptions={{ color: '#065f46', fillColor: '#22c55e', fillOpacity: .9, weight: 1.5 }}>
+              <Tooltip>Boca de lobo cadastrada — Prefeitura de Porto Alegre · ID {p.id ?? 'não informado'} · sem sensor confirmado</Tooltip>
             </CircleMarker>
           ))}
           {regiao === 'porto_alegre' && camadas.osm && (osm?.elementos ?? []).map((p, i) => (
@@ -109,6 +132,7 @@ export default function Mapa() {
           })}
         </MapContainer>
       </div>
+      {regiao === 'porto_alegre' && camadas.oficial && <p className="text-xs text-slate-400 mt-2" aria-live="polite">🟢 {oficialCarregando ? 'Buscando pontos verdes do cadastro municipal…' : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro oficial indisponível; consulte novamente ou aproxime o mapa.' : `${(oficial?.elementos || []).length} bocas de lobo do cadastro oficial nesta área`}{oficialAtualizando && !oficialCarregando ? ' · atualizando área…' : ''}{oficial?.parcial ? ' · limite por consulta: aproxime o mapa para detalhar' : ''}</p>}
       <div className="space-y-1" aria-live="polite">
         {tiles.falhou && <p role="status" className="text-xs text-amber-400">
           {tiles.carregou
