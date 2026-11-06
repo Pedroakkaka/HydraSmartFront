@@ -40,6 +40,9 @@ export default function ConexaoArduino() {
   const [conectado, setConectado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [leituras, setLeituras] = useState(0);
+  const [linhasRecebidas, setLinhasRecebidas] = useState(0);
+  const [ultimaLinha, setUltimaLinha] = useState('');
+  const [portaNome, setPortaNome] = useState('');
   const [erro, setErro] = useState('');
   const portaRef = useRef(null);
   const leitorRef = useRef(null);
@@ -48,7 +51,7 @@ export default function ConexaoArduino() {
   const filaRef = useRef(Promise.resolve());
   const abortarRef = useRef(null);
   const conexaoIdRef = useRef(0);
-  const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && window.isSecureContext;
+  const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
 
   useEffect(() => { chaveRef.current = chave.trim(); }, [chave]);
 
@@ -99,18 +102,18 @@ export default function ConexaoArduino() {
       setErro('Use Chrome ou Edge atualizado no computador, acessando o HydraSmart por HTTPS.');
       return;
     }
-    if (chaveRef.current.length < 16) {
-      setErro('Informe a chave exclusiva do protótipo configurada no Render (mínimo 16 caracteres).');
-      return;
-    }
     if (conectado || ocupado) return;
     setOcupado(true);
     setErro('');
     setLeituras(0);
+    setLinhasRecebidas(0);
+    setUltimaLinha('');
     try {
       const porta = await navigator.serial.requestPort();
       await porta.open({ baudRate: Number(baud) });
       portaRef.current = porta;
+      const informacoes = porta.getInfo?.() || {};
+      setPortaNome(informacoes.usbVendorId ? `USB ${informacoes.usbVendorId.toString(16).toUpperCase()}:${(informacoes.usbProductId || 0).toString(16).toUpperCase()}` : 'Porta serial autorizada');
       interromperRef.current = false;
       const idConexao = ++conexaoIdRef.current;
       setConectado(true);
@@ -129,6 +132,7 @@ export default function ConexaoArduino() {
             const linhas = buffer.split(/\r?\n/);
             buffer = linhas.pop() || '';
             for (const linha of linhas) {
+              if (linha.trim()) { setLinhasRecebidas(n => n + 1); setUltimaLinha(linha.trim().slice(0, 180)); }
               const parsed = analisarLinha(linha.trim());
               for (const leitura of parsed) {
                 filaRef.current = filaRef.current.then(() => enviar(leitura, idConexao));
@@ -150,6 +154,7 @@ export default function ConexaoArduino() {
       })();
     } catch (err) {
       if (err.name !== 'NotFoundError') setErro('Não foi possível abrir a porta USB: ' + err.message);
+      else setErro('Nenhuma porta foi selecionada. Confira se o Arduino aparece no Gerenciador de Dispositivos e tente novamente.');
     } finally { setOcupado(false); }
   };
 
@@ -162,29 +167,50 @@ export default function ConexaoArduino() {
 
   if (fonte !== 'prototipo') return null;
   return (
-    <section className="sidebar-arduino-card" aria-label="Conectar Arduino diretamente pelo navegador">
-      <div className="arduino-header-row">
-        <strong>🔌 Arduino pelo site</strong>
-        <span className={conectado ? 'text-emerald-400' : 'text-slate-400'}>{conectado ? 'USB conectado' : 'Desconectado'}</span>
+    <section className="hs-arduino-connection" aria-labelledby="hs-usb-title">
+      <div className="hs-arduino-top">
+        <div>
+          <span className="hs-arduino-eyebrow">MODO PROJETO FÍSICO · ARDUINO UNO</span>
+          <h2 id="hs-usb-title">Conexão USB do Arduino</h2>
+          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. A montagem informada utiliza uma régua com 7 contatos de nível e duas bombas de circulação.</p>
+        </div>
+        <span className={`hs-arduino-status ${conectado ? 'online' : 'offline'}`} role="status">
+          <span aria-hidden="true">●</span> {conectado ? 'USB conectada' : 'Aguardando USB'}
+        </span>
       </div>
-      <p className="text-xs text-slate-300">Conecte o cabo USB ao seu computador. O navegador solicitará a escolha da porta.</p>
-      {!suportaWebSerial && <p className="text-xs text-amber-400">Conexão direta disponível no Chrome ou Edge para computador (HTTPS). No celular, utilize uma ponte ou dispositivo Wi-Fi.</p>}
-      <label className="text-xs text-slate-300" htmlFor="hs-chave-usb">Chave de acesso do protótipo</label>
-      <input id="hs-chave-usb" type="password" autoComplete="off" value={chave} disabled={conectado}
-        onChange={e => setChave(e.target.value)} placeholder="Chave definida no Render"
-        style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #94a3b8', color: '#0f172a', background: '#fff' }} />
-      <label className="text-xs text-slate-300" htmlFor="hs-baud-usb">Velocidade serial</label>
-      <select id="hs-baud-usb" className="baud-selector" value={baud} disabled={conectado} onChange={e => setBaud(Number(e.target.value))}>
-        <option value={115200}>115200 baud</option>
-        <option value={9600}>9600 baud</option>
-      </select>
-      <button type="button" className={`btn-usb-toggle ${conectado ? 'connected' : ''}`}
-        onClick={conectado ? fecharPorta : conectar} disabled={ocupado || (!conectado && !suportaWebSerial)}>
-        {ocupado ? 'Conectando…' : conectado ? 'Desconectar Arduino' : 'Conectar Arduino USB'}
-      </button>
-      {conectado && <p role="status" className="text-xs text-slate-300">Leituras aceitas pela API nesta conexão: {leituras}. Mantenha o site aberto.</p>}
-      {erro && <p role="alert" className="sidebar-arduino-erro">{erro}</p>}
-      <p className="text-xs text-slate-400">Somente medições físicas experimentais B1/B2. Não gera alerta oficial nem altera sensores de campo.</p>
+      <div className="hs-arduino-steps">
+        <div><span className="hs-arduino-step-no">1</span><span>Conecte o cabo USB ao Arduino Uno e feche o Monitor Serial da IDE.</span></div>
+        <div><span className="hs-arduino-step-no">2</span><span>Use Chrome ou Edge no computador e clique em <strong>Selecionar porta Arduino</strong>.</span></div>
+        <div><span className="hs-arduino-step-no">3</span><span>Depois da conexão, observe se chegam linhas do Arduino. A régua de 7 contatos requer firmware próprio para transmitir o nível.</span></div>
+      </div>
+      <div className="hs-arduino-fields">
+        <div className="hs-arduino-field">
+          <label htmlFor="hs-baud-usb">Velocidade serial</label>
+          <select id="hs-baud-usb" value={baud} disabled={conectado || ocupado} onChange={e => setBaud(Number(e.target.value))}>
+            <option value={115200}>115200 baud</option>
+            <option value={9600}>9600 baud</option>
+          </select>
+        </div>
+        <div className="hs-arduino-field">
+          <label htmlFor="hs-chave-usb">Chave de envio experimental (opcional para detectar USB)</label>
+          <input id="hs-chave-usb" type="password" autoComplete="off" value={chave} disabled={conectado}
+            onChange={e => setChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
+        </div>
+        <button className={`hs-arduino-action ${conectado ? 'disconnect' : ''}`} type="button"
+          onClick={conectado ? fecharPorta : conectar} disabled={ocupado || (!conectado && !suportaWebSerial)}>
+          {ocupado ? 'Conectando…' : conectado ? 'Desconectar Arduino' : 'Selecionar porta Arduino'}
+        </button>
+      </div>
+      <div className="hs-arduino-readout" aria-live="polite">
+        <div><span>Porta</span><strong>{conectado ? portaNome : 'Não selecionada'}</strong></div>
+        <div><span>Linhas recebidas</span><strong>{linhasRecebidas}</strong></div>
+        <div><span>Envios aceitos pela API</span><strong>{leituras}</strong></div>
+      </div>
+      {conectado && ultimaLinha && <p className="hs-arduino-raw">Última linha serial recebida: <code>{ultimaLinha}</code></p>}
+      {conectado && !chave.trim() && <p className="hs-arduino-notice">USB conectada para diagnóstico. Sem a chave do protótipo, nenhuma medição é enviada à API. Desconecte antes de informar a chave.</p>}
+      {!suportaWebSerial && <p role="alert" className="hs-arduino-notice">Este navegador não permite selecionar portas USB seriais. Abra o site em Chrome ou Edge atualizado no computador, por HTTPS; no celular, use uma ponte ou dispositivo com Wi-Fi.</p>}
+      {erro && <p role="alert" className="hs-arduino-error">{erro}</p>}
+      <p className="hs-arduino-footnote">Apenas conexão e diagnóstico USB. A leitura dos 7 contatos e o acionamento das duas bombas ainda exigem firmware e circuitos apropriados; não há controle remoto das bombas nesta seção.</p>
     </section>
   );
 }
