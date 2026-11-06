@@ -22,8 +22,10 @@ function analisarLinha(linha) {
       return leitura;
     };
     const dados = [];
-    const id = normalizarId(obj.bueiro ?? obj.id ?? obj.sensor);
-    const nivel = obj.nivel_pct ?? obj.nivelPct;
+    // O protótipo atual possui apenas uma régua física: mensagens de nível
+    // podem omitir o identificador sem serem descartadas.
+    const nivel = obj.nivel_pct ?? obj.nivelPct ?? obj.nivel_percentual;
+    const id = normalizarId(obj.bueiro ?? obj.id ?? obj.sensor ?? (nivel != null ? 1 : null));
     if (id && nivel !== undefined && nivel !== null && Number.isFinite(Number(nivel)) &&
         Number(nivel) >= 0 && Number(nivel) <= 100) {
       const leitura = { bueiroId: id, nivelPct: Number(nivel) };
@@ -32,6 +34,10 @@ function analisarLinha(linha) {
     } else {
       const unico = interpretar(obj.bueiro ?? obj.id ?? obj.sensor, obj.dist_cm ?? obj.distancia_cm ?? obj.distancia, obj.raw);
       if (unico) dados.push(unico);
+    }
+    // Também aceita um número entre 0 e 6 de eletrodos ativados.
+    if (!dados.length && Number.isInteger(obj.contatos_ativos ?? obj.contatosAtivos) && (obj.contatos_ativos ?? obj.contatosAtivos) >= 0 && (obj.contatos_ativos ?? obj.contatosAtivos) <= 6) {
+      dados.push({ bueiroId:'bueiro_1', nivelPct: Number(((obj.contatos_ativos ?? obj.contatosAtivos)*100/6).toFixed(1)) });
     }
     for (const [id, valor] of [[1, obj.b1 ?? obj.bueiro1], [2, obj.b2 ?? obj.bueiro2]]) {
       if (valor == null) continue;
