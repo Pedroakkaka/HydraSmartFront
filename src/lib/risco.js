@@ -13,8 +13,9 @@ export const temLeitura = (b) => Boolean(b?.conectado && b?.valido);
 
 /** Situação geral considerando os dois bueiros. */
 export function situacaoGeral(bueiros) {
-  const lista = Object.values(bueiros ?? {}).filter(temLeitura);
+  const todos = Object.values(bueiros ?? {});
+  const lista = todos.filter(temLeitura);
   if (lista.some((b) => b.risco === 'critico')) return 'critico';
   if (lista.some((b) => b.risco === 'atencao')) return 'atencao';
-  return 'normal';
+  return todos.length > 0 && lista.length === todos.length ? 'normal' : 'desconhecido';
 }

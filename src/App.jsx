@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { ROTAS } from './rotas.js';
 import { useTempoReal } from './hooks/useTempoReal.js';
@@ -7,6 +7,8 @@ import Sidebar from './components/Sidebar.jsx';
 import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
 import ChaveOperadorModal from './components/ChaveOperadorModal.jsx';
+import PermissaoAlertas from './components/PermissaoAlertas.jsx';
+import ConexaoArduino from './components/ConexaoArduino.jsx';
 
 const TEXTO_CONEXAO = {
   online: 'Servidor conectado • tempo real',
@@ -22,10 +24,29 @@ export default function App() {
   useTempoReal();
   const [menuAberto, setMenuAberto] = useState(false);
   const { pathname } = useLocation();
+  // React Router não redefine automaticamente a posição de rolagem.
+  // Em celulares, a próxima aba podia abrir na posição da página longa anterior,
+  // aparentando uma enorme tela branca acima das informações.
+  useLayoutEffect(() => {
+    setMenuAberto(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    for (const seletor of ['.app-main-content', '.page-container']) {
+      const elemento = document.querySelector(seletor);
+      if (elemento) elemento.scrollTop = 0;
+    }
+  }, [pathname]);
+  useEffect(() => {
+    if (!menuAberto) return;
+    const aoTeclado = (e) => { if (e.key === 'Escape') setMenuAberto(false); };
+    window.addEventListener('keydown', aoTeclado);
+    return () => window.removeEventListener('keydown', aoTeclado);
+  }, [menuAberto]);
   const conexao = useTelemetria((s) => s.conexao);
-  const temEstado = useTelemetria((s) => Boolean(s.estado));
-  const serialConectada = useTelemetria((s) => Boolean(s.estado?.serial?.conectado));
-  const modo = useTelemetria((s) => s.estado?.modo ?? 'real');
+  const temEstado = useTelemetria((s) => Boolean(s.estado) || s.fonteSelecionada === 'prototipo');
+  const serialConectada = useTelemetria((s) => s.usbLocalConectado);
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
 
   const rotaAtual = ROTAS.find((r) => r.caminho === pathname) ?? ROTAS[0];
 
@@ -33,16 +54,17 @@ export default function App() {
     <>
       <header className="mobile-header-bar">
         <div className="flex items-center gap-2">
-          <button className="hamburger-btn" aria-label="Abrir menu" onClick={() => setMenuAberto((v) => !v)}>☰</button>
+          <button className="hamburger-btn" aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="hydra-sidebar" onClick={() => setMenuAberto((v) => !v)}>☰</button>
           <span className="font-bold text-sm text-white">HydraSmart</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`status-dot-indicator ${serialConectada ? 'online' : 'offline'}`} />
-          <span className="text-xs font-mono text-slate-400">{serialConectada ? 'USB Conectado' : 'USB Off'}</span>
+          <PermissaoAlertas />
+          {fonte === 'prototipo' && <span className={`status-dot-indicator ${serialConectada ? 'online' : 'offline'}`} />}
+          {fonte === 'prototipo' && <span className="text-xs font-mono text-slate-400">{serialConectada ? 'USB local conectado' : 'USB local desconectado'}</span>}
         </div>
       </header>
 
-      <div className={`sidebar-backdrop ${menuAberto ? 'active' : ''}`} onClick={() => setMenuAberto(false)} />
+      <div className={`sidebar-backdrop ${menuAberto ? 'active' : ''}`} onClick={() => setMenuAberto(false)} aria-hidden="true" />
 
       <div className="app-container">
         <Sidebar aberto={menuAberto} aoNavegar={() => setMenuAberto(false)} />
@@ -50,11 +72,12 @@ export default function App() {
         <main className="app-main-content">
           <div className="top-context-bar">
             <div className="page-heading-group">
-              <span className="page-heading-eyebrow">HYDRASMART <span aria-hidden="true">/</span> PORTO ALEGRE · RS</span>
-              <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">{rotaAtual.icone}</span>{rotaAtual.titulo}</h1>
+              <span className="page-heading-eyebrow">SISTEMA DE MONITORAMENTO HIDROLÓGICO</span>
+              <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">⌖</span>{pathname === '/' ? 'Porto Alegre' : rotaAtual.rotulo}</h1>
             </div>
             <div className="header-status-pills">
-              <span className={`header-mode-pill ${modo === 'demo' ? 'demo' : 'real'}`}>{modo === 'demo' ? '● Demonstração' : '● Monitoramento real'}</span>
+              <span className="hs-alerts-desktop"><PermissaoAlertas /></span>
+              <span className={`header-mode-pill ${'real'}`}>{fonte === 'prototipo' ? '● Projeto físico · Experimental' : '● Análise com dados reais'}</span>
               <span className={`server-pill ${conexao}`}>
                 <span className="ponto" />
                 {TEXTO_CONEXAO[conexao]}
@@ -63,6 +86,8 @@ export default function App() {
           </div>
 
           <Banners />
+
+          {fonte === 'prototipo' && <ConexaoArduino />}
 
           <div className="page-container">
             {!temEstado ? (

@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 
 /**
- * Páginas do painel. Cada uma é carregada sob demanda (o mapa e o 3D são pesados).
+ * Páginas do painel. Cada uma é carregada sob demanda.
  */
 export const ROTAS = [
   { caminho: '/', icone: '🏠', rotulo: 'Visão geral', titulo: 'Visão Geral do Sistema', Pagina: lazy(() => import('./pages/VisaoGeral.jsx')) },

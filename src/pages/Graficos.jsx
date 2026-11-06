@@ -26,15 +26,21 @@ const PERIODOS = [
 ];
 
 function GraficoAoVivo({ b1, b2 }) {
-  const base = b1.historicoTimestamps.length >= b2.historicoTimestamps.length ? b1 : b2;
-  const labels = base.historicoTimestamps.map((t) => hora(t));
+  // As duas réguas têm relógios e frequências independentes; índices de arrays
+  // não representam a mesma hora. Unimos timestamps e criamos lacunas explícitas.
+  const tempos = [...new Set([...b1.historicoTimestamps, ...b2.historicoTimestamps].filter(Number.isFinite))].sort((a,b)=>a-b);
+  const labels = tempos.map(t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const mapear = b => {
+    const mapa = new Map(b.historicoTimestamps.map((t,i)=>[t,b.historicoNiveis[i]]));
+    return tempos.map(t => mapa.has(t) ? mapa.get(t) : null);
+  };
   const n = Math.max(labels.length, 1);
 
   const dados = {
     labels: labels.length ? labels : ['Aguardando leituras'],
     datasets: [
-      { label: 'Bueiro 01 — Entrada (%)', data: b1.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
-      { label: 'Bueiro 02 — Saída (%)', data: b2.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 },
+      { label: 'Bueiro 01 — Entrada (%)', data: mapear(b1), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
+      ...(b2.historicoNiveis.length ? [{ label: 'Bueiro 02 — Saída (%)', data: mapear(b2), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
       linhaLimiar(`Atenção (${b1.calibracao.limiteAtencaoPct}%)`, b1.calibracao.limiteAtencaoPct, 'rgba(251, 191, 36, 0.5)', n),
       linhaLimiar(`Crítico (${b1.calibracao.limiteCriticoPct}%)`, b1.calibracao.limiteCriticoPct, 'rgba(244, 63, 94, 0.65)', n)
     ]
@@ -74,7 +80,7 @@ function GraficoBanco() {
         <div>
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🗄️</span> Histórico Gravado no Banco de Dados</h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Somente leituras físicas reais (o modo demonstração não grava). Média a cada {periodo.intervalo >= 60 ? `${periodo.intervalo / 60} min` : `${periodo.intervalo} s`}.
+            Somente leituras de sensores de campo (exclui ensaios de bancada). Média a cada {periodo.intervalo >= 60 ? `${periodo.intervalo / 60} min` : `${periodo.intervalo} s`}.
           </p>
         </div>
         <div className="seletor-periodo">
@@ -96,8 +102,13 @@ function GraficoBanco() {
 
 export default function Graficos() {
   const { bueiro_1: b1, bueiro_2: b2 } = useTelemetria((s) => s.estado.bueiros);
+  const fonte = useTelemetria((s) => s.fonteSelecionada);
+  const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
+  const canalLocal = useTelemetria((s) => s.canalLocal);
+  const localB1 = canalLocal.bueiro_1;
+  const localB2 = canalLocal.bueiro_2;
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
 
   return (
@@ -106,26 +117,31 @@ export default function Graficos() {
         <div className="card-header-line">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📈</span> Séries Temporais ao Vivo</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Últimas leituras recebidas em tempo real pelo servidor.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Leituras recebidas da fonte selecionada. Dados experimentais e fictícios não são medições de campo.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono text-slate-400">{totalAoVivo} amostras</span>
-            <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>
-            <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>
+            {fonte === 'inteligente' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/leituras.csv')} download>📥 Exportar CSV (24h)</a>}
+            {fonte === 'inteligente' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>}
           </div>
         </div>
+        {fonte === 'prototipo' && <p className="text-xs text-slate-300 mt-2" role="status">
+          <strong>B01:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} leituras` : 'Aguardando leitura'}
+          {' · '}<strong>B02:</strong> {localB2?.timestamp ? `${Number(localB2.nivelPct).toLocaleString('pt-BR')}% · ${localB2.historicoNiveis.length} leituras` : 'Aguardando segunda régua'}.
+          {' '}A curva atualiza quando cada novo nível é recebido; nenhuma chave de API é necessária para visualizar neste computador.
+        </p>}
         <div className="h-72 w-full relative mt-2">
           <GraficoAoVivo b1={b1} b2={b2} />
         </div>
       </div>
 
-      <GraficoBanco />
+      {fonte === 'inteligente' && <GraficoBanco />}
 
-      <HidrologiaOficial />
+      {fonte === 'inteligente' && <HidrologiaOficial />}
 
-      <AnaliseIntegrada />
+      <AnaliseIntegrada demonstracao={fonte === 'prototipo'} bueiros={bueiros} />
 
-      <div className="card-base mb-6">
+      {fonte === 'inteligente' && <div className="card-base mb-6">
         <div className="card-header-line">
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🚨</span> Alertas Críticos Registrados</h3>
           <span className="text-[11px] text-slate-400">Somente eventos reais</span>
@@ -148,9 +164,9 @@ export default function Graficos() {
             </tbody>
           </table>
         ) : <div className="text-slate-500 text-xs py-2">Nenhum alerta crítico real registrado.</div>}
-      </div>
+      </div>}
 
-      <div className="card-base">
+      {fonte === 'inteligente' && <div className="card-base">
         <div className="card-header-line">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros e referências oficiais de Porto Alegre-RS</h3>
@@ -175,7 +191,7 @@ export default function Graficos() {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
     </>
   );
 }

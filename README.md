@@ -1,12 +1,15 @@
 # HydraSmart Front
 
-Painel web do **HydraSmart**, a plataforma de monitoramento de drenagem urbana e prevenção de alagamentos de Cáceres-MT.
+> **Histórico de desenvolvimento:** veja [docs/REGISTRO_DESENVOLVIMENTO.md](docs/REGISTRO_DESENVOLVIMENTO.md) para o registro cronológico das alterações discutidas, decisões, commits, testes, publicações e pendências.
 
-Mostra em tempo real o nível de água dos bueiros, os alertas críticos, o mapa da cidade, a meteorologia, o histórico gravado e uma maquete 3D com simulação de alagamento. Todos os dados vêm da [HydraSmartAPI](https://github.com/Pedroakkaka/HydraSmartAPI).
+
+Painel web do **HydraSmart**, a plataforma de monitoramento de drenagem urbana e prevenção de alagamentos de Porto Alegre-RS.
+
+Mostra em tempo real o nível de água dos bueiros, os alertas críticos, o mapa da cidade, a meteorologia e o histórico gravado. Todos os dados vêm da [HydraSmartAPI](https://github.com/Pedroakkaka/HydraSmartAPI).
 
 | | |
 |---|---|
-| **Stack** | React 19 · Vite · React Router · TanStack Query · Zustand · Leaflet · Chart.js · Three.js |
+| **Stack** | React 19 · Vite · React Router · TanStack Query · Zustand · Leaflet · Chart.js |
 | **Tempo real** | WebSocket (`/ws`) com reconexão automática |
 | **Produção** | Build estático servido por nginx (Docker) |
 
@@ -19,7 +22,6 @@ Mostra em tempo real o nível de água dos bueiros, os alertas críticos, o mapa
 | `/bueiros` | Detalhe dos sensores e calibração física |
 | `/clima` | Open-Meteo: condições atuais, previsão de 24 h e 7 dias |
 | `/graficos` | Séries ao vivo, histórico do banco (1 h / 6 h / 24 h), alertas e registros oficiais |
-| `/simulacao-3d` | Maquete 3D com cenários de alagamento e vista explodida |
 | `/diagnostico` | Autodiagnóstico, serial, CEMADEN, banco e serviços externos |
 
 ## Estrutura
@@ -30,7 +32,6 @@ src/
 ├── rotas.js                 # páginas (carregadas sob demanda)
 ├── pages/                   # uma página por rota
 ├── components/              # menu lateral, conexão do Arduino, faixas de alerta, avisos
-├── features/maquete3d/      # cena Three.js (independente do React)
 ├── hooks/                   # tempo real (WebSocket), consultas REST, ações
 ├── store/                   # estado global (Zustand)
 ├── lib/                     # cliente da API, formatação, risco, sons, gráficos

@@ -70,8 +70,8 @@ export default function Clima() {
       <div className="weather-metrics-strip">
         <Metrica rotulo="Temperatura" valor={num(clima?.temperatura)} legenda="Graus Celsius (°C)" />
         <Metrica rotulo="Umidade Relativa" valor={`${clima?.umidadeRelativaPct ?? '--'}%`} cor="text-sky-400" legenda="Percentual (%)" />
-        <Metrica rotulo="Precipitação Total" valor={num(clima?.precipitacaoObservadaMm, 1, '0.0')} cor="text-cyan-400" legenda="Milímetros acumulados (mm)" />
-        <Metrica rotulo="Componente Chuva" valor={num(clima?.chuvaAtualMm, 1, '0.0')} cor="text-blue-400" legenda="Fração líquida da precipitação" />
+        <Metrica rotulo="Precipitação Total" valor={num(clima?.precipitacaoObservadaMm, 1, '--')} cor="text-cyan-400" legenda="Milímetros acumulados (mm)" />
+        <Metrica rotulo="Componente Chuva" valor={num(clima?.chuvaAtualMm, 1, '--')} cor="text-blue-400" legenda="Fração líquida da precipitação" />
         <Metrica rotulo="Cobertura de Nuvens" valor={`${clima?.coberturaNuvensPct ?? '--'}%`} cor="text-slate-200" legenda="Céu encoberto (%)" />
         <Metrica rotulo="Vento (10m)" valor={num(clima?.velocidadeVentoKmh)} cor="text-slate-300" legenda="Velocidade em km/h" />
       </div>
@@ -113,7 +113,7 @@ export default function Clima() {
                     <span className="text-cyan-400">▼ {num(d.tempMin, 0)}°</span>
                   </div>
                   <div className="day-rain">
-                    <span className="text-sky-400 font-bold">{num(d.precipitacaoTotalMm, 1, '0.0')} mm</span>
+                <span className="text-sky-400 font-bold">{num(d.precipitacaoTotalMm, 1, '--')} mm</span>
                     <span className="text-slate-400">({d.probabilidadeMaxPct}%)</span>
                   </div>
                   <div className="text-[10px] text-slate-500">{d.horasPrecipitacao || 0}h de chuva</div>
