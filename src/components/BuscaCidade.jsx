@@ -4,6 +4,16 @@ import { api } from '../lib/api.js';
 const normalizar = valor => String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
+const ESTADOS = {
+  AC:'acre', AL:'alagoas', AP:'amapa', AM:'amazonas', BA:'bahia', CE:'ceara',
+  DF:'distrito federal', ES:'espirito santo', GO:'goias', MA:'maranhao',
+  MT:'mato grosso', MS:'mato grosso do sul', MG:'minas gerais', PA:'para',
+  PB:'paraiba', PR:'parana', PE:'pernambuco', PI:'piaui', RJ:'rio de janeiro',
+  RN:'rio grande do norte', RS:'rio grande do sul', RO:'rondonia',
+  RR:'roraima', SC:'santa catarina', SP:'sao paulo', SE:'sergipe',
+  TO:'tocantins'
+};
+
 export default function BuscaCidade({ onSelect }) {
   const [busca, setBusca] = useState('');
   const [resultados, setResultados] = useState([]);
@@ -49,8 +59,9 @@ export default function BuscaCidade({ onSelect }) {
       const candidatas = resposta.cidades || [];
       const nome = normalizar(cidade.nome);
       const mesmoNome = candidatas.filter(c => normalizar(c.nome) === nome);
-      const selecionada = mesmoNome.find(c => normalizar(c.estado).includes(normalizar(cidade.estado)) ||
-        normalizar(cidade.estado).includes(normalizar(c.estado))) || mesmoNome[0];
+      const estadoEsperado = ESTADOS[cidade.estado] || normalizar(cidade.estado);
+      const selecionada = mesmoNome.find(c => normalizar(c.estado) === estadoEsperado) ||
+        (mesmoNome.length === 1 ? mesmoNome[0] : null);
       if (!selecionada) {
         setErro('Município encontrado no IBGE, mas não foi possível obter as coordenadas do mapa.');
         setAberto(true);
