@@ -16,14 +16,10 @@ export default function Sidebar({ aberto, aoNavegar }) {
       <div>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <div className="brand-icon-box">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+            <div className="brand-icon-box"><img src="/hydrasmart-mark.svg" alt="Símbolo HydraSmart: hidra" /></div>
             <div>
               <div className="brand-title">HydraSmart</div>
-              <div className="brand-subtitle">Monitoramento • Cáceres-MT</div>
+              <div className="brand-subtitle">Monitoramento • Porto Alegre-RS</div>
             </div>
           </div>
         </div>
@@ -54,16 +50,16 @@ export default function Sidebar({ aberto, aoNavegar }) {
           className={`mode-badge-btn ${modo}`}
           onClick={alternar}
           disabled={ocupado}
-          title="Alternar entre Modo Real e Modo Demonstração"
+          title="Modo Real recebe sensores físicos; Modo Demonstração gera dados sintéticos para testes"
         >
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            <span>{modo === 'demo' ? 'Modo Demonstração' : 'Modo Real'}</span>
+            <span>{modo === 'demo' ? 'Simulação virtual' : 'Protótipo / Real'}</span>
           </span>
           <span className="text-[10px]">Trocar</span>
         </button>
 
-        <div className="clock-info-text" title="Horário de Cáceres-MT (GMT-4)">{relogio}</div>
+        <div className="clock-info-text" title="Horário de Porto Alegre-RS (GMT-3)">{relogio}</div>
       </div>
     </aside>
   );

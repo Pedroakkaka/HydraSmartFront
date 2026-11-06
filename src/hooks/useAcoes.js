@@ -17,7 +17,8 @@ export function useAcao() {
       if (sucesso) avisar(sucesso);
       return r;
     } catch (err) {
-      avisar(err.message, 'erro');
+      // Operador fechou a janela da chave: não é erro, só não executa.
+      if (!err.cancelado) avisar(err.message, 'erro');
       return undefined;
     } finally {
       setOcupado(false);
@@ -26,7 +27,7 @@ export function useAcao() {
   return { executar, ocupado };
 }
 
-/** Liga/desliga o modo demonstração. */
+/** Liga/desliga a simulação. A chave do operador é pedida e anexada pelo cliente da API. */
 export function useAlternarModo() {
   const { executar, ocupado } = useAcao();
   const alternar = () => {

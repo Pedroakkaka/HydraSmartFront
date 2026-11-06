@@ -8,6 +8,7 @@ import './styles/design-tokens.css';
 import './styles/scada-layout.css';
 import './styles/components.css';
 import './styles/app.css';
+import './styles/professional.css';
 
 import App from './App.jsx';
 

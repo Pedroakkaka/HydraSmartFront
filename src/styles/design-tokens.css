@@ -6,40 +6,40 @@
 
 :root {
   /* Paleta Base — Dark Graphite & Deep Navy */
-  --bg-app: #080c14;
-  --bg-sidebar: #0b101c;
-  --bg-surface: #0f172a;
-  --bg-surface-elevated: #162238;
-  --bg-surface-card: #111a2e;
-  --bg-surface-hover: #18253f;
-  --bg-surface-active: #1f3050;
+  --bg-app: #061326;
+  --bg-sidebar: #05172c;
+  --bg-surface: #0b2340;
+  --bg-surface-elevated: #112d4e;
+  --bg-surface-card: #0c213b;
+  --bg-surface-hover: #16365a;
+  --bg-surface-active: #1d4675;
 
   /* Bordas Discretas e Linhas Estruturais */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-medium: rgba(255, 255, 255, 0.14);
-  --border-accent: rgba(0, 212, 229, 0.4);
+  --border-accent: rgba(0, 74, 173, 0.4);
 
   /* Cores Funcionais de Acento */
-  --accent-cyan: #00d4e5;
-  --accent-cyan-hover: #38e1ff;
-  --accent-cyan-subtle: rgba(0, 212, 229, 0.1);
-  --accent-blue: #0284c7;
+  --accent-cyan: #004aad;
+  --accent-cyan-hover: #2669d0;
+  --accent-cyan-subtle: rgba(0, 74, 173, 0.1);
+  --accent-blue: #004aad;
 
   /* Estados Positivos e Alertas Justificados (Sem excesso de neon) */
-  --status-normal: #10b981;          /* Verde sóbrio: Estado positivo/confirmado */
-  --status-normal-subtle: rgba(16, 185, 129, 0.12);
-  --status-warning: #f59e0b;         /* Âmbar: Atenção ou aviso justificado */
-  --status-warning-subtle: rgba(245, 158, 11, 0.12);
-  --status-danger: #ef4444;          /* Vermelho: Risco crítico ou emergência */
-  --status-danger-subtle: rgba(239, 68, 68, 0.15);
+  --status-normal: #067a1c;          /* Verde sóbrio: Estado positivo/confirmado */
+  --status-normal-subtle: rgba(6, 122, 28, 0.12);
+  --status-warning: #ffde59;         /* Âmbar: Atenção ou aviso justificado */
+  --status-warning-subtle: rgba(255, 222, 89, 0.12);
+  --status-danger: #9f0412;          /* Vermelho: Risco crítico ou emergência */
+  --status-danger-subtle: rgba(159, 4, 18, 0.15);
   --status-muted: #64748b;           /* Cinza-ardósia: Desconectado / Sem leitura */
   --status-muted-subtle: rgba(100, 116, 139, 0.12);
 
   /* Tipografia Moderna e Legível */
-  --text-primary: #f8fafc;
+  --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --text-cyan: #00d4e5;
+  --text-cyan: #6da6ff;
 
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -60,3 +60,5 @@
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
 }
+
+/* Paleta oficial HydraSmart: #05172c, #ffffff, #067a1c, #ffde59, #004aad, #9f0412 */

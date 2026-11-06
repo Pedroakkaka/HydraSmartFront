@@ -6,6 +6,7 @@ import { useTelemetria } from './store/useTelemetria.js';
 import Sidebar from './components/Sidebar.jsx';
 import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
+import ChaveOperadorModal from './components/ChaveOperadorModal.jsx';
 
 const TEXTO_CONEXAO = {
   online: 'Servidor conectado • tempo real',
@@ -24,6 +25,7 @@ export default function App() {
   const conexao = useTelemetria((s) => s.conexao);
   const temEstado = useTelemetria((s) => Boolean(s.estado));
   const serialConectada = useTelemetria((s) => Boolean(s.estado?.serial?.conectado));
+  const modo = useTelemetria((s) => s.estado?.modo ?? 'real');
 
   const rotaAtual = ROTAS.find((r) => r.caminho === pathname) ?? ROTAS[0];
 
@@ -47,10 +49,12 @@ export default function App() {
 
         <main className="app-main-content">
           <div className="top-context-bar">
-            <h1 className="page-title-heading">
-              <span>{rotaAtual.icone}</span> {rotaAtual.titulo}
-            </h1>
+            <div className="page-heading-group">
+              <span className="page-heading-eyebrow">HYDRASMART <span aria-hidden="true">/</span> PORTO ALEGRE · RS</span>
+              <h1 className="page-title-heading"><span className="page-heading-icon" aria-hidden="true">{rotaAtual.icone}</span>{rotaAtual.titulo}</h1>
+            </div>
             <div className="header-status-pills">
+              <span className={`header-mode-pill ${modo === 'demo' ? 'demo' : 'real'}`}>{modo === 'demo' ? '● Demonstração' : '● Monitoramento real'}</span>
               <span className={`server-pill ${conexao}`}>
                 <span className="ponto" />
                 {TEXTO_CONEXAO[conexao]}
@@ -78,6 +82,7 @@ export default function App() {
       </div>
 
       <Avisos />
+      <ChaveOperadorModal />
     </>
   );
 }

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
+import HidrologiaOficial from '../components/HidrologiaOficial.jsx';
 import { Line } from 'react-chartjs-2';
 import { useQuery } from '@tanstack/react-query';
 import { useTelemetria } from '../store/useTelemetria.js';
@@ -119,6 +121,10 @@ export default function Graficos() {
 
       <GraficoBanco />
 
+      <HidrologiaOficial />
+
+      <AnaliseIntegrada />
+
       <div className="card-base mb-6">
         <div className="card-header-line">
           <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>🚨</span> Alertas Críticos Registrados</h3>
@@ -147,8 +153,8 @@ export default function Graficos() {
       <div className="card-base">
         <div className="card-header-line">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros Oficiais Verificáveis de Inundações em Cáceres-MT</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Decreto Municipal 140/2024, ANA 66070004 e CPRM/SGB.</p>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📜</span> Registros e referências oficiais de Porto Alegre-RS</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Fontes oficiais de Porto Alegre; registros históricos não equivalem a leituras em tempo real dos sensores.</p>
           </div>
         </div>
         <div className="grid-2-md mt-3">

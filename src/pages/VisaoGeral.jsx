@@ -1,18 +1,18 @@
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useCemaden, useClima, useSaude } from '../hooks/useConsultas.js';
+import { useCemaden, useClima, useSaude, useHistoricoOficial } from '../hooks/useConsultas.js';
 import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
 import { hora, num } from '../lib/formato.js';
 import { useRelogio } from '../hooks/useRelogio.js';
 
-const CENTRO_CACERES = [-16.0706, -57.6789];
+const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
 
 const SITUACAO = {
   critico: {
     badge: ['danger', 'Alerta Crítico'], valor: ['text-rose-500', 'Crítico'], card: 'active-alert',
     icone: ['bg-rose-500 text-white', '⚠'], titulo: 'Risco Iminente de Transbordo',
-    descricao: "Nível d'água acima do limiar crítico em galeria monitorada de Cáceres."
+    descricao: "Nível d'água acima do limiar crítico em galeria monitorada."
   },
   atencao: {
     badge: ['warning', 'Atenção'], valor: ['text-amber-400', 'Atenção'], card: '',
@@ -58,7 +58,7 @@ function CardBueiro({ bueiro, titulo, onClick }) {
 
 function statusCemaden(c) {
   if (!c) return ['text-slate-400', 'Consultando...'];
-  if (c.status === 'sucesso') return ['text-emerald-400', 'Estação 510250401A (Ativa)'];
+  if (c.status === 'sucesso') return ['text-emerald-400', 'Estações de Porto Alegre com dados recentes'];
   if (c.status === 'sem_dados_recentes') return ['text-amber-400', 'Sem dados recentes'];
   if (c.status === 'sem_token') return ['text-slate-400', 'Sem token configurado'];
   return ['text-rose-400', 'Falha de conexão'];
@@ -71,6 +71,7 @@ export default function VisaoGeral() {
   const { data: clima } = useClima();
   const { data: cemaden } = useCemaden();
   const saude = useSaude();
+  const { data: historicoOficial } = useHistoricoOficial();
 
   const { bueiro_1: b1, bueiro_2: b2 } = estado.bueiros;
   const s = SITUACAO[situacaoGeral(estado.bueiros)];
@@ -92,8 +93,8 @@ export default function VisaoGeral() {
             <span className={`value-large ${s.valor[0]}`}>{s.valor[1]}</span>
           </div>
           <div className="card-meta-text">
-            <span>Cáceres - Mato Grosso</span>
-            <span>{relogio} (GMT-4)</span>
+            <span>Porto Alegre - Rio Grande do Sul</span>
+            <span>{relogio} (GMT-3)</span>
           </div>
         </div>
 
@@ -116,15 +117,24 @@ export default function VisaoGeral() {
         </div>
       </div>
 
+      <div className="card-base mt-3">
+        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Porto Alegre</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+          <div><strong className="text-white">Chuva observada</strong><div>{clima?.precipitacaoObservadaMm == null ? 'Fonte meteorológica indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm (Open-Meteo)`}</div></div>
+          <div><strong className="text-white">Referências históricas</strong><div>{Array.isArray(historicoOficial) ? `${historicoOficial.length} registros/referências cadastrados` : 'Aguardando histórico oficial'}</div></div>
+          <div><strong className="text-white">Protótipo físico B1 / B2</strong><div>{[b1,b2].map((b,i) => `B${i+1}: ${temLeitura(b) && !b.desatualizado && b.origem !== 'simulador' ? num(b.nivelPct) + '% de nível' : 'sem leitura física atual'}`).join(' • ')}</div></div>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-2">A análise reúne fontes distintas, sem atribuir causalidade automaticamente. Nível de água não equivale a vazão (L/s): para medir vazão são necessários sensor adequado e calibração hidráulica. No modo demonstração os valores gerados são sintéticos; para medições reais use Modo Real e conecte o dispositivo.</p>
+      </div>
       <div className="overview-central-layout">
         <div className="preview-map-box">
           <div className="preview-map-header">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>🗺️</span> Malha Cartográfica de Cáceres-MT (OpenStreetMap)
+                <span>🗺️</span> Malha Cartográfica de Porto Alegre-RS (OpenStreetMap)
               </h3>
               <p className="text-xs text-slate-400">
-                Base cartográfica oficial pública. A calha do Rio Paraguai é exibida com precisão pelo próprio OpenStreetMap.
+                Base cartográfica OpenStreetMap; cadastro municipal de bocas de lobo disponível no mapa completo.
               </p>
             </div>
             <button className="btn-action-primary text-xs" onClick={() => navegar('/mapa')}>
@@ -133,7 +143,7 @@ export default function VisaoGeral() {
           </div>
           <div className="preview-map-frame" style={{ cursor: 'pointer' }} onClick={() => navegar('/mapa')}>
             <MapContainer
-              center={CENTRO_CACERES}
+              center={CENTRO_PORTO_ALEGRE}
               zoom={13}
               zoomControl={false}
               dragging={false}
@@ -174,7 +184,7 @@ export default function VisaoGeral() {
                 <span className={`font-mono ${serial.errosParser ? 'text-amber-400' : 'text-emerald-400'}`}>{serial.errosParser} erros</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Status CEMADEN:</span>
+                <span className="text-slate-400">CEMADEN Porto Alegre:</span>
                 <span className={corCemaden}>{textoCemaden}</span>
               </div>
               <div className="flex justify-between">

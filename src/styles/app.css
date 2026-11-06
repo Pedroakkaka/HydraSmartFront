@@ -188,3 +188,82 @@ a.btn-action-secondary {
   0% { transform: scale(0.6); opacity: 0.55; }
   100% { transform: scale(1.6); opacity: 0; }
 }
+
+/* HydraSmart — textura aquática discreta e marca da equipe */
+.app-main-content {
+  background-color: #061326;
+  background-image:
+    radial-gradient(ellipse at 80% 5%, rgba(0,74,173,.16), transparent 46%),
+    repeating-radial-gradient(ellipse at 65% -35%, transparent 0, transparent 30px, rgba(78,142,217,.035) 31px, transparent 33px);
+  background-attachment: fixed;
+}
+.app-sidebar {
+  background: linear-gradient(170deg, #05172c 0%, #092544 52%, #05172c 100%);
+}
+.sidebar-header {
+  background: radial-gradient(ellipse at top right, rgba(0,74,173,.38), transparent 76%);
+  border-bottom: 1px solid rgba(100,166,240,.22);
+}
+.brand-icon-box {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #05172c;
+  border: 1px solid rgba(255,255,255,.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,.24);
+}
+.brand-icon-box img { width: 100%; height: 100%; object-fit: contain; }
+.brand-title { font-size: 1.32rem; letter-spacing: .005em; color: #fff; }
+.brand-subtitle { color: #a7c4e8; font-size: .63rem; }
+.nav-link-btn.active { background: linear-gradient(95deg, #004aad 0%, rgba(0,74,173,.24) 100%); border-color: rgba(123,180,255,.38); }
+.nav-link-btn:hover { border-color: rgba(123,180,255,.2); }
+.top-context-bar {
+  background: linear-gradient(90deg, #0b2340 0%, #05172c 100%);
+  border-bottom: 1px solid rgba(100,166,240,.18);
+}
+.card-base, .preview-map-box, .manhole-card-detailed, .weather-metric-box, .diag-card {
+  background: linear-gradient(155deg, rgba(17,45,78,.95), rgba(8,28,52,.98));
+  border-color: rgba(117,163,215,.17);
+  box-shadow: 0 8px 25px rgba(0,0,0,.13);
+}
+.card-base:hover { border-color: rgba(117,163,215,.34); }
+.btn-action-primary, .btn-usb-toggle { background-color: #004aad; color: #fff; }
+.mode-badge-btn.demo { color: #ffde59; border-color: rgba(255,222,89,.42); background: rgba(255,222,89,.08); }
+.status-dot-indicator.online { background: #067a1c; }
+.mobile-header-bar { background: #05172c; }
+@media (prefers-reduced-motion: reduce) { .app-main-content { background-attachment: scroll; } }
+
+/* Janela da chave do operador */
+.modal-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(2, 6, 15, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-caixa {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.modal-caixa .campo-numero { font-size: 0.85rem; padding: 0.45rem 0.6rem; }
+.modal-erro {
+  font-size: 0.75rem;
+  color: #fecaca;
+  background: var(--status-danger-subtle);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}
