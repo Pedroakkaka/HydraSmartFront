@@ -17,9 +17,10 @@ function analisarLinha(linha) {
     const adicionar = (id, valor) => {
       const bueiroId = normalizarId(id);
       if (!bueiroId || valor == null) return;
-      const percentual = Number(typeof valor === 'object'
+      const valorPercentual = typeof valor === 'object'
         ? (valor.nivel_pct ?? valor.nivelPct ?? valor.nivel_percentual)
-        : valor);
+        : valor;
+      const percentual = valorPercentual == null || valorPercentual === '' ? NaN : Number(valorPercentual);
       const contatos = typeof valor === 'object' ? (valor.contatos_ativos ?? valor.contatosAtivos) : null;
       const nivel = Number.isFinite(percentual) ? percentual
         : Number.isInteger(contatos) && contatos >= 0 && contatos <= 6 ? contatos * 100 / 6 : NaN;
@@ -63,6 +64,7 @@ export default function ConexaoArduino() {
   const [linhasRecebidas, setLinhasRecebidas] = useState(0);
   const [linhasInterpretadas, setLinhasInterpretadas] = useState(0);
   const [ultimaLeitura, setUltimaLeitura] = useState(null);
+  const [ultimasPorBueiro, setUltimasPorBueiro] = useState({});
   const [statusEnvio, setStatusEnvio] = useState('Aguardando conexão');
   const [ultimaLinha, setUltimaLinha] = useState('');
   const [portaNome, setPortaNome] = useState('');
@@ -135,6 +137,7 @@ export default function ConexaoArduino() {
     setLeituras(0);
     setLinhasInterpretadas(0);
     setUltimaLeitura(null);
+    setUltimasPorBueiro({});
     setStatusEnvio('Aguardando mensagens pela porta USB');
     setLinhasRecebidas(0);
     setUltimaLinha('');
@@ -168,6 +171,7 @@ export default function ConexaoArduino() {
               if (parsed.length) {
                 setLinhasInterpretadas(n => n + parsed.length);
                 setUltimaLeitura(parsed[parsed.length - 1]);
+                setUltimasPorBueiro(anterior => Object.fromEntries([...Object.entries(anterior),...parsed.map(l => [l.bueiroId,l]) ]));
                 for (const leitura of parsed) {
                   if (leitura.nivelPct != null) publicarNivelLocal(leitura);
                 }
@@ -223,7 +227,7 @@ export default function ConexaoArduino() {
         <div>
           <span className="hs-arduino-eyebrow">MODO PROJETO FÍSICO · ARDUINO UNO</span>
           <h2 id="hs-usb-title">Conexão USB do Arduino</h2>
-          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. O painel identifica separadamente B01 e B02. A primeira régua utiliza A0–A5 + GND; a segunda requer seis entradas adicionais configuradas no firmware e ligadas fisicamente. A bomba não determina a leitura.</p>
+          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. O painel identifica separadamente B01 e B02. A primeira régua utiliza A0–A5 + GND e a segunda D2–D7 + GND, conforme o firmware experimental para dois bueiros. Confirme que esses pinos não são usados pela bomba. A bomba não determina a leitura.</p>
         </div>
         <span className={`hs-arduino-status ${conectado ? 'online' : 'offline'}`} role="status">
           <span aria-hidden="true">●</span> {conectado ? 'USB conectada' : 'Aguardando USB'}
@@ -258,6 +262,10 @@ export default function ConexaoArduino() {
         <div><span>Envios aceitos pela API</span><strong>{leituras}</strong></div>
       </div>
       <p className="hs-arduino-raw" role="status"><strong>Diagnóstico de transmissão:</strong> {statusEnvio}. Mensagens interpretadas: {linhasInterpretadas}. {ultimaLeitura && <>Última medição reconhecida: <strong>{ultimaLeitura.nivelPct != null ? `${ultimaLeitura.nivelPct}%` : `${ultimaLeitura.distanciaCm} cm`}</strong> ({ultimaLeitura.bueiroId}).</>}</p>
+      {conectado && <p className="hs-arduino-raw" role="status">
+        <strong>B01:</strong> {ultimasPorBueiro.bueiro_1?.nivelPct != null ? `${ultimasPorBueiro.bueiro_1.nivelPct}%` : 'Aguardando régua 1'}
+        {' · '}<strong>B02:</strong> {ultimasPorBueiro.bueiro_2?.nivelPct != null ? `${ultimasPorBueiro.bueiro_2.nivelPct}%` : 'Aguardando régua 2'}
+      </p>}
       {conectado && ultimaLinha && <p className="hs-arduino-raw">Última linha serial recebida: <code>{ultimaLinha}</code></p>}
       {conectado && linhasRecebidas > 0 && linhasInterpretadas === 0 && <p role="alert" className="hs-arduino-error">A porta USB funciona, mas nenhuma linha é uma medição reconhecida. Confira a última linha e instale o firmware experimental de eletrodos na placa; o site não consegue gravar o firmware automaticamente.</p>}
       {conectado && !chave.trim() && <p className="hs-arduino-notice">USB conectada para diagnóstico. Sem a chave do protótipo, nenhuma medição é enviada à API. Desconecte antes de informar a chave.</p>}
