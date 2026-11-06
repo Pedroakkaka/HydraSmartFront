@@ -12,7 +12,8 @@ function selecionarCanal(snapshot, fonte, local = {}) {
   const canais = snapshot.canais || {};
   const simulando = fonte === 'prototipo' && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
   const remoto = canais[fonte === 'inteligente' ? 'campo' : simulando ? 'demonstracao' : 'prototipo'] || {};
-  const leituras = fonte === 'prototipo' && !simulando ? {...remoto,...local} : remoto;
+  const localRecentes = Object.fromEntries(Object.entries(local).filter(([,b]) => b.timestamp && Date.now()-b.timestamp <= 30000));
+  const leituras = fonte === 'prototipo' && !simulando ? {...remoto,...localRecentes} : remoto;
   const bueiros = Object.fromEntries(Object.entries(snapshot.bueiros || {}).map(([id, original]) => {
     const leitura = leituras[id];
     const recente = leitura && Date.now() - Number(leitura.timestamp) <= 30000;
