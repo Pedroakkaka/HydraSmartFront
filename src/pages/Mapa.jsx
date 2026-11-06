@@ -1,11 +1,24 @@
 import { useMemo, useState, useEffect } from 'react';
-import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import { divIcon } from 'leaflet';
+import { CircleMarker, Marker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useDrenosOsm, useBocasLoboOficiais, useNivelBlumenau, useFontesBrasil } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
 import { dataHora, num } from '../lib/formato.js';
 
 const CENTRO = [-30.0346, -51.2177];
+const ICONES_REGIAO = {
+  porto_alegre: divIcon({
+    className: 'hydra-nacional-pin',
+    html: '<div style="background:#16a34a;color:#fff;border:3px solid #dcfce7;border-radius:12px;padding:8px 12px;min-width:125px;text-align:center;font:700 13px Arial,sans-serif;box-shadow:0 4px 14px #0008;white-space:nowrap">● Porto Alegre<br><small style="font-size:10px;font-weight:400">Cadastro de bueiros</small></div>',
+    iconSize: [135, 61], iconAnchor: [67, 60]
+  }),
+  blumenau: divIcon({
+    className: 'hydra-nacional-pin',
+    html: '<div style="background:#0369a1;color:#fff;border:3px solid #bae6fd;border-radius:12px;padding:8px 12px;min-width:117px;text-align:center;font:700 13px Arial,sans-serif;box-shadow:0 4px 14px #0008;white-space:nowrap">● Blumenau<br><small style="font-size:10px;font-weight:400">Dados hidrológicos</small></div>',
+    iconSize: [127, 61], iconAnchor: [63, 60]
+  })
+};
 const REGIOES = {
   brasil: { centro: [-14.235, -51.9253], zoom: 4, nome: 'Brasil' },
   porto_alegre: { centro: CENTRO, zoom: 14, nome: 'Porto Alegre - RS' },
@@ -84,13 +97,21 @@ export default function Mapa() {
         <p className="text-xs text-slate-400">O mapa de inundação apresenta cotas consultivas e não informa a extensão de uma cheia atual. Estações de rio não representam sensores dos bueiros.</p>
         <div className="flex flex-wrap gap-3 mt-2"><a href={linkNivel} target="_blank" rel="noopener noreferrer">Nível do rio · AlertaBlu ↗</a><a href={linkInundacao} target="_blank" rel="noopener noreferrer">Mapa oficial de inundação ↗</a></div>
       </section>}
+      {regiao === 'brasil' && <section className="card-base" aria-label="Cidades com fontes integradas">
+        <div className="card-header-line"><strong>Fontes integradas no mapa nacional</strong></div>
+        <p className="text-xs text-slate-300 mb-2">O mapa nacional mostra as cidades com fontes conectadas, não a localização fictícia de bueiros. Selecione um marcador ou uma cidade abaixo para ampliar.</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="map-control-btn active" onClick={() => setRegiao('porto_alegre')}>🟢 Porto Alegre · cadastro de bocas de lobo</button>
+          <button type="button" className="map-control-btn" onClick={() => setRegiao('blumenau')}>🔵 Blumenau · Defesa Civil / nível do rio</button>
+        </div>
+      </section>}
       {(regiao === 'brasil' || regiao === 'blumenau') && <section className="card-base" aria-label="Dados meteorológicos INMET">
         <div className="card-header-line"><strong>INMET · Anomalias de precipitação</strong></div>
         <p className="text-xs text-slate-400">Compare chuva observada e climatologia em mapas oficiais mensais. Anomalias históricas não são previsões de alagamento.</p>
         <a href={linkInmet} target="_blank" rel="noopener noreferrer">Consultar mapas mensais INMET ↗</a>
       </section>}
       <div className="map-canvas-full">
-        <MapContainer center={CENTRO} zoom={14} preferCanvas={true} zoomControl={false} style={{ height: '100%', width: '100%' }}>
+        <MapContainer center={CENTRO} zoom={14} zoomControl={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
@@ -104,9 +125,10 @@ export default function Mapa() {
           <Recentralizar sinal={recentralizar} regiao={regiao} />
           <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} />
           {regiao === 'brasil' && Object.entries(REGIOES).filter(([id]) => id !== 'brasil').map(([id, item]) => (
-            <CircleMarker key={id} center={item.centro} radius={9} pathOptions={{ color: id === 'porto_alegre' ? '#047857' : '#0284c7', fillColor: id === 'porto_alegre' ? '#10b981' : '#38bdf8', fillOpacity: .9 }} eventHandlers={{ click: () => setRegiao(id) }}>
-              <Tooltip permanent direction="top">{item.nome} · {id === 'porto_alegre' ? 'abrir cadastro municipal de bocas de lobo' : 'abrir fontes disponíveis'}</Tooltip>
-            </CircleMarker>
+            <Marker key={id} position={item.centro} icon={ICONES_REGIAO[id]} zIndexOffset={1000}
+              eventHandlers={{ click: () => setRegiao(id) }}>
+              <Tooltip>{item.nome} — clique para ampliar as fontes cadastradas</Tooltip>
+            </Marker>
           ))}
           {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`of-${p.id ?? i}`} center={[Number(p.lat), Number(p.lon)]} radius={5} pathOptions={{ color: '#065f46', fillColor: '#22c55e', fillOpacity: .9, weight: 1.5 }}>
@@ -145,12 +167,12 @@ export default function Mapa() {
         {regiao === 'porto_alegre' && camadas.osm && osmCarregando && <p role="status" className="text-xs text-slate-400">Consultando elementos de drenagem do OpenStreetMap…</p>}
         {regiao === 'porto_alegre' && camadas.osm && osmErro && <p role="status" className="text-xs text-amber-400">Não foi possível consultar o serviço OSM. Os sensores físicos e o cadastro municipal são camadas independentes.</p>}
         {regiao === 'porto_alegre' && camadas.osm && osm?.status === 'desatualizado' && <p role="status" className="text-xs text-amber-400">OpenStreetMap indisponível agora; os pontos mostrados vêm do último cache válido ({dataHora(osm.consultadoEm)}).</p>}
-        {camadas.osm && osm?.status === 'indisponivel' && <p role="status" className="text-xs text-amber-400">Serviço de consulta OpenStreetMap indisponível; nenhum elemento OSM está sendo mostrado.</p>}
-        {camadas.osm && osm?.status === 'sucesso' && osm.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta OSM não encontrou elementos mapeados nesta área; cobertura não exaustiva.</p>}
+        {regiao === 'porto_alegre' && camadas.osm && osm?.status === 'indisponivel' && <p role="status" className="text-xs text-amber-400">Serviço de consulta OpenStreetMap indisponível; nenhum elemento OSM está sendo mostrado.</p>}
+        {regiao === 'porto_alegre' && camadas.osm && osm?.status === 'sucesso' && osm.elementos?.length === 0 && <p role="status" className="text-xs text-slate-400">A consulta OSM não encontrou elementos mapeados nesta área; cobertura não exaustiva.</p>}
       </div>
       {regiao === 'porto_alegre' && pontos.length < 2 && <p className="text-xs text-amber-400 mt-2">Aguardando ao menos dois pontos válidos da base municipal para vincular B1 e B2.</p>}
       <div className="map-discrete-legend">
-        <div className="legend-item">{regiao === 'porto_alegre' ? '🟢 Cadastro público municipal (sem telemetria)' : '🌎 Navegação nacional: selecione uma cidade para consultar as fontes disponíveis'}</div>
+        {regiao === 'porto_alegre' && <div className="legend-item">🟢 Cadastro público municipal (sem telemetria)</div>}
         {regiao === 'porto_alegre' && <div className="legend-item">🔵 B1 e B2: associação demonstrativa com medições independentes</div>}
       </div>
     </div>
