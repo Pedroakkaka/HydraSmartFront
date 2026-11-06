@@ -93,7 +93,11 @@ export default function VisaoGeral(){
   const inteligente=fonte==='inteligente';
   const medicaoOficial = estacaoDestaque?.rio?.nivelMetros;
   const tituloEstacao = estacaoDestaque ? (ESTACOES[estacaoDestaque.codigo] || estacaoDestaque.codigo) : null;
-  const tempoExtravasamento = estimarTempoExtravasamento(estado?.bueiros || {});
+  const diagnosticoFisico = !inteligente && estado?.modo !== 'demo' && temDado(b1) ? b1?.diagnostico : null;
+  const tempoExtravasamento = inteligente || estado?.modo === 'demo' ? estimarTempoExtravasamento(estado?.bueiros || {}) : {
+    valor: diagnosticoFisico?.tempoAte100Min === 0 ? '100% atingido' : diagnosticoFisico?.confiavel && diagnosticoFisico?.tempoAte100Min != null ? `${numero(diagnosticoFisico.tempoAte100Min, ' min')}` : 'Ainda não calculável',
+    detalhe: diagnosticoFisico?.motivo || 'Aguardando uma sequência de leituras da régua de contatos.'
+  };
   const condicaoOficial = avaliarCondicaoObservada(estacaoDestaque, chuva);
   const eletrodosAtivos = !inteligente && estado?.modo !== 'demo' && b1?.tipoMedicao === 'nivel_percentual';
   return <div className="hs-dashboard">
@@ -105,8 +109,8 @@ export default function VisaoGeral(){
           <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
           <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
-        <CartaoIndicador icone="⌛" titulo={inteligente ? "Tendência até limite do bueiro" : "Tempo até limite (experimental)"} valor={tempoExtravasamento.valor} detalhe={inteligente ? tempoExtravasamento.detalhe : "Estimativa da bancada exige histórico consistente do protótipo."} classe="hs-kpi-soft"/>
-        <CartaoIndicador icone="⚠" titulo={inteligente ? "Condição hidrológica observada" : "Chance de alagamento (próx. 6 h)"} valor={inteligente ? condicaoOficial.valor : "Não validada"} detalhe={inteligente ? condicaoOficial.detalhe : "Sem modelo probabilístico validado para previsão."} classe="hs-kpi-soft"/>
+        <CartaoIndicador icone="⌛" titulo={inteligente ? "Tendência até limite do bueiro" : "Tempo até limite (experimental)"} valor={tempoExtravasamento.valor} detalhe={tempoExtravasamento.detalhe} classe="hs-kpi-soft"/>
+        <CartaoIndicador icone="⚠" titulo={inteligente ? "Condição hidrológica observada" : "Velocidade de subida · bancada"} valor={inteligente ? condicaoOficial.valor : diagnosticoFisico?.taxaPctMin != null ? numero(diagnosticoFisico.taxaPctMin, " %/min") : "—"} detalhe={inteligente ? condicaoOficial.detalhe : diagnosticoFisico?.tendencia || "Aguardando leituras físicas."} classe="hs-kpi-soft"/>
       </div>
       <div className="hs-measure-row">
         <section className="hs-card hs-level">
