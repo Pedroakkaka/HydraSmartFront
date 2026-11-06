@@ -13,38 +13,41 @@ function analisarLinha(linha) {
   try {
     const obj = JSON.parse(linha);
     if (!obj || typeof obj !== 'object' || obj.erro || obj.status) return [];
-    const interpretar = (id, valor, raw) => {
-      const bueiroId = normalizarId(id);
-      const distanciaCm = Number(valor);
-      if (!bueiroId || valor == null || !Number.isFinite(distanciaCm) || distanciaCm < 2 || distanciaCm > 400) return null;
-      const leitura = { bueiroId, distanciaCm };
-      if (Number.isInteger(raw) && raw >= 0) leitura.raw = raw;
-      return leitura;
-    };
     const dados = [];
-    // O protótipo atual possui apenas uma régua física: mensagens de nível
-    // podem omitir o identificador sem serem descartadas.
-    const nivel = obj.nivel_pct ?? obj.nivelPct ?? obj.nivel_percentual;
-    const id = normalizarId(obj.bueiro ?? obj.id ?? obj.sensor ?? (nivel != null ? 1 : null));
-    if (id && nivel !== undefined && nivel !== null && Number.isFinite(Number(nivel)) &&
-        Number(nivel) >= 0 && Number(nivel) <= 100) {
-      const leitura = { bueiroId: id, nivelPct: Number(nivel) };
-      if (Number.isInteger(obj.raw) && obj.raw >= 0) leitura.raw = obj.raw;
-      dados.push(leitura);
-    } else {
-      const unico = interpretar(obj.bueiro ?? obj.id ?? obj.sensor, obj.dist_cm ?? obj.distancia_cm ?? obj.distancia, obj.raw);
-      if (unico) dados.push(unico);
+    const adicionar = (id, valor) => {
+      const bueiroId = normalizarId(id);
+      if (!bueiroId || valor == null) return;
+      const percentual = Number(typeof valor === 'object'
+        ? (valor.nivel_pct ?? valor.nivelPct ?? valor.nivel_percentual)
+        : valor);
+      const contatos = typeof valor === 'object' ? (valor.contatos_ativos ?? valor.contatosAtivos) : null;
+      const nivel = Number.isFinite(percentual) ? percentual
+        : Number.isInteger(contatos) && contatos >= 0 && contatos <= 6 ? contatos * 100 / 6 : NaN;
+      if (!Number.isFinite(nivel) || nivel < 0 || nivel > 100) return;
+      dados.push({ bueiroId, nivelPct: Number(nivel.toFixed(1)) });
+    };
+    // Formato recomendado para duas réguas: {"bueiros":[{"id":1,"nivel_pct":33.3},{"id":2,"nivel_pct":50}]}
+    if (Array.isArray(obj.bueiros)) {
+      for (const item of obj.bueiros) adicionar(item.id ?? item.bueiro ?? item.bueiroId, item);
+      return dados;
     }
-    // Também aceita um número entre 0 e 6 de eletrodos ativados.
-    if (!dados.length && Number.isInteger(obj.contatos_ativos ?? obj.contatosAtivos) && (obj.contatos_ativos ?? obj.contatosAtivos) >= 0 && (obj.contatos_ativos ?? obj.contatosAtivos) <= 6) {
-      dados.push({ bueiroId:'bueiro_1', nivelPct: Number(((obj.contatos_ativos ?? obj.contatosAtivos)*100/6).toFixed(1)) });
-    }
+    // Formato compacto: {"b1":16.7,"b2":50} ou {"b1":{"contatos_ativos":1},"b2":{...}}
     for (const [id, valor] of [[1, obj.b1 ?? obj.bueiro1], [2, obj.b2 ?? obj.bueiro2]]) {
-      if (valor == null) continue;
-      const leitura = interpretar(id, typeof valor === 'object' ? (valor.dist_cm ?? valor.distancia_cm) : valor);
-      if (leitura) dados.push(leitura);
+      if (valor != null) adicionar(id, valor);
     }
-    return dados;
+    if (dados.length) return dados;
+    const id = obj.bueiro ?? obj.bueiroId ?? obj.id ?? obj.sensor ?? 1;
+    if (obj.nivel_pct != null || obj.nivelPct != null || obj.nivel_percentual != null ||
+        obj.contatos_ativos != null || obj.contatosAtivos != null) adicionar(id, obj);
+    if (dados.length) return dados;
+    // Compatibilidade com firmware ultrassônico legado, separado dos jumpers.
+    const distancia = obj.dist_cm ?? obj.distancia_cm ?? obj.distancia;
+    const bueiroId = normalizarId(id);
+    if (bueiroId && distancia != null && Number.isFinite(Number(distancia)) &&
+        Number(distancia) >= 2 && Number(distancia) <= 400) {
+      return [{ bueiroId, distanciaCm: Number(distancia) }];
+    }
+    return [];
   } catch { return []; }
 }
 
@@ -69,7 +72,7 @@ export default function ConexaoArduino() {
   const interromperRef = useRef(false);
   const chaveRef = useRef('');
   const filaRef = useRef(Promise.resolve());
-  const ultimoEnvioRef = useRef(0);
+  const ultimoEnvioRef = useRef({});
   const abortarRef = useRef(null);
   const conexaoIdRef = useRef(0);
   const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
@@ -171,9 +174,14 @@ export default function ConexaoArduino() {
                 if (!chaveRef.current) setStatusEnvio('Leitura interpretada localmente. Informe chave para enviar à API.');
                 // Não acumula milhares de requests: a placa pode transmitir
                 // mais rápido do que a rede. Amostra um envio por segundo.
-                if (Date.now() - ultimoEnvioRef.current >= 1000) {
-                  ultimoEnvioRef.current = Date.now();
-                  filaRef.current = filaRef.current.then(() => enviar(parsed[parsed.length - 1], idConexao)).catch(() => {});
+                // Cada bueiro mantém frequência de envio independente.
+                // Uma mensagem contendo B01 e B02 deve transmitir AMBOS.
+                for (const leitura of parsed) {
+                  const anterior = ultimoEnvioRef.current[leitura.bueiroId] || 0;
+                  if (Date.now() - anterior >= 1000) {
+                    ultimoEnvioRef.current[leitura.bueiroId] = Date.now();
+                    filaRef.current = filaRef.current.then(() => enviar(leitura, idConexao)).catch(() => {});
+                  }
                 }
               } else if (linha.trim()) {
                 setStatusEnvio('USB recebe linhas, mas o formato não corresponde ao firmware HydraSmart.');
@@ -215,7 +223,7 @@ export default function ConexaoArduino() {
         <div>
           <span className="hs-arduino-eyebrow">MODO PROJETO FÍSICO · ARDUINO UNO</span>
           <h2 id="hs-usb-title">Conexão USB do Arduino</h2>
-          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. A montagem informada utiliza 6 entradas A0–A5 e 1 contato de referência GND, com uma bomba de circulação.</p>
+          <p>Conecte seu Arduino Uno ao computador e selecione a porta USB pelo site. O painel identifica separadamente B01 e B02. A primeira régua utiliza A0–A5 + GND; a segunda requer seis entradas adicionais configuradas no firmware e ligadas fisicamente. A bomba não determina a leitura.</p>
         </div>
         <span className={`hs-arduino-status ${conectado ? 'online' : 'offline'}`} role="status">
           <span aria-hidden="true">●</span> {conectado ? 'USB conectada' : 'Aguardando USB'}
@@ -224,7 +232,7 @@ export default function ConexaoArduino() {
       <div className="hs-arduino-steps">
         <div><span className="hs-arduino-step-no">1</span><span>Conecte o cabo USB ao Arduino Uno e feche o Monitor Serial da IDE.</span></div>
         <div><span className="hs-arduino-step-no">2</span><span>Use Chrome ou Edge no computador e clique em <strong>Selecionar porta Arduino</strong>.</span></div>
-        <div><span className="hs-arduino-step-no">3</span><span>Depois da conexão, observe se chegam linhas do Arduino. A régua de 7 contatos requer firmware específico para transmitir o nível percentual.</span></div>
+        <div><span className="hs-arduino-step-no">3</span><span>Depois da conexão, observe as duas réguas: cada mensagem deve identificar o bueiro correspondente; dados ausentes permanecem como sem leitura.</span></div>
       </div>
       <div className="hs-arduino-fields">
         <div className="hs-arduino-field">
