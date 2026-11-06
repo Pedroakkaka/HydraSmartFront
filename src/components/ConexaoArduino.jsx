@@ -44,12 +44,16 @@ function analisarLinha(linha) {
 
 export default function ConexaoArduino() {
   const fonte = useTelemetria(s => s.fonteSelecionada);
+  const definirUsbLocal = useTelemetria(s => s.definirUsbLocal);
   const [chave, setChave] = useState('');
   const [baud, setBaud] = useState(115200);
   const [conectado, setConectado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [leituras, setLeituras] = useState(0);
   const [linhasRecebidas, setLinhasRecebidas] = useState(0);
+  const [linhasInterpretadas, setLinhasInterpretadas] = useState(0);
+  const [ultimaLeitura, setUltimaLeitura] = useState(null);
+  const [statusEnvio, setStatusEnvio] = useState('Aguardando conexão');
   const [ultimaLinha, setUltimaLinha] = useState('');
   const [portaNome, setPortaNome] = useState('');
   const [erro, setErro] = useState('');
@@ -58,6 +62,7 @@ export default function ConexaoArduino() {
   const interromperRef = useRef(false);
   const chaveRef = useRef('');
   const filaRef = useRef(Promise.resolve());
+  const ultimoEnvioRef = useRef(0);
   const abortarRef = useRef(null);
   const conexaoIdRef = useRef(0);
   const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
@@ -67,7 +72,7 @@ export default function ConexaoArduino() {
   const enviar = async (leitura, idConexao) => {
     if (interromperRef.current || idConexao !== conexaoIdRef.current) return;
     const token = chaveRef.current;
-    if (!token) return;
+    if (!token) { setStatusEnvio('USB recebe dados, mas não há chave de envio à API.'); return; }
     const controlador = new AbortController();
     abortarRef.current = controlador;
     const timeout = setTimeout(() => controlador.abort(), 9500);
@@ -79,18 +84,20 @@ export default function ConexaoArduino() {
         signal: controlador.signal
       });
       if (response.status === 401 || response.status === 503) {
+        setStatusEnvio('API bloqueou o envio: HTTP ' + response.status);
         setErro(response.status === 401 ? 'Chave do protótipo incorreta.' : 'Chave do protótipo não configurada no Render.');
         interromperRef.current = true;
         try { await leitorRef.current?.cancel(); } catch { /* encerramento */ }
         return;
       }
-      if (!response.ok) { setErro('API recusou leitura (HTTP ' + response.status + ').'); return; }
+      if (!response.ok) { setErro('API recusou leitura (HTTP ' + response.status + ').'); setStatusEnvio('Falha de envio: HTTP ' + response.status); return; }
       if (!interromperRef.current && idConexao === conexaoIdRef.current) {
         setLeituras(n => n + 1);
+        setStatusEnvio('Leituras aceitas pela API; painel deve refletir o canal experimental.');
         setErro('');
       }
     } catch (err) {
-      if (!interromperRef.current) setErro(err.name === 'AbortError' ? 'Tempo de resposta da API esgotado.' : 'Sem conexão com a API HydraSmart.');
+      if (!interromperRef.current) { setErro(err.name === 'AbortError' ? 'Tempo de resposta da API esgotado.' : 'Sem conexão com a API HydraSmart.'); setStatusEnvio('Falha de rede ao enviar medições.'); }
     } finally {
       clearTimeout(timeout);
       if (abortarRef.current === controlador) abortarRef.current = null;
@@ -104,6 +111,7 @@ export default function ConexaoArduino() {
     try { await leitorRef.current?.cancel(); } catch { /* leitor já fechado */ }
     // A leitura está no loop assíncrono; porta.close() fica após releaseLock().
     setConectado(false);
+    definirUsbLocal(false);
   };
 
   const conectar = async () => {
@@ -115,6 +123,9 @@ export default function ConexaoArduino() {
     setOcupado(true);
     setErro('');
     setLeituras(0);
+    setLinhasInterpretadas(0);
+    setUltimaLeitura(null);
+    setStatusEnvio('Aguardando mensagens pela porta USB');
     setLinhasRecebidas(0);
     setUltimaLinha('');
     try {
@@ -126,6 +137,7 @@ export default function ConexaoArduino() {
       interromperRef.current = false;
       const idConexao = ++conexaoIdRef.current;
       setConectado(true);
+      definirUsbLocal(true);
       avisar('Arduino conectado pelo USB deste computador.');
       void (async () => {
         const leitor = porta.readable.getReader();
@@ -143,8 +155,18 @@ export default function ConexaoArduino() {
             for (const linha of linhas) {
               if (linha.trim()) { setLinhasRecebidas(n => n + 1); setUltimaLinha(linha.trim().slice(0, 180)); }
               const parsed = analisarLinha(linha.trim());
-              for (const leitura of parsed) {
-                filaRef.current = filaRef.current.then(() => enviar(leitura, idConexao));
+              if (parsed.length) {
+                setLinhasInterpretadas(n => n + parsed.length);
+                setUltimaLeitura(parsed[parsed.length - 1]);
+                if (!chaveRef.current) setStatusEnvio('Leitura interpretada localmente. Informe chave para enviar à API.');
+                // Não acumula milhares de requests: a placa pode transmitir
+                // mais rápido do que a rede. Amostra um envio por segundo.
+                if (Date.now() - ultimoEnvioRef.current >= 1000) {
+                  ultimoEnvioRef.current = Date.now();
+                  filaRef.current = filaRef.current.then(() => enviar(parsed[parsed.length - 1], idConexao)).catch(() => {});
+                }
+              } else if (linha.trim()) {
+                setStatusEnvio('USB recebe linhas, mas o formato não corresponde ao firmware HydraSmart.');
               }
             }
           }
@@ -156,6 +178,7 @@ export default function ConexaoArduino() {
           try { await porta.close(); } catch { /* porta removida */ }
           portaRef.current = null;
           if (idConexao === conexaoIdRef.current) {
+            definirUsbLocal(false);
             setConectado(false);
             setOcupado(false);
           }
@@ -171,6 +194,7 @@ export default function ConexaoArduino() {
     interromperRef.current = true;
     conexaoIdRef.current++;
     abortarRef.current?.abort();
+    definirUsbLocal(false);
     void leitorRef.current?.cancel().catch(() => {});
   }, []);
 
@@ -215,7 +239,9 @@ export default function ConexaoArduino() {
         <div><span>Linhas recebidas</span><strong>{linhasRecebidas}</strong></div>
         <div><span>Envios aceitos pela API</span><strong>{leituras}</strong></div>
       </div>
+      <p className="hs-arduino-raw" role="status"><strong>Diagnóstico de transmissão:</strong> {statusEnvio}. Mensagens interpretadas: {linhasInterpretadas}. {ultimaLeitura && <>Última medição reconhecida: <strong>{ultimaLeitura.nivelPct != null ? `${ultimaLeitura.nivelPct}%` : `${ultimaLeitura.distanciaCm} cm`}</strong> ({ultimaLeitura.bueiroId}).</>}</p>
       {conectado && ultimaLinha && <p className="hs-arduino-raw">Última linha serial recebida: <code>{ultimaLinha}</code></p>}
+      {conectado && linhasRecebidas > 0 && linhasInterpretadas === 0 && <p role="alert" className="hs-arduino-error">A porta USB funciona, mas nenhuma linha é uma medição reconhecida. Confira a última linha e instale o firmware experimental de eletrodos na placa; o site não consegue gravar o firmware automaticamente.</p>}
       {conectado && !chave.trim() && <p className="hs-arduino-notice">USB conectada para diagnóstico. Sem a chave do protótipo, nenhuma medição é enviada à API. Desconecte antes de informar a chave.</p>}
       {!suportaWebSerial && <p role="alert" className="hs-arduino-notice">Este navegador não permite selecionar portas USB seriais. Abra o site em Chrome ou Edge atualizado no computador, por HTTPS; no celular, use uma ponte ou dispositivo com Wi-Fi.</p>}
       {erro && <p role="alert" className="hs-arduino-error">{erro}</p>}
