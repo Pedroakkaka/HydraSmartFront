@@ -34,7 +34,7 @@ function GraficoAoVivo({ b1, b2 }) {
     labels: labels.length ? labels : ['Aguardando leituras'],
     datasets: [
       { label: 'Bueiro 01 — Entrada (%)', data: b1.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
-      { label: 'Bueiro 02 — Saída (%)', data: b2.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 },
+      ...(b2.historicoNiveis.length ? [{ label: 'Bueiro 02 — Saída (%)', data: b2.historicoNiveis, fill: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
       linhaLimiar(`Atenção (${b1.calibracao.limiteAtencaoPct}%)`, b1.calibracao.limiteAtencaoPct, 'rgba(251, 191, 36, 0.5)', n),
       linhaLimiar(`Crítico (${b1.calibracao.limiteCriticoPct}%)`, b1.calibracao.limiteCriticoPct, 'rgba(244, 63, 94, 0.65)', n)
     ]
@@ -97,6 +97,7 @@ function GraficoBanco() {
 export default function Graficos() {
   const { bueiro_1: b1, bueiro_2: b2 } = useTelemetria((s) => s.estado.bueiros);
   const fonte = useTelemetria((s) => s.fonteSelecionada);
+  const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
@@ -122,9 +123,9 @@ export default function Graficos() {
 
       {fonte === 'inteligente' && <GraficoBanco />}
 
-      <HidrologiaOficial />
+      {fonte === 'inteligente' && <HidrologiaOficial />}
 
-      {fonte === 'inteligente' && <AnaliseIntegrada />}
+      <AnaliseIntegrada demonstracao={fonte === 'prototipo'} bueiros={bueiros} />
 
       {fonte === 'inteligente' && <div className="card-base mb-6">
         <div className="card-header-line">
