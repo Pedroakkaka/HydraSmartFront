@@ -85,7 +85,7 @@ export default function VisaoGeral(){
   const b2=estado?.bueiros?.bueiro_2;
   const fonte=useTelemetria(s=>s.fonteSelecionada);
   const ambos=fonte==='prototipo' ? temDado(b1) : temDado(b1)&&temDado(b2);
-  const situacao=estado?.bueiros?situacaoGeral(estado.bueiros):'desconhecido';
+  const situacao=fonte==='prototipo' && estado?.modo !== 'demo' ? (temDado(b1) ? b1.risco : 'desconhecido') : estado?.bueiros?situacaoGeral(estado.bueiros):'desconhecido';
   const status=!ambos?'Sem leituras':situacao==='normal'?'Estável':situacao==='atencao'?'Atenção':situacao==='critico'?'Crítico':'Indeterminado';
   const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
   const estacaoDestaque=hidrologia?.status === 'desatualizado' ? null : selecionarEstacaoOficial(hidrologia?.estacoes);
