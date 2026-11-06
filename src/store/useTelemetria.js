@@ -10,7 +10,8 @@ const CANAIS = ['prototipo', 'inteligente'];
 function selecionarCanal(snapshot, fonte, local = {}) {
   if (!snapshot) return null;
   const canais = snapshot.canais || {};
-  const simulando = fonte === 'prototipo' && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
+  const temUsbLocal = Object.values(local).some(b => b.timestamp && Date.now() - b.timestamp <= 30000);
+  const simulando = fonte === 'prototipo' && !temUsbLocal && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
   const remoto = canais[fonte === 'inteligente' ? 'campo' : simulando ? 'demonstracao' : 'prototipo'] || {};
   const localRecentes = Object.fromEntries(Object.entries(local).filter(([,b]) => b.timestamp && Date.now()-b.timestamp <= 30000));
   const leituras = fonte === 'prototipo' && !simulando ? {...remoto,...localRecentes} : remoto;
