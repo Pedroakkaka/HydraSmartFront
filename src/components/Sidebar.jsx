@@ -5,7 +5,6 @@ import { som } from '../lib/som.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 import SeletorModo, { ROTULOS_FONTE } from './SeletorModo.jsx';
 import { useState } from 'react';
-import ConexaoArduino from './ConexaoArduino.jsx';
 
 const CAMINHOS = {
   '/': <><path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z" /></>,
@@ -58,8 +57,6 @@ export default function Sidebar({ aberto, aoNavegar }) {
       </div>
 
       <div className="sidebar-footer">
-        <ConexaoArduino />
-
         <button className={`mode-badge-btn ${'real'}`} type="button" onClick={() => setModalAberto(true)} title="Selecionar origem dos dados do painel">
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-current"/><span>{ROTULOS_FONTE[fonte]}</span></span>
           <span className="text-[10px]">Trocar</span>
