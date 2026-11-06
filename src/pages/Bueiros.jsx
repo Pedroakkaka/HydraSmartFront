@@ -185,12 +185,11 @@ export default function Bueiros() {
     <>
       <div className="bueiros-page-grid">
         <BueiroDetalhado bueiro={b1} sigla="B01" modoFisico={fonte === 'prototipo' && !simulacaoAtiva} />
-        {(fonte !== 'prototipo' || simulacaoAtiva) && <BueiroDetalhado bueiro={b2} sigla="B02" modoFisico={false} />}
+        <BueiroDetalhado bueiro={b2} sigla="B02" modoFisico={fonte === 'prototipo' && !simulacaoAtiva} />
       </div>
 
       {fonte === 'prototipo' && !simulacaoAtiva && <p className="text-xs text-slate-500">
-        Montagem física atual: 1 régua de nível (A0–A5 + GND) e 1 bombinha.
-        B02 não possui leitura física instalada e não será apresentado como sensor conectado.
+        Painel preparado para 2 réguas independentes: B01 (A0–A5 + GND) e B02 (entradas adicionais a definir no Arduino). Cada bueiro só recebe nível quando o firmware envia sua própria leitura; sem conexão permanece aguardando.
       </p>}
       {fonte === 'prototipo' && <section className="card-base" aria-label="Estado do teste de simulação">
         <div className="card-header-line">
