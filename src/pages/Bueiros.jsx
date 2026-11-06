@@ -110,6 +110,7 @@ export default function Bueiros() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const fonte = useTelemetria((s) => s.fonteSelecionada);
   const estadoBruto = useTelemetria((s) => s.estadoBruto);
+  const definirEstado = useTelemetria((s) => s.definirEstado);
   const simulacaoAtiva = fonte === 'prototipo' && estadoBruto?.modo === 'demo' && estadoBruto?.simulacao?.ativo === true;
   const { data: calibracoesSimuladas, refetch: atualizarCalibracoes } = useQuery({
     queryKey: ['calibracao-simulacao'],
@@ -120,11 +121,15 @@ export default function Bueiros() {
   const parametros = simulacaoAtiva ? calibracoesSimuladas?.calibracoes : null;
   const { bueiro_1: b1, bueiro_2: b2 } = bueiros;
   const iniciarSimulacao = () => executarProtegida(async headers => {
-    await api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers);
+    const snapshot = await api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers);
+    if (!snapshot?.simulacao?.ativo || snapshot?.modo !== 'demo') throw new Error('A API não confirmou o início da simulação.');
+    definirEstado(snapshot);
     await atualizarCalibracoes();
   }, { sucesso: 'Simulação do protótipo iniciada (dados sintéticos).', beep: 0 });
   const encerrarSimulacao = () => executarProtegida(async headers => {
-    await api.post('/simulacao/encerrar', {}, headers);
+    const snapshot = await api.post('/simulacao/encerrar', {}, headers);
+    if (snapshot?.simulacao?.ativo) throw new Error('A API ainda indica simulação ativa.');
+    definirEstado(snapshot);
   }, { sucesso: 'Simulação encerrada. Aguardando leituras físicas.', beep: 0 });
   const { executarProtegida, ocupado } = useAcaoProtegida();
 
@@ -169,6 +174,28 @@ export default function Bueiros() {
         <BueiroDetalhado bueiro={b2} sigla="B02" />
       </div>
 
+      {fonte === 'prototipo' && <section className="card-base" aria-label="Estado do teste de simulação">
+        <div className="card-header-line">
+          <span className="card-title-text">Simulação digital de nível de água</span>
+          <strong style={{ color: simulacaoAtiva ? '#16a34a' : '#64748b' }} role="status">
+            {simulacaoAtiva ? '● Simulação ativa' : '○ Simulação desligada'}
+          </strong>
+        </div>
+        <p className="text-xs text-slate-300 mb-2">
+          Esta simulação cria leituras artificiais no painel. Não aciona as duas bombas,
+          não lê os 7 contatos metálicos e não modifica a placa Arduino.
+        </p>
+        {simulacaoAtiva && <p className="text-xs text-slate-300">
+          Cenário: {estadoBruto?.simulacao?.cenario || 'chuva_moderada'}.
+          As curvas e porcentagens exibidas neste modo são dados de demonstração.
+        </p>}
+        {!simulacaoAtiva && <p className="text-xs text-slate-300">
+          Para iniciar, será solicitada a chave de operador (OPERATOR_API_KEY).
+          Após a autorização, os indicadores devem mudar para “Simulação ativa”.
+        </p>}
+        {simulacaoAtiva && <button type="button" className="btn-action-secondary"
+          onClick={encerrarSimulacao} disabled={ocupado}>Encerrar simulação digital</button>}
+      </section>}
       {fonte === 'prototipo' && !simulacaoAtiva && <div className="card-base">
         <div className="card-header-line"><span className="card-title-text">Parâmetros protegidos</span></div>
         <p className="text-xs text-slate-300 mb-3">A calibração dos sensores físicos é fixa nesta interface. Para testar outros valores sem afetar equipamentos reais, inicie uma simulação do protótipo.</p>
