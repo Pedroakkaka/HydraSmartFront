@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
@@ -25,28 +25,30 @@ const BBOX_INICIAL = '-51.24,-30.055,-51.19,-30.015';
 // O cadastro oficial é consultado na área efetivamente visível, não em
 // coordenadas fixas. A API limita as consultas a pequenas extensões.
 function ConsultarAreaVisivel({ regiao, aoAlterar, aoAlterarNacional }) {
+  const timer = useRef(null);
   const map = useMapEvents({
     moveend: () => {
-      const limites = map.getBounds();
-      const centro = limites.getCenter();
-      const meiaLargura = Math.min(0.077, (limites.getEast() - limites.getWest()) / 2);
-      const meiaAltura = Math.min(0.077, (limites.getNorth() - limites.getSouth()) / 2);
-      const bbox = [centro.lng - meiaLargura, centro.lat - meiaAltura,
-        centro.lng + meiaLargura, centro.lat + meiaAltura]
-        .map(n => n.toFixed(4)).join(',');
-      const zoom = map.getZoom();
-      if (regiao === 'porto_alegre') aoAlterar(atual => atual === bbox ? atual : bbox);
-      aoAlterarNacional(atual => atual.bbox === bbox && atual.zoom === zoom ? atual : { bbox, zoom });
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        const limite = map.getBounds();
+        const centro = limite.getCenter();
+        const zoom = map.getZoom();
+        // Janela estabilizada em quadrículas ~1,1 km: evita uma consulta nova
+        // para cada pixel de deslocamento e protege o Overpass público.
+        const passo = zoom >= 16 ? 0.005 : 0.01;
+        const centroLat = Math.round(centro.lat / passo) * passo;
+        const centroLon = Math.round(centro.lng / passo) * passo;
+        const meiaLargura = Math.min(0.075, Math.max(0.009, (limite.getEast() - limite.getWest()) / 2));
+        const meiaAltura = Math.min(0.075, Math.max(0.009, (limite.getNorth() - limite.getSouth()) / 2));
+        const coords = [centroLon - meiaLargura, centroLat - meiaAltura,
+          centroLon + meiaLargura, centroLat + meiaAltura];
+        const bbox = coords.map(n => n.toFixed(3)).join(',');
+        if (regiao === 'porto_alegre') aoAlterar(prev => prev === bbox ? prev : bbox);
+        aoAlterarNacional(prev => prev.bbox === bbox && prev.zoom === zoom ? prev : { bbox, zoom });
+      }, 750);
     }
   });
-  useEffect(() => {
-    const limites = map.getBounds();
-    const centro = limites.getCenter();
-    const meiaLargura = Math.min(0.077, (limites.getEast() - limites.getWest()) / 2);
-    const meiaAltura = Math.min(0.077, (limites.getNorth() - limites.getSouth()) / 2);
-    aoAlterarNacional({ bbox: [centro.lng - meiaLargura, centro.lat - meiaAltura,
-      centro.lng + meiaLargura, centro.lat + meiaAltura].map(n => n.toFixed(4)).join(','), zoom: map.getZoom() });
-  }, [map, aoAlterarNacional]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return null;
 }
 
@@ -91,12 +93,12 @@ export default function Mapa() {
   const [areaNacional, setAreaNacional] = useState({ bbox: BBOX_INICIAL, zoom: 14 });
   const { data: oficial, isLoading: oficialCarregando, isFetching: oficialAtualizando, isError: oficialErro } = useBocasLoboOficiais(bbox, regiao === 'porto_alegre');
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
-  const consultarDrenagem = areaNacional.zoom >= 12 &&
+  const consultarDrenagem = areaNacional.zoom >= 13 &&
     (regiao === 'cidade' || regiao === 'blumenau' || regiao === 'porto_alegre' || regiao === 'brasil');
   const { data: drenosCidade, isLoading: drenagemCarregando, isFetching: drenagemAtualizando, isError: drenagemErro } = useQuery({
     queryKey: ['drenagem-nacional-area', areaNacional.bbox],
     queryFn: () => api.get('/brasil/drenagem-area?bbox=' + encodeURIComponent(areaNacional.bbox)),
-    enabled: Boolean(consultarDrenagem), staleTime: 30 * 60_000, retry: false
+    enabled: Boolean(consultarDrenagem), staleTime: 30 * 60_000, retry: false, refetchOnWindowFocus: false
   });
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
   const [recentralizar, setRecentralizar] = useState(0);
@@ -197,10 +199,10 @@ export default function Mapa() {
         </MapContainer>
       </div>
       <p className="hs-map-data-caption" role="status">
-        {areaNacional.zoom < 12 ? 'Aproxime o mapa para mostrar os bueiros cadastrados da região.' :
+        {areaNacional.zoom < 13 ? 'Aproxime o mapa para consultar bueiros cadastrados nesta região.' :
           drenagemCarregando || drenagemAtualizando ? 'Consultando os pontos de drenagem na área visível…' :
-          drenagemErro || drenosCidade?.status === 'indisponivel' ? 'Fonte nacional de drenagem indisponível no momento; não é possível avaliar a cobertura desta área.' :
-          `${drenosCidade?.contagem?.oficiais || 0} registros oficiais e ${drenosCidade?.contagem?.colaborativos || 0} registros OpenStreetMap na área visível. Cobertura parcial.`}
+          drenagemErro || drenosCidade?.status === 'indisponivel' ? 'Consulta pública de drenagem indisponível ou sobrecarregada. Nenhum ponto pode ser confirmado nesta área.' :
+          (drenosCidade?.elementos?.length === 0 ? 'Nenhum bueiro georreferenciado disponível nas fontes consultadas desta área. Isso não significa que não existam bueiros na cidade.' : `${drenosCidade?.contagem?.oficiais || 0} registros oficiais e ${drenosCidade?.contagem?.colaborativos || 0} registros OpenStreetMap na área visível. Cobertura parcial.`)}
       </p>
       {regiao === 'porto_alegre' && camadas.oficial && <p className="text-xs text-slate-400 mt-2" aria-live="polite">🟢 {oficialCarregando ? 'Buscando pontos verdes do cadastro municipal…' : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro oficial indisponível; consulte novamente ou aproxime o mapa.' : `${(oficial?.elementos || []).length} bocas de lobo do cadastro oficial nesta área`}{oficialAtualizando && !oficialCarregando ? ' · atualizando área…' : ''}{oficial?.parcial ? ' · limite por consulta: aproxime o mapa para detalhar' : ''}</p>}
       <div className="space-y-1" aria-live="polite">
