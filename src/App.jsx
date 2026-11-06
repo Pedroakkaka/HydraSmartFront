@@ -44,7 +44,7 @@ export default function App() {
   }, [menuAberto]);
   const conexao = useTelemetria((s) => s.conexao);
   const temEstado = useTelemetria((s) => Boolean(s.estado));
-  const serialConectada = useTelemetria((s) => Boolean(s.estado?.serial?.conectado));
+  const serialConectada = useTelemetria((s) => s.usbLocalConectado);
   const fonte = useTelemetria((s) => s.fonteSelecionada);
 
   const rotaAtual = ROTAS.find((r) => r.caminho === pathname) ?? ROTAS[0];
@@ -58,8 +58,8 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           <PermissaoAlertas />
-          <span className={`status-dot-indicator ${serialConectada ? 'online' : 'offline'}`} />
-          <span className="text-xs font-mono text-slate-400">{serialConectada ? 'USB Conectado' : 'USB Off'}</span>
+          {fonte === 'prototipo' && <span className={`status-dot-indicator ${serialConectada ? 'online' : 'offline'}`} />}
+          {fonte === 'prototipo' && <span className="text-xs font-mono text-slate-400">{serialConectada ? 'USB local conectado' : 'USB local desconectado'}</span>}
         </div>
       </header>
 
