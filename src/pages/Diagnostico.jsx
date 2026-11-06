@@ -18,7 +18,7 @@ export default function Diagnostico() {
   const fonte = useTelemetria(s => s.fonteSelecionada);
   const { data: clima } = useClima();
   const { data: saude } = useSaude();
-  const pontos = Object.entries(estado?.bueiros || {}).filter(([id]) => fonte !== 'prototipo' || estado?.modo === 'demo' || id === 'bueiro_1');
+  const pontos = Object.entries(estado?.bueiros || {});
   const validos = pontos.filter(([, b]) => temLeitura(b) && !b.desatualizado);
   const nivel = validos.length ? Math.max(...validos.map(([, b]) => Number(b.nivelPct) || 0)) : null;
   const riscoId = validos.some(([, b]) => b.risco === 'critico') ? 'critico'
@@ -53,7 +53,7 @@ export default function Diagnostico() {
     </div>
 
     {prototipo && !emSimulacao && <section className="diag-panel" aria-label="Diagnóstico de subida da água em tempo real">
-      <div className="diag-section-header"><h3>↗ Diagnóstico da régua de nível · tempo real</h3><span>Dados experimentais do Arduino</span></div>
+      <div className="diag-section-header"><h3>↗ Diagnóstico B01 · tempo real</h3><span>Dados experimentais do Arduino</span></div>
       <div className="diag-health-grid">
         <div><span>Nível atual</span><strong>{principal ? `${num(principal.b.nivelPct, 1)}%` : 'Sem leitura'}</strong></div>
         <div><span>Velocidade de variação</span><strong>{diagnostico?.taxaPctMin != null ? `${num(diagnostico.taxaPctMin, 2)} %/min` : 'Não calculada'}</strong></div>
@@ -64,6 +64,28 @@ export default function Diagnostico() {
       </div>
       <p className="hydra-muted" role="status">{diagnostico?.motivo || 'Aguardando amostras reais do Arduino. Nenhuma estimativa sem leituras recentes.'}</p>
       <p className="hydra-muted">Percentuais derivados dos contatos metálicos. Estimativa linear aproximada, não previsão validada de alagamento urbano; a vazão da bomba pode variar.</p>
+    </section>}
+
+    {prototipo && !emSimulacao && <section className="diag-panel" aria-label="Tabela de medições das duas réguas físicas">
+      <div className="diag-section-header"><h3>▤ Níveis por bueiro · projeto físico</h3><span>Atualização automática pela telemetria</span></div>
+      <div className="hs-table-wrap">
+        <table>
+          <thead><tr><th>Régua</th><th>Nível</th><th>Tendência</th><th>Velocidade</th><th>Até 100%</th><th>Última leitura</th></tr></thead>
+          <tbody>{pontos.map(([id,b]) => {
+            const atual = temLeitura(b) && !b.desatualizado;
+            const d = atual ? b.diagnostico : null;
+            return <tr key={id}>
+              <td>{id === 'bueiro_1' ? 'Bueiro 01' : 'Bueiro 02'}</td>
+              <td>{atual ? `${num(b.nivelPct,1)}%` : 'Aguardando régua'}</td>
+              <td>{d?.tendencia || '—'}</td>
+              <td>{d?.taxaPctMin != null ? `${num(d.taxaPctMin,2)} %/min` : '—'}</td>
+              <td>{d ? tempo(d) : '—'}</td>
+              <td>{atual && b.timestamp ? dataHora(b.timestamp) : 'Não recebida'}</td>
+            </tr>;
+          })}</tbody>
+        </table>
+      </div>
+      <p className="hydra-muted">Cada régua mantém seu próprio histórico. A ausência de dados de B02 não é substituída por leituras de B01. Os tempos são extrapolações experimentais, não previsões validadas.</p>
     </section>}
 
     <section className="diag-panel">
