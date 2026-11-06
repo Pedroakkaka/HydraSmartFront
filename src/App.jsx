@@ -43,7 +43,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', aoTeclado);
   }, [menuAberto]);
   const conexao = useTelemetria((s) => s.conexao);
-  const temEstado = useTelemetria((s) => Boolean(s.estado));
+  const temEstado = useTelemetria((s) => Boolean(s.estado) || s.fonteSelecionada === 'prototipo');
   const serialConectada = useTelemetria((s) => s.usbLocalConectado);
   const fonte = useTelemetria((s) => s.fonteSelecionada);
 
