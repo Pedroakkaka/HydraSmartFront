@@ -24,20 +24,29 @@ const BBOX_INICIAL = '-51.24,-30.055,-51.19,-30.015';
 
 // O cadastro oficial é consultado na área efetivamente visível, não em
 // coordenadas fixas. A API limita as consultas a pequenas extensões.
-function ConsultarAreaVisivel({ regiao, aoAlterar }) {
+function ConsultarAreaVisivel({ regiao, aoAlterar, aoAlterarNacional }) {
   const map = useMapEvents({
     moveend: () => {
-      if (regiao !== 'porto_alegre') return;
       const limites = map.getBounds();
       const centro = limites.getCenter();
-      const meiaLargura = Math.min(0.115, (limites.getEast() - limites.getWest()) / 2);
-      const meiaAltura = Math.min(0.115, (limites.getNorth() - limites.getSouth()) / 2);
+      const meiaLargura = Math.min(0.077, (limites.getEast() - limites.getWest()) / 2);
+      const meiaAltura = Math.min(0.077, (limites.getNorth() - limites.getSouth()) / 2);
       const bbox = [centro.lng - meiaLargura, centro.lat - meiaAltura,
         centro.lng + meiaLargura, centro.lat + meiaAltura]
         .map(n => n.toFixed(4)).join(',');
-      aoAlterar(atual => atual === bbox ? atual : bbox);
+      const zoom = map.getZoom();
+      if (regiao === 'porto_alegre') aoAlterar(atual => atual === bbox ? atual : bbox);
+      aoAlterarNacional(atual => atual.bbox === bbox && atual.zoom === zoom ? atual : { bbox, zoom });
     }
   });
+  useEffect(() => {
+    const limites = map.getBounds();
+    const centro = limites.getCenter();
+    const meiaLargura = Math.min(0.077, (limites.getEast() - limites.getWest()) / 2);
+    const meiaAltura = Math.min(0.077, (limites.getNorth() - limites.getSouth()) / 2);
+    aoAlterarNacional({ bbox: [centro.lng - meiaLargura, centro.lat - meiaAltura,
+      centro.lng + meiaLargura, centro.lat + meiaAltura].map(n => n.toFixed(4)).join(','), zoom: map.getZoom() });
+  }, [map, aoAlterarNacional]);
   return null;
 }
 
@@ -79,12 +88,14 @@ export default function Mapa() {
   const linkInundacao = fontesBrasil?.blumenau?.inundacao || 'https://defesacivil.blumenau.sc.gov.br/m/inundacao';
   const linkInmet = fontesBrasil?.inmet?.anomaliaMensal || 'https://clima.inmet.gov.br/prec';
   const [bbox, setBbox] = useState(BBOX_INICIAL);
+  const [areaNacional, setAreaNacional] = useState({ bbox: BBOX_INICIAL, zoom: 14 });
   const { data: oficial, isLoading: oficialCarregando, isFetching: oficialAtualizando, isError: oficialErro } = useBocasLoboOficiais(bbox, regiao === 'porto_alegre');
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
-  const consultarDrenagem = (regiao === 'cidade' || regiao === 'blumenau') && cidadeSelecionada;
-  const { data: drenosCidade, isLoading: drenagemCarregando, isFetching: drenagemAtualizando } = useQuery({
-    queryKey: ['drenagem-cidade', cidadeSelecionada?.latitude, cidadeSelecionada?.longitude],
-    queryFn: () => api.get('/brasil/drenagem?latitude=' + encodeURIComponent(cidadeSelecionada.latitude) + '&longitude=' + encodeURIComponent(cidadeSelecionada.longitude)),
+  const consultarDrenagem = areaNacional.zoom >= 12 &&
+    (regiao === 'cidade' || regiao === 'blumenau' || regiao === 'porto_alegre');
+  const { data: drenosCidade, isLoading: drenagemCarregando, isFetching: drenagemAtualizando, isError: drenagemErro } = useQuery({
+    queryKey: ['drenagem-nacional-area', areaNacional.bbox],
+    queryFn: () => api.get('/brasil/drenagem-area?bbox=' + encodeURIComponent(areaNacional.bbox)),
     enabled: Boolean(consultarDrenagem), staleTime: 30 * 60_000, retry: false
   });
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
@@ -153,17 +164,17 @@ export default function Mapa() {
           <ZoomControl position="bottomright" />
           <Recentralizar sinal={recentralizar} regiao={regiao} cidade={cidadeSelecionada} />
           <MarcadorLocal localizacao={localizacao} />
-          <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} />
+          <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} aoAlterarNacional={setAreaNacional} />
 
           {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`of-${p.id ?? i}`} center={[Number(p.lat), Number(p.lon)]} radius={5} pathOptions={{ color: '#065f46', fillColor: '#22c55e', fillOpacity: .9, weight: 1.5 }}>
               <Tooltip>Boca de lobo cadastrada — Prefeitura de Porto Alegre · ID {p.id ?? 'não informado'} · sem sensor confirmado</Tooltip>
             </CircleMarker>
           ))}
-          {(regiao === 'cidade' || regiao === 'blumenau') && (drenosCidade?.elementos || []).map((p, i) => (
+          {consultarDrenagem && (drenosCidade?.elementos || []).map((p, i) => (
             <CircleMarker key={p.id || `cidade-${i}`} center={[Number(p.lat), Number(p.lon)]} radius={6}
-              pathOptions={{ color: '#075985', fillColor: '#38bdf8', fillOpacity: .9, weight: 2 }}>
-              <Tooltip>Ponto de drenagem OpenStreetMap · sem sensor · {p.tipo || 'dreno'}</Tooltip>
+              pathOptions={{ color: p.fonteTipo === 'oficial' ? '#047857' : '#075985', fillColor: p.fonteTipo === 'oficial' ? '#22c55e' : '#38bdf8', fillOpacity: .9, weight: 2 }}>
+              <Tooltip>{p.fonteTipo === 'oficial' ? 'Cadastro oficial — ' : 'Cadastro colaborativo — '}{p.origem} · sem sensor · {p.tipo || 'dreno'}</Tooltip>
             </CircleMarker>
           ))}
           {regiao === 'porto_alegre' && camadas.osm && (osm?.elementos ?? []).map((p, i) => (
@@ -185,9 +196,12 @@ export default function Mapa() {
           })}
         </MapContainer>
       </div>
-      {(regiao === 'cidade' || regiao === 'blumenau') && cidadeSelecionada && <p className="hs-map-data-caption" role="status">
-        {drenagemCarregando || drenagemAtualizando ? 'Consultando bueiros da região…' : drenosCidade?.status === 'indisponivel' ? 'Cadastro colaborativo temporariamente indisponível para este município.' : `${drenosCidade?.elementos?.length || 0} registros de drenagem mapeados perto do centro de ${cidadeSelecionada.nome} (OSM; cobertura parcial).`}
-      </p>}
+      <p className="hs-map-data-caption" role="status">
+        {areaNacional.zoom < 12 ? 'Aproxime o mapa para mostrar os bueiros cadastrados da região.' :
+          drenagemCarregando || drenagemAtualizando ? 'Consultando os pontos de drenagem na área visível…' :
+          drenagemErro || drenosCidade?.status === 'indisponivel' ? 'Fonte nacional de drenagem indisponível no momento; não é possível avaliar a cobertura desta área.' :
+          `${drenosCidade?.contagem?.oficiais || 0} registros oficiais e ${drenosCidade?.contagem?.colaborativos || 0} registros OpenStreetMap na área visível. Cobertura parcial.`}
+      </p>
       {regiao === 'porto_alegre' && camadas.oficial && <p className="text-xs text-slate-400 mt-2" aria-live="polite">🟢 {oficialCarregando ? 'Buscando pontos verdes do cadastro municipal…' : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro oficial indisponível; consulte novamente ou aproxime o mapa.' : `${(oficial?.elementos || []).length} bocas de lobo do cadastro oficial nesta área`}{oficialAtualizando && !oficialCarregando ? ' · atualizando área…' : ''}{oficial?.parcial ? ' · limite por consulta: aproxime o mapa para detalhar' : ''}</p>}
       <div className="space-y-1" aria-live="polite">
         {tiles.falhou && <p role="status" className="text-xs text-amber-400">
