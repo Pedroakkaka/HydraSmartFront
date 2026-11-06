@@ -45,6 +45,7 @@ function analisarLinha(linha) {
 export default function ConexaoArduino() {
   const fonte = useTelemetria(s => s.fonteSelecionada);
   const definirUsbLocal = useTelemetria(s => s.definirUsbLocal);
+  const publicarNivelLocal = useTelemetria(s => s.publicarNivelLocal);
   const [chave, setChave] = useState('');
   const [baud, setBaud] = useState(115200);
   const [conectado, setConectado] = useState(false);
@@ -158,6 +159,9 @@ export default function ConexaoArduino() {
               if (parsed.length) {
                 setLinhasInterpretadas(n => n + parsed.length);
                 setUltimaLeitura(parsed[parsed.length - 1]);
+                for (const leitura of parsed) {
+                  if (leitura.nivelPct != null) publicarNivelLocal(leitura);
+                }
                 if (!chaveRef.current) setStatusEnvio('Leitura interpretada localmente. Informe chave para enviar à API.');
                 // Não acumula milhares de requests: a placa pode transmitir
                 // mais rápido do que a rede. Amostra um envio por segundo.
