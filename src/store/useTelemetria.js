@@ -46,6 +46,8 @@ export const useTelemetria = create((set) => ({
   estado: null,
   fonteSelecionada: 'inteligente',
   conexao: 'conectando',
+  usbLocalConectado: false,
+  definirUsbLocal: (conectado) => set({ usbLocalConectado: Boolean(conectado) }),
   alertasDispensados: [],
 
   definirEstado: (estadoBruto) => set(s => ({
