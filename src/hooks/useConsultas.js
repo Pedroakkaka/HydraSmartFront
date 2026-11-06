@@ -31,3 +31,9 @@ export const useUltimaLeituraBanco = () =>
   useQuery({ queryKey: ['ultima-leitura'], queryFn: () => api.get('/leituras?limite=1'), refetchInterval: 10_000 });
 
 // Brasil: consulta de fontes oficiais.
+
+export const useNivelBlumenau = () =>
+  useQuery({ queryKey: ['brasil', 'blumenau', 'nivel-rio'], queryFn: () => api.get('/brasil/blumenau/nivel-rio'), refetchInterval: 300000, staleTime: 120000, retry: false });
+
+export const useFontesBrasil = () =>
+  useQuery({ queryKey: ['brasil', 'fontes'], queryFn: () => api.get('/brasil/fontes'), staleTime: 86400000, retry: false });
