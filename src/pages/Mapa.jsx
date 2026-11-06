@@ -1,8 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api.js';
 import { divIcon } from 'leaflet';
 import { CircleMarker, Marker, MapContainer, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import { useTelemetria } from '../store/useTelemetria.js';
 import RiscosPertoDeMim, { MarcadorLocal, distanciaKm } from '../components/RiscosPertoDeMim.jsx';
+import BuscaCidade from '../components/BuscaCidade.jsx';
 import { useDrenosOsm, useBocasLoboOficiais, useNivelBlumenau, useFontesBrasil } from '../hooks/useConsultas.js';
 import { temLeitura } from '../lib/risco.js';
 import { dataHora, num } from '../lib/formato.js';
@@ -25,9 +28,9 @@ const REGIOES = {
   porto_alegre: { centro: CENTRO, zoom: 14, nome: 'Porto Alegre - RS' },
   blumenau: { centro: [-26.9187, -49.0661], zoom: 12, nome: 'Blumenau - SC' }
 };
-function Recentralizar({ sinal, regiao }) {
+function Recentralizar({ sinal, regiao, cidade }) {
   const map = useMap();
-  useEffect(() => { const r = REGIOES[regiao]; map.flyTo(r.centro, r.zoom); }, [sinal, regiao, map]);
+  useEffect(() => { const r = regiao === 'cidade' && cidade ? { centro: [cidade.latitude, cidade.longitude], zoom: 14 } : REGIOES[regiao]; if (r) map.flyTo(r.centro, r.zoom); }, [sinal, regiao, cidade, map]);
   return null;
 }
 const BBOX_INICIAL = '-51.24,-30.055,-51.19,-30.015';
@@ -54,6 +57,7 @@ function ConsultarAreaVisivel({ regiao, aoAlterar }) {
 export default function Mapa() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const [regiao, setRegiao] = useState('porto_alegre');
+  const [cidadeSelecionada, setCidadeSelecionada] = useState(null);
   const [localizacao, setLocalizacao] = useState(null);
   const [obtendoLocalizacao, setObtendoLocalizacao] = useState(false);
   const [erroLocalizacao, setErroLocalizacao] = useState('');
@@ -90,6 +94,12 @@ export default function Mapa() {
   const [bbox, setBbox] = useState(BBOX_INICIAL);
   const { data: oficial, isLoading: oficialCarregando, isFetching: oficialAtualizando, isError: oficialErro } = useBocasLoboOficiais(bbox, regiao === 'porto_alegre');
   const { data: osm, isLoading: osmCarregando, isError: osmErro } = useDrenosOsm();
+  const consultarDrenagem = (regiao === 'cidade' || regiao === 'blumenau') && cidadeSelecionada;
+  const { data: drenosCidade, isLoading: drenagemCarregando, isFetching: drenagemAtualizando } = useQuery({
+    queryKey: ['drenagem-cidade', cidadeSelecionada?.latitude, cidadeSelecionada?.longitude],
+    queryFn: () => api.get('/brasil/drenagem?latitude=' + encodeURIComponent(cidadeSelecionada.latitude) + '&longitude=' + encodeURIComponent(cidadeSelecionada.longitude)),
+    enabled: Boolean(consultarDrenagem), staleTime: 30 * 60_000, retry: false
+  });
   const [camadas, setCamadas] = useState({ oficial: true, osm: false, prototipo: true });
   const [recentralizar, setRecentralizar] = useState(0);
   const [tiles, setTiles] = useState({ carregou: false, falhou: false });
@@ -102,10 +112,18 @@ export default function Mapa() {
     const b = [...lista].filter(x => x !== a).sort((x, y) => dist(x, a) - dist(y, a))[0];
     return [{ ...a, idSensor: 'bueiro_1' }, { ...b, idSensor: 'bueiro_2' }];
   }, [oficial]);
+  const selecionarCidade = (cidade) => {
+    setCidadeSelecionada(cidade);
+    const coord = [cidade.latitude, cidade.longitude];
+    setRegiao(distanciaKm(coord, REGIOES.porto_alegre.centro) < 22 ? 'porto_alegre'
+      : distanciaKm(coord, REGIOES.blumenau.centro) < 18 ? 'blumenau' : 'cidade');
+    setRecentralizar(v => v + 1);
+  };
   const alternar = (nome) => setCamadas(v => ({ ...v, [nome]: !v[nome] }));
   return (
     <div className="map-view-layout">
       <div className="map-toolbar">
+        <BuscaCidade onSelect={selecionarCidade} />
         <div className="map-toolbar-group">
           {regiao === 'porto_alegre' && ['oficial', 'prototipo', 'osm'].map(nome => (
             <button key={nome} className={`map-control-btn ${camadas[nome] ? 'active' : ''}`} onClick={() => alternar(nome)}>
@@ -114,12 +132,11 @@ export default function Mapa() {
           ))}
         </div>
         <div className="map-toolbar-group">
-          {Object.entries(REGIOES).map(([id, item]) => <button key={id} type="button" className={`map-control-btn ${regiao === id ? 'active' : ''}`} onClick={() => setRegiao(id)}>{item.nome}</button>)}
           <button type="button" className="map-control-btn" onClick={() => setRecentralizar(v => v + 1)}>🎯 Centralizar</button>
           <button type="button" className="map-control-btn active" disabled={obtendoLocalizacao} onClick={localizar}>{obtendoLocalizacao ? 'Localizando…' : '📍 Riscos perto de mim'}</button>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mb-2">{regiao === 'porto_alegre' ? 'Os pontos B1/B2 são vinculados demonstrativamente ao cadastro de Porto Alegre; não representam instalação de sensores.' : regiao === 'blumenau' ? 'Níveis do Rio Itajaí-Açu e cotas de inundação são informações oficiais distintas das leituras de bueiros.' : 'Visão nacional por região. A cobertura de cadastros e sensores de drenagem varia entre municípios.'}</p>
+      <p className="hs-map-subtitle">{regiao === 'porto_alegre' ? 'Porto Alegre · Cadastro municipal georreferenciado. Pontos de bueiros não representam sensores ativos.' : regiao === 'blumenau' ? 'Blumenau · Drenagem mapeada e fontes da Defesa Civil. Dados de rio não equivalem a sensores de bueiro.' : regiao === 'cidade' ? `${cidadeSelecionada?.nome || 'Município'} · Pontos colaborativos OpenStreetMap quando existentes, sem telemetria confirmada.` : 'Visão nacional · Selecione uma cidade para consultar os dados disponíveis.'}</p>
       {erroLocalizacao && <p role="alert" className="text-xs text-amber-400">{erroLocalizacao}</p>}
       <RiscosPertoDeMim localizacao={localizacao} limpar={() => setLocalizacao(null)} regiao={regiao}
         oficial={oficial} oficialCarregando={oficialCarregando} oficialErro={oficialErro} />
@@ -130,7 +147,7 @@ export default function Mapa() {
         <p className="text-xs text-slate-400">O mapa de inundação apresenta cotas consultivas e não informa a extensão de uma cheia atual. Estações de rio não representam sensores dos bueiros.</p>
         <div className="flex flex-wrap gap-3 mt-2"><a href={linkNivel} target="_blank" rel="noopener noreferrer">Nível do rio · AlertaBlu ↗</a><a href={linkInundacao} target="_blank" rel="noopener noreferrer">Mapa oficial de inundação ↗</a></div>
       </section>}
-      {regiao === 'brasil' && <section className="card-base" aria-label="Cidades com fontes integradas">
+      {false && regiao === 'brasil' && <section className="card-base" aria-label="Cidades com fontes integradas">
         <div className="card-header-line"><strong>Fontes integradas no mapa nacional</strong></div>
         <p className="text-xs text-slate-300 mb-2">O mapa nacional mostra as cidades com fontes conectadas, não a localização fictícia de bueiros. Selecione um marcador ou uma cidade abaixo para ampliar.</p>
         <div className="flex flex-wrap gap-2">
@@ -138,7 +155,7 @@ export default function Mapa() {
           <button type="button" className="map-control-btn" onClick={() => setRegiao('blumenau')}>🔵 Blumenau · Defesa Civil / nível do rio</button>
         </div>
       </section>}
-      {(regiao === 'brasil' || regiao === 'blumenau') && <section className="card-base" aria-label="Dados meteorológicos INMET">
+      {(regiao === 'brasil' || regiao === 'blumenau' || regiao === 'cidade') && <section className="card-base hs-map-panel hs-map-inmet" aria-label="Dados meteorológicos INMET">
         <div className="card-header-line"><strong>INMET · Anomalias de precipitação</strong></div>
         <p className="text-xs text-slate-400">Compare chuva observada e climatologia em mapas oficiais mensais. Anomalias históricas não são previsões de alagamento.</p>
         <a href={linkInmet} target="_blank" rel="noopener noreferrer">Consultar mapas mensais INMET ↗</a>
@@ -155,7 +172,7 @@ export default function Mapa() {
             }}
           />
           <ZoomControl position="bottomright" />
-          <Recentralizar sinal={recentralizar} regiao={regiao} />
+          <Recentralizar sinal={recentralizar} regiao={regiao} cidade={cidadeSelecionada} />
           <MarcadorLocal localizacao={localizacao} />
           <ConsultarAreaVisivel regiao={regiao} aoAlterar={setBbox} />
           {regiao === 'brasil' && Object.entries(REGIOES).filter(([id]) => id !== 'brasil').map(([id, item]) => (
@@ -167,6 +184,12 @@ export default function Mapa() {
           {regiao === 'porto_alegre' && camadas.oficial && (oficial?.elementos ?? []).map((p, i) => (
             <CircleMarker key={`of-${p.id ?? i}`} center={[Number(p.lat), Number(p.lon)]} radius={5} pathOptions={{ color: '#065f46', fillColor: '#22c55e', fillOpacity: .9, weight: 1.5 }}>
               <Tooltip>Boca de lobo cadastrada — Prefeitura de Porto Alegre · ID {p.id ?? 'não informado'} · sem sensor confirmado</Tooltip>
+            </CircleMarker>
+          ))}
+          {(regiao === 'cidade' || regiao === 'blumenau') && (drenosCidade?.elementos || []).map((p, i) => (
+            <CircleMarker key={p.id || `cidade-${i}`} center={[Number(p.lat), Number(p.lon)]} radius={6}
+              pathOptions={{ color: '#075985', fillColor: '#38bdf8', fillOpacity: .9, weight: 2 }}>
+              <Tooltip>Ponto de drenagem OpenStreetMap · sem sensor · {p.tipo || 'dreno'}</Tooltip>
             </CircleMarker>
           ))}
           {regiao === 'porto_alegre' && camadas.osm && (osm?.elementos ?? []).map((p, i) => (
@@ -188,6 +211,9 @@ export default function Mapa() {
           })}
         </MapContainer>
       </div>
+      {(regiao === 'cidade' || regiao === 'blumenau') && cidadeSelecionada && <p className="hs-map-data-caption" role="status">
+        {drenagemCarregando || drenagemAtualizando ? 'Consultando bueiros da região…' : drenosCidade?.status === 'indisponivel' ? 'Cadastro colaborativo temporariamente indisponível para este município.' : `${drenosCidade?.elementos?.length || 0} registros de drenagem mapeados perto do centro de ${cidadeSelecionada.nome} (OSM; cobertura parcial).`}
+      </p>}
       {regiao === 'porto_alegre' && camadas.oficial && <p className="text-xs text-slate-400 mt-2" aria-live="polite">🟢 {oficialCarregando ? 'Buscando pontos verdes do cadastro municipal…' : oficialErro || oficial?.status === 'indisponivel' ? 'Cadastro oficial indisponível; consulte novamente ou aproxime o mapa.' : `${(oficial?.elementos || []).length} bocas de lobo do cadastro oficial nesta área`}{oficialAtualizando && !oficialCarregando ? ' · atualizando área…' : ''}{oficial?.parcial ? ' · limite por consulta: aproxime o mapa para detalhar' : ''}</p>}
       <div className="space-y-1" aria-live="polite">
         {tiles.falhou && <p role="status" className="text-xs text-amber-400">
