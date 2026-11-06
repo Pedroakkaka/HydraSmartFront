@@ -27,7 +27,7 @@ const PERIODOS = [
 
 function GraficoAoVivo({ b1, b2 }) {
   const base = b1.historicoTimestamps.length >= b2.historicoTimestamps.length ? b1 : b2;
-  const labels = base.historicoTimestamps.map((t) => hora(t));
+  const labels = base.historicoTimestamps.map((t) => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
   const n = Math.max(labels.length, 1);
 
   const dados = {
@@ -100,6 +100,8 @@ export default function Graficos() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
+  const canalLocal = useTelemetria((s) => s.canalLocal);
+  const localB1 = canalLocal.bueiro_1;
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
 
   return (
@@ -116,6 +118,10 @@ export default function Graficos() {
             {fonte === 'inteligente' && <a className="btn-action-secondary text-xs" href={urlDownload('/relatorios/auditoria.json')} download>📄 Auditoria JSON</a>}
           </div>
         </div>
+        {fonte === 'prototipo' && <p className="text-xs text-slate-300 mt-2" role="status">
+          <strong>Régua de contatos:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} medições locais · última leitura ${hora(localB1.timestamp)}` : 'Aguardando primeira leitura serial válida do Arduino.'}
+          {' '}A curva atualiza quando cada novo nível é recebido; nenhuma chave de API é necessária para visualizar neste computador.
+        </p>}
         <div className="h-72 w-full relative mt-2">
           <GraficoAoVivo b1={b1} b2={b2} />
         </div>
