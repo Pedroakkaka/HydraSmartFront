@@ -43,14 +43,16 @@ function extrairResumo(texto) {
 
 function interpretarSensores(bueiros = {}, demonstracao = false) {
   const leituras = Object.values(bueiros).filter(b => b?.valido && b?.conectado && !b?.desatualizado && Number.isFinite(Number(b.nivelPct)));
-  const origem = demonstracao ? 'Demonstração do protótipo' : 'Sensores de campo';
+  const origem = demonstracao ? 'Projeto físico ou simulação digital' : 'Sensores de campo';
   if (!leituras.length) return { resumo: `${origem}: aguardando leituras atuais. Não é possível concluir a condição dos bueiros.`, achados: ['Sem leituras recentes para análise.'] };
   const maior = leituras.reduce((a,b) => Number(a.nivelPct) >= Number(b.nivelPct) ? a : b);
   const nivel = Number(maior.nivelPct).toFixed(1);
   const classe = maior.risco === 'critico' ? 'crítico' : maior.risco === 'atencao' ? 'de atenção' : 'normal';
   const tendencia = maior.tendencia === 'elevacao' ? 'em elevação' : maior.tendencia === 'queda' ? 'em queda' : 'sem tendência de elevação confirmada';
   const achados = [`${leituras.length} sensor(es) com leitura atual.`, `Maior nível: ${nivel}% (${classe}); tendência ${tendencia}.`];
-  if (maior.confiabilidadeTendencia?.confiavel === false) achados.push('Tendência ainda sem confiança suficiente: ' + maior.confiabilidadeTendencia.motivo);
+  if (maior.diagnostico) {
+    achados.push(`Variação observada: ${maior.diagnostico.taxaPctMin == null ? 'não calculada' : maior.diagnostico.taxaPctMin + ' %/min'}. ${maior.diagnostico.motivo}`);
+  } else if (maior.confiabilidadeTendencia?.confiavel === false) achados.push('Tendência ainda sem confiança suficiente: ' + maior.confiabilidadeTendencia.motivo);
   return { resumo: `${origem}: maior nível observado de ${nivel}%, situação ${classe}, ${tendencia}. ${demonstracao ? 'Dados experimentais/simulados de demonstração; não representam condição real da cidade.' : 'Leituras instrumentais; confirmar calibração e atualidade.'}`, achados };
 }
 
@@ -72,6 +74,8 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
   const fontes = [...new Set((data?.fontes || []).map((f) => f.fonte).filter(Boolean))];
   const sensoresValidos = Object.values(bueiros || {}).filter(b => b?.valido && b?.conectado && !b?.desatualizado);
   const sensorMaior = sensoresValidos.reduce((max, b) => !max || Number(b.nivelPct) > Number(max.nivelPct) ? b : max, null);
+  const diagnostico = demonstracao && sensorMaior?.origem === 'Arduino USB' ? sensorMaior.diagnostico : null;
+  const tempoEncher = diagnostico?.tempoAte100Min === 0 ? 'Máximo atingido' : diagnostico?.confiavel && diagnostico.tempoAte100Min != null ? `${Number(diagnostico.tempoAte100Min).toLocaleString('pt-BR', {maximumFractionDigits:1})} min` : 'Não calculável';
   const nivel = estacao?.rio?.nivelMetros;
   const tendencia = estacao?.rio?.tendenciaMetros;
   const formatar = (v, unidade = '') => v == null || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR', {maximumFractionDigits: 2})}${unidade}`;
@@ -90,11 +94,11 @@ export default function AnaliseIntegrada({ estacao, chuva, bueiros, demonstracao
         <p className="hydra-ai-footnote">{demonstracao ? 'Análise determinística local contínua; interpretação generativa opcional com cache no servidor.' : 'Análise contextual atualizada com a telemetria; relatório consultivo oficial consultado a cada 5 segundos (respeitando cache do servidor).'}</p>
         <div className="hydra-insights">
           <div className="hydra-insight"><span className="hs-insight-icon">♧</span><span>{demonstracao ? 'Nível do protótipo' : 'Nível oficial'}</span><strong>{demonstracao ? formatar(sensorMaior?.nivelPct, '%') : formatar(nivel, ' m')}</strong><small>{demonstracao ? 'Bueiro de bancada' : estacao?.codigo ?? 'Sem estação'}</small></div>
-          <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Tendência do protótipo' : 'Tendência oficial'}</span><strong>{demonstracao ? sensorMaior?.tendencia || '—' : formatar(tendencia, ' m')}</strong><small>{demonstracao ? 'Calculada com leituras recebidas' : 'Valor informado pela estação'}</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">↗</span><span>{demonstracao ? 'Velocidade de subida' : 'Tendência oficial'}</span><strong>{demonstracao ? (diagnostico?.taxaPctMin != null ? formatar(diagnostico.taxaPctMin, ' %/min') : '—') : formatar(tendencia, ' m')}</strong><small>{demonstracao ? (diagnostico?.tendencia || 'Aguardando série') : 'Valor informado pela estação'}</small></div>
           <div className="hydra-insight"><span className="hs-insight-icon">☁</span><span>Precipitação</span><strong>{formatar(chuva, ' mm')}</strong><small>Open-Meteo</small></div>
-          <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>Janela crítica</span><strong>—</strong><small>Não calculada</small></div>
+          <div className="hydra-insight"><span className="hs-insight-icon">◷</span><span>{demonstracao ? 'Tempo até 100% · bancada' : 'Janela crítica'}</span><strong>{demonstracao ? tempoEncher : '—'}</strong><small>{demonstracao ? (diagnostico?.motivo || 'Aguardando histórico físico') : 'Não calculada'}</small></div>
         </div>
-        {<div className="hydra-ai-section"><h3>IA generativa · {demonstracao ? 'protótipo experimental' : 'dados reais'}</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p></div>}
+        {<div className="hydra-ai-section"><h3>IA generativa · {demonstracao ? 'protótipo experimental' : 'dados reais'}</h3><p>{isLoading ? 'Consultando fontes…' : isError ? 'Relatório indisponível.' : oficial.resumo || data?.mensagem || 'Sem relatório disponível.'}</p><small>{data?.geradoEm ? `Texto gerado em ${new Date(data.geradoEm).toLocaleTimeString('pt-BR')}. Atualizações da telemetria a cada leitura; a geração de texto usa cache e depende de habilitação no servidor.` : 'Sem texto gerado confirmado nesta sessão.'}</small></div>}
         <div className="hydra-ai-section">
           <h3>◎ Principais achados</h3>
           {achados.length ? <ul className="hydra-findings">{achados.map((item, index) => <li key={index}>{item}</li>)}</ul>
