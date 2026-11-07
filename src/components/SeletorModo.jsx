@@ -26,13 +26,20 @@ export default function SeletorModo({ aberto, fechar }) {
   const [erro, setErro] = useState('');
   const inputRef = useRef(null);
 
+  // Ao abrir a janela, o formulário volta ao estado inicial (ajuste durante a renderização).
+  const [abertoAnterior, setAbertoAnterior] = useState(aberto);
+  if (aberto !== abertoAnterior) {
+    setAbertoAnterior(aberto);
+    if (aberto) {
+      setEscolha(atual);
+      setChave('');
+      setErro('');
+    }
+  }
+
   useEffect(() => {
-    if (!aberto) return;
-    setEscolha(atual);
-    setChave('');
-    setErro('');
-    inputRef.current?.focus();
-  }, [aberto, atual]);
+    if (aberto) inputRef.current?.focus();
+  }, [aberto]);
 
   useEffect(() => {
     if (!aberto) return;
