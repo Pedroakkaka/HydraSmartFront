@@ -16,10 +16,13 @@ describe('risco', () => {
     expect(temLeitura(bueiro('critico', false))).toBe(false);
   });
 
-  it('situação geral assume o pior risco entre os bueiros com leitura', () => {
+  it('situação geral assume o pior risco e não indica normalidade com leituras ausentes', () => {
     expect(situacaoGeral({ a: bueiro('normal'), b: bueiro('atencao') })).toBe('atencao');
     expect(situacaoGeral({ a: bueiro('critico'), b: bueiro('atencao') })).toBe('critico');
-    expect(situacaoGeral({ a: bueiro('critico', false) })).toBe('normal');
+    expect(situacaoGeral({ a: bueiro('critico', false) })).toBe('desconhecido');
+    expect(situacaoGeral({ a: bueiro('normal'), b: bueiro('normal', false) })).toBe('desconhecido');
+    expect(situacaoGeral({})).toBe('desconhecido');
+    expect(situacaoGeral({ a: bueiro('normal'), b: bueiro('normal') })).toBe('normal');
   });
 });
 

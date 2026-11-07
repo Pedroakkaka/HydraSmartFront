@@ -27,14 +27,25 @@ export function useAcao() {
   return { executar, ocupado };
 }
 
-/** Liga/desliga a simulação. A chave do operador é pedida e anexada pelo cliente da API. */
-export function useAlternarModo() {
+/**
+ * Executa uma ação protegida. A chave do operador é anexada pelo cliente da API
+ * (pedida uma vez numa janela e guardada só em memória); `fn` recebe cabeçalhos
+ * vazios para manter a assinatura usada pelas páginas.
+ */
+export function useAcaoProtegida() {
   const { executar, ocupado } = useAcao();
+  const executarProtegida = (fn, opcoes) => executar(() => fn({}), opcoes);
+  return { executarProtegida, ocupado };
+}
+
+/** Liga/desliga a simulação. */
+export function useAlternarModo() {
+  const { executarProtegida, ocupado } = useAcaoProtegida();
   const alternar = () => {
     const modo = useTelemetria.getState().estado?.modo;
     return modo === 'demo'
-      ? executar(() => api.post('/simulacao/encerrar'), { beep: 850, sucesso: 'Modo real reativado' })
-      : executar(() => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }), { beep: 650, sucesso: 'Modo demonstração ativado' });
+      ? executarProtegida((headers) => api.post('/simulacao/encerrar', {}, headers), { beep: 850, sucesso: 'Modo real reativado' })
+      : executarProtegida((headers) => api.post('/simulacao/iniciar', { cenario: 'chuva_moderada' }, headers), { beep: 650, sucesso: 'Modo demonstração ativado' });
   };
   return { alternar, ocupado };
 }

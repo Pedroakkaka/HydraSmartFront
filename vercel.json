@@ -2,7 +2,15 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/((?!api/|ws$).*)",
+      "source": "/api/:path*",
+      "destination": "https://hydrasmartapi.onrender.com/api/:path*"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://hydrasmartapi.onrender.com/docs"
+    },
+    {
+      "source": "/((?!api/|ws$|docs$).*)",
       "destination": "/index.html"
     }
   ]

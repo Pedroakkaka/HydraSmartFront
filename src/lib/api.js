@@ -10,7 +10,14 @@ const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 export const API_V1 = `${BASE}/api/v1`;
 
 export function urlWebSocket() {
+  const wsConfigurado = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
+  if (wsConfigurado) return wsConfigurado;
   if (BASE) return `${BASE.replace(/^http/, 'ws')}/ws`;
+  // A Vercel encaminha as rotas HTTP /api, mas não faz proxy de WebSocket.
+  // Conectamos diretamente à API Render quando o painel está hospedado na Vercel.
+  if (window.location.hostname.endsWith('.vercel.app')) {
+    return 'wss://hydrasmartapi.onrender.com/ws';
+  }
   const protocolo = window.location.protocol === 'https:' ? 'wss' : 'ws';
   return `${protocolo}://${window.location.host}/ws`;
 }
@@ -25,9 +32,9 @@ export class ErroApi extends Error {
 
 /**
  * Rotas de escrita que NÃO usam a chave do operador (mesma regra do backend em app.js):
- * leituras de sensores em campo (usam X-API-Key própria) e a análise por IA.
+ * leituras de sensores em campo (X-API-Key) e da ponte do protótipo (X-Prototype-Key).
  */
-const SEM_CHAVE_OPERADOR = ['/leituras', '/ia/analisar'];
+const SEM_CHAVE_OPERADOR = ['/leituras', '/leituras/prototipo'];
 
 export function exigeChaveOperador(metodo, caminho) {
   const rota = caminho.split('?')[0];
@@ -67,7 +74,9 @@ function acaoCancelada() {
  * se ainda não foi informada) e, se a API recusar a chave, pede de novo uma vez.
  */
 async function requisitar(metodo, caminho, corpo, headersExtras = {}) {
-  if (!exigeChaveOperador(metodo, caminho)) return enviar(metodo, caminho, corpo, headersExtras);
+  const chaveExplicita = Object.keys(headersExtras).some((h) => h.toLowerCase() === 'x-operator-key');
+  // Quem já envia a chave (ex.: SeletorModo, que valida a chave digitada) segue sem a janela.
+  if (chaveExplicita || !exigeChaveOperador(metodo, caminho)) return enviar(metodo, caminho, corpo, headersExtras);
 
   let chave = await obterChaveOperador();
   if (!chave) throw acaoCancelada();
@@ -88,7 +97,7 @@ async function requisitar(metodo, caminho, corpo, headersExtras = {}) {
 }
 
 export const api = {
-  get: (caminho) => requisitar('GET', caminho),
+  get: (caminho, headers = {}) => requisitar('GET', caminho, undefined, headers),
   post: (caminho, corpo = {}, headers = {}) => requisitar('POST', caminho, corpo, headers),
   put: (caminho, corpo, headers = {}) => requisitar('PUT', caminho, corpo, headers),
   del: (caminho, headers = {}) => requisitar('DELETE', caminho, undefined, headers)

@@ -20,6 +20,6 @@ Faça **Redeploy** após mudar a variável. O código acrescenta `/api/v1` às c
 
 **Atenção:** a API rodando apenas em `localhost:3333` no computador não é acessível a visitantes da Vercel. Para manter o backend no PC, é necessário disponibilizar um endereço HTTPS público seguro (por exemplo, túnel HTTPS com suporte a WebSocket), manter o PC ligado e proteger os endpoints administrativos antes de expô-los. Uma API em HTTP sem TLS não funciona de forma confiável a partir de um site HTTPS.
 
-**Nunca coloque `GEMINI_API_KEY` ou `INGEST_API_KEY` no frontend, nem em variáveis `VITE_*`.** O Gemini é chamado exclusivamente pela API. Segredos do GitHub Actions não são injetados automaticamente no processo da API.
+**Nunca coloque `OPENAI_API_KEY` ou `INGEST_API_KEY` no frontend, nem em variáveis `VITE_*`.** A OpenAI é chamada exclusivamente pela API. Segredos do GitHub Actions não são injetados automaticamente no processo da API.
 
 Sem `VITE_API_URL`, o frontend usa chamadas relativas ao domínio da Vercel, que não possui a API; as telas podem carregar, mas leituras e análise com IA não funcionarão até a conexão ser configurada.
