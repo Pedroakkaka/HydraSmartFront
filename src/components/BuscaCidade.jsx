@@ -22,11 +22,14 @@ export default function BuscaCidade({ onSelect }) {
   const [erro, setErro] = useState('');
   const [aberto, setAberto] = useState(false);
   const sequencia = useRef(0);
+  const termoCurto = busca.trim().length < 2;
+  const listaVisivel = !termoCurto && aberto && resultados.length > 0;
   const ignorar = useRef(false);
   useEffect(() => {
     if (ignorar.current) { ignorar.current = false; return; }
     const termo = busca.trim();
-    if (termo.length < 2) { setResultados([]); setAberto(false); setErro(''); return; }
+    // Termo curto: as sugestões só ficam ocultas (ver termoCurto); nada a buscar.
+    if (termo.length < 2) return;
     const atual = ++sequencia.current;
     const timer = setTimeout(async () => {
       setBuscando(true);
@@ -107,15 +110,15 @@ export default function BuscaCidade({ onSelect }) {
             document.getElementById('hs-city-option-0')?.focus();
           }
         }}
-        aria-autocomplete="list" aria-expanded={aberto && resultados.length > 0}
+        aria-autocomplete="list" aria-expanded={listaVisivel}
         aria-controls="hs-city-results"
         placeholder="Digite sua cidade, com ou sem acento…" maxLength={80} autoComplete="off" />
       <button type="submit" disabled={buscando || resolvendo || busca.trim().length < 2}>
         {resolvendo ? 'Localizando…' : buscando ? 'Buscando…' : 'Buscar cidade'}
       </button>
     </form>
-    {erro && <p className="hs-city-error" role="status">{erro}</p>}
-    {aberto && resultados.length > 0 && <div className="hs-city-results" id="hs-city-results" role="listbox" aria-label="Sugestões de municípios">
+    {!termoCurto && erro && <p className="hs-city-error" role="status">{erro}</p>}
+    {listaVisivel && <div className="hs-city-results" id="hs-city-results" role="listbox" aria-label="Sugestões de municípios">
       {resultados.map((cidade, i) => <button key={cidade.id} id={'hs-city-option-' + i}
         role="option" aria-selected={false} type="button"
         onKeyDown={evento => {
