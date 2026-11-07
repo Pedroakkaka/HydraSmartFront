@@ -27,8 +27,13 @@ export default function App() {
   // React Router não redefine automaticamente a posição de rolagem.
   // Em celulares, a próxima aba podia abrir na posição da página longa anterior,
   // aparentando uma enorme tela branca acima das informações.
-  useLayoutEffect(() => {
+  // Menu móvel fecha ao trocar de página (ajuste durante a renderização).
+  const [rotaAnterior, setRotaAnterior] = useState(pathname);
+  if (rotaAnterior !== pathname) {
+    setRotaAnterior(pathname);
     setMenuAberto(false);
+  }
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
