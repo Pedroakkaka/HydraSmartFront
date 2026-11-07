@@ -1,203 +1,145 @@
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { useQuery } from '@tanstack/react-query';
+import { Line } from 'react-chartjs-2';
+import '../lib/graficos.js';
+import { api } from '../lib/api.js';
 import { useTelemetria } from '../store/useTelemetria.js';
-import { useCemaden, useClima, useSaude, useHistoricoOficial } from '../hooks/useConsultas.js';
-import { metaRisco, situacaoGeral, temLeitura } from '../lib/risco.js';
-import { hora, num } from '../lib/formato.js';
-import { useRelogio } from '../hooks/useRelogio.js';
+import { useClima } from '../hooks/useConsultas.js';
+import { situacaoGeral, temLeitura } from '../lib/risco.js';
+import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
+import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
+import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
+import { estimarTempoExtravasamento, avaliarCondicaoObservada, selecionarEstacaoOficial, estacaoAtual } from '../lib/indicadoresReais.js';
 
-const CENTRO_PORTO_ALEGRE = [-30.0346, -51.2177];
-
-const SITUACAO = {
-  critico: {
-    badge: ['danger', 'Alerta Crítico'], valor: ['text-rose-500', 'Crítico'], card: 'active-alert',
-    icone: ['bg-rose-500 text-white', '⚠'], titulo: 'Risco Iminente de Transbordo',
-    descricao: "Nível d'água acima do limiar crítico em galeria monitorada."
-  },
-  atencao: {
-    badge: ['warning', 'Atenção'], valor: ['text-amber-400', 'Atenção'], card: '',
-    icone: ['bg-amber-500 text-black', '!'], titulo: 'Elevação do Nível de Drenagem',
-    descricao: "Nível d'água entre os limiares de atenção e crítico nas galerias monitoradas."
-  },
-  normal: {
-    badge: ['normal', 'Operacional'], valor: ['text-emerald-400', 'Normal'], card: '',
-    icone: ['bg-emerald-500 text-white', '✓'], titulo: 'Condição Hidrológica Normal',
-    descricao: 'Nenhum transbordo ou risco crítico detectado nas galerias monitoradas.'
-  }
+const ESTACOES = {
+  'DCRS-00044': 'Viamão · Itapuã',
+  'DCRS-00054': 'Barra do Ribeiro · Guaíba',
+  'DCRS-00076': 'Eldorado do Sul',
+  'DCRS-00105': 'Viamão · Reserva Estadual'
 };
+const numero = (v, unidade = '') => v == null || v === '' || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2})}${unidade}`;
+const temDado = (b) => Boolean(b && temLeitura(b) && !b.desatualizado);
 
-function CardBueiro({ bueiro, titulo, onClick }) {
-  const ok = temLeitura(bueiro);
-  const meta = metaRisco(bueiro.risco);
-  const cfg = bueiro.calibracao;
-
-  return (
-    <div className="card-base cursor-pointer" onClick={onClick}>
-      <div className="card-header-line">
-        <span className="card-title-text">{titulo}</span>
-        <span className={`badge-pill ${ok ? meta.classe : 'muted'}`}>{ok ? meta.rotulo : 'Desconectado'}</span>
-      </div>
-      <div className="card-value-display">
-        <span className="value-large">{ok ? `${num(bueiro.nivelPct)}%` : 'Sem leitura'}</span>
-        <span className="value-unit">{ok ? `(${num(bueiro.alturaAguaCm)} cm d'água)` : ''}</span>
-      </div>
-      <div className="card-meta-text">
-        <span>
-          {!ok ? 'Aguardando leituras' : bueiro.desatualizado ? '⚠️ Desatualizado' : `Distância: ${num(bueiro.distanciaMedidaCm)} cm`}
-        </span>
-        <span className="font-mono">{ok ? hora(bueiro.timestamp) : '--:--'}</span>
-      </div>
-      <div className={`text-[10px] font-mono mt-1 ${cfg.coordenadasConfirmadas ? 'text-emerald-400' : 'text-slate-500'}`}>
-        {cfg.coordenadasConfirmadas
-          ? `Lat: ${cfg.latitude.toFixed(4)}, Lng: ${cfg.longitude.toFixed(4)}`
-          : 'Localização não confirmada'}
-      </div>
+function CartaoIndicador({ icone, titulo, valor, detalhe, classe = '' }) {
+  return <div className={`hs-kpi ${classe}`}>
+    <span className="hs-kpi-title"><span className="hs-icon">{icone}</span>{titulo}</span>
+    <div className="hs-kpi-number">{valor}</div>
+    <p className="hs-kpi-caption">{detalhe}</p>
+  </div>;
+}
+function NivelSensor({ bueiro, titulo }) {
+  const valido = temDado(bueiro);
+  const pct = valido ? Math.min(100,Math.max(0,Number(bueiro.nivelPct)||0)) : 0;
+  return <div className="hs-meter-cell">
+    <div className="hs-meter-title">{titulo}</div>
+    <strong>{valido ? numero(bueiro.tipoMedicao === 'nivel_percentual' ? bueiro.nivelPct : bueiro.alturaAguaCm,bueiro.tipoMedicao === 'nivel_percentual' ? '%' : ' cm') : 'Sem leitura'}</strong>
+    <div className="hs-meter-rail"><i style={{width:`${pct}%`}} /></div>
+    <span>{valido ? `${numero(bueiro.nivelPct,'%')} da altura útil` : 'Sem leitura recente'}</span>
+  </div>;
+}
+function GraficoNivel({ b1, b2 }) {
+  const tempos = [...new Set([...(b1?.historicoTimestamps || []),...(b2?.historicoTimestamps || [])]
+    .filter(Number.isFinite))].sort((x,y)=>x-y);
+  if (!tempos.length) return <div className="hs-chart-empty"><span>⌁</span>
+    <strong>Aguardando leituras de B01 ou B02</strong>
+    <small>A curva será atualizada com cada medição da régua correspondente.</small>
+  </div>;
+  const labels = tempos.map(t=>new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const serie = b => {
+    const mapa = new Map((b?.historicoTimestamps||[]).map((t,i)=>[t,b?.historicoNiveis?.[i]]));
+    return tempos.map(t=>mapa.has(t)?mapa.get(t):null);
+  };
+  const data = {labels,datasets:[
+    {label:'Bueiro 01 · régua A0–A5',data:serie(b1),borderColor:'#0069e6',
+      backgroundColor:'rgba(0,105,230,.1)',pointRadius:2,tension:.15,fill:false,spanGaps:true},
+    {label:'Bueiro 02 · segunda régua',data:serie(b2),borderColor:'#02a5c7',
+      backgroundColor:'rgba(2,165,199,.06)',pointRadius:2,tension:.15,fill:false,spanGaps:true}
+  ]};
+  const options = {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{color:'#415875',boxWidth:12,font:{size:11}}},
+      tooltip:{mode:'index',intersect:false}},
+    scales:{x:{grid:{display:false},ticks:{color:'#6b7f96',maxTicksLimit:8}},
+      y:{min:0,max:100,grid:{color:'#e8eef6'},ticks:{color:'#6b7f96',callback:v=>`${v}%`}}}};
+  return <div className="hs-chart-graphic"><Line data={data} options={options}/></div>;
+}
+function Estacoes({ data, loading, error }) {
+  const estacoes=(data?.estacoes||[]).filter(e=>ESTACOES[e.codigo]).slice(0,4);
+  return <section className="hs-card hs-stations">
+    <div className="hs-card-head"><h3><span className="hs-outline-icon">◉</span> Estações hidrológicas oficiais</h3><span className="hs-subtle-state">{loading?'Consultando…':`${estacoes.length} estações consultadas`}</span></div>
+    <div className="hs-table-wrap">
+      <table><thead><tr><th>Estação</th><th>Nível atual</th><th>Tendência</th><th>Situação oficial</th></tr></thead>
+      <tbody>{estacoes.map(e=><tr key={e.codigo}>
+        <td><span className="hs-pin">⌖</span> {ESTACOES[e.codigo]}</td>
+        <td className="hs-val">{estacaoAtual(e) ? numero(e.rio?.nivelMetros,' m') : 'Desatualizado'}</td>
+        <td>{estacaoAtual(e) ? numero(e.rio?.tendenciaMetros,' m') : '—'}</td>
+        <td><span className="hs-status-tag">{estacaoAtual(e) ? (e.rio?.situacaoOficial || 'Não informada') : 'Sem leitura recente'}</span></td>
+      </tr>)}</tbody></table>
+      {!estacoes.length && <p className="hs-inline-empty">{error?'Estações temporariamente indisponíveis.':'Aguardando dados oficiais.'}</p>}
     </div>
-  );
+    <p className="hs-card-foot">Fonte: Defesa Civil RS · Estações da região, não sensores dos bueiros. Consulta do painel a cada 30 s; leituras conforme a atualização da fonte oficial.</p>
+  </section>;
 }
 
-function statusCemaden(c) {
-  if (!c) return ['text-slate-400', 'Consultando...'];
-  if (c.status === 'sucesso') return ['text-emerald-400', 'Estações de Porto Alegre com dados recentes'];
-  if (c.status === 'sem_dados_recentes') return ['text-amber-400', 'Sem dados recentes'];
-  if (c.status === 'sem_token') return ['text-slate-400', 'Sem token configurado'];
-  return ['text-rose-400', 'Falha de conexão'];
-}
-
-export default function VisaoGeral() {
-  const navegar = useNavigate();
-  const relogio = useRelogio();
-  const estado = useTelemetria((s) => s.estado);
-  const { data: clima } = useClima();
-  const { data: cemaden } = useCemaden();
-  const saude = useSaude();
-  const { data: historicoOficial } = useHistoricoOficial();
-
-  const { bueiro_1: b1, bueiro_2: b2 } = estado.bueiros;
-  const s = SITUACAO[situacaoGeral(estado.bueiros)];
-  const serial = estado.serial;
-  const [corCemaden, textoCemaden] = statusCemaden(cemaden);
-  const banco = saude.data?.banco ?? (saude.isError ? 'indisponível' : '...');
-
-  const abrirBueiro = () => navegar('/bueiros');
-
-  return (
-    <>
-      <div className="overview-grid">
-        <div className="card-base">
-          <div className="card-header-line">
-            <span className="card-title-text">Sistema Geral</span>
-            <span className={`badge-pill ${s.badge[0]}`}>{s.badge[1]}</span>
-          </div>
-          <div className="card-value-display">
-            <span className={`value-large ${s.valor[0]}`}>{s.valor[1]}</span>
-          </div>
-          <div className="card-meta-text">
-            <span>Porto Alegre - Rio Grande do Sul</span>
-            <span>{relogio} (GMT-3)</span>
-          </div>
+export default function VisaoGeral(){
+  const navegar=useNavigate();
+  const estado=useTelemetria(s=>s.estado);
+  const {data:clima}=useClima();
+  const {data:hidrologia,isLoading:hidroCarregando,isError:hidroErro}=useQuery({
+    queryKey:['hidrologia-estacoes-rs'],queryFn:()=>api.get('/hidrologia/estacoes'),staleTime:25_000,refetchInterval:30_000
+  });
+  const b1=estado?.bueiros?.bueiro_1;
+  const b2=estado?.bueiros?.bueiro_2;
+  const fonte=useTelemetria(s=>s.fonteSelecionada);
+  const ambos=fonte==='prototipo' ? (temDado(b1)||temDado(b2)) : temDado(b1)&&temDado(b2);
+  const situacao=fonte==='prototipo' && estado?.modo !== 'demo' ? (temDado(b1)&&b1.risco==='critico'||temDado(b2)&&b2.risco==='critico'?'critico':temDado(b1)&&b1.risco==='atencao'||temDado(b2)&&b2.risco==='atencao'?'atencao':ambos?'normal':'desconhecido') : estado?.bueiros?situacaoGeral(estado.bueiros):'desconhecido';
+  const status=!ambos?'Sem leituras':situacao==='normal'?'Estável':situacao==='atencao'?'Atenção':situacao==='critico'?'Crítico':'Indeterminado';
+  const estadoVisual=!ambos?'indisponivel':situacao==='normal'?'normal':situacao==='atencao'?'atencao':'critico';
+  const estacaoDestaque=hidrologia?.status === 'desatualizado' ? null : selecionarEstacaoOficial(hidrologia?.estacoes);
+  const chuva=clima?.precipitacaoObservadaMm;
+  const inteligente=fonte==='inteligente';
+  const medicaoOficial = estacaoDestaque?.rio?.nivelMetros;
+  const tituloEstacao = estacaoDestaque ? (ESTACOES[estacaoDestaque.codigo] || estacaoDestaque.codigo) : null;
+  const diagnosticoFisico = !inteligente && estado?.modo !== 'demo' && temDado(b1) ? b1?.diagnostico : null;
+  const tempoExtravasamento = inteligente || estado?.modo === 'demo' ? estimarTempoExtravasamento(estado?.bueiros || {}) : {
+    valor: diagnosticoFisico?.tempoAte100Min === 0 ? '100% atingido' : diagnosticoFisico?.confiavel && diagnosticoFisico?.tempoAte100Min != null ? `${numero(diagnosticoFisico.tempoAte100Min, ' min')}` : 'Ainda não calculável',
+    detalhe: diagnosticoFisico?.motivo || 'Aguardando uma sequência de leituras da régua de contatos.'
+  };
+  const condicaoOficial = avaliarCondicaoObservada(estacaoDestaque, chuva);
+  const eletrodosAtivos = !inteligente && estado?.modo !== 'demo' && b1?.tipoMedicao === 'nivel_percentual';
+  return <div className="hs-dashboard">
+    <div className="hs-left">
+      <div className="hs-kpi-row">
+        <div className="hs-kpi hs-kpi-status">
+          <span className="hs-kpi-title"><span className="hs-icon">◉</span> {inteligente ? 'Monitoramento com dados reais' : 'Status do projeto físico'}</span>
+          <span className={`hs-state-pill ${estadoVisual}`}>{inteligente ? (tituloEstacao ? 'Estação com leitura recente' : 'Sem leitura recente') : status}</span>
+          <p className="hs-kpi-caption">{inteligente ? 'Análise de observações oficiais. Sem previsão automática validada.' : ambos ? 'Condição medida pelos sensores de bancada.' : 'Aguardando leituras experimentais.'}</p>
+          <div className="hs-wave-lines" aria-hidden="true"/>
         </div>
-
-        <CardBueiro bueiro={b1} titulo="Bueiro 01 (Entrada)" onClick={abrirBueiro} />
-        <CardBueiro bueiro={b2} titulo="Bueiro 02 (Saída)" onClick={abrirBueiro} />
-
-        <div className="card-base cursor-pointer" onClick={() => navegar('/clima')}>
-          <div className="card-header-line">
-            <span className="card-title-text">Clima (Open-Meteo)</span>
-            <span className="text-xs text-cyan-400 font-mono">{clima?.condicaoTempo ?? 'Consultando...'}</span>
-          </div>
-          <div className="card-value-display">
-            <span className="value-large">{num(clima?.temperatura)}</span>
-            <span className="value-unit">°C</span>
-          </div>
-          <div className="card-meta-text">
-            <span>Chuva: {num(clima?.precipitacaoObservadaMm, 1, '0.0')} mm</span>
-            <span>Umidade: {clima?.umidadeRelativaPct ?? '--'}%</span>
-          </div>
-        </div>
+        <CartaoIndicador icone="⌛" titulo={inteligente ? "Tendência até limite do bueiro" : "Tempo até limite (experimental)"} valor={tempoExtravasamento.valor} detalhe={tempoExtravasamento.detalhe} classe="hs-kpi-soft"/>
+        <CartaoIndicador icone="⚠" titulo={inteligente ? "Condição hidrológica observada" : "Velocidade de subida · bancada"} valor={inteligente ? condicaoOficial.valor : diagnosticoFisico?.taxaPctMin != null ? numero(diagnosticoFisico.taxaPctMin, " %/min") : "—"} detalhe={inteligente ? condicaoOficial.detalhe : diagnosticoFisico?.tendencia || "Aguardando leituras físicas."} classe="hs-kpi-soft"/>
       </div>
-
-      <div className="card-base mt-3">
-        <div className="card-header-line"><span className="card-title-text">📊 Análise integrada — Porto Alegre</span><span className="text-xs text-cyan-400">Chuva + histórico + protótipo</span></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
-          <div><strong className="text-white">Chuva observada</strong><div>{clima?.precipitacaoObservadaMm == null ? 'Fonte meteorológica indisponível' : `${num(clima.precipitacaoObservadaMm, 1)} mm (Open-Meteo)`}</div></div>
-          <div><strong className="text-white">Referências históricas</strong><div>{Array.isArray(historicoOficial) ? `${historicoOficial.length} registros/referências cadastrados` : 'Aguardando histórico oficial'}</div></div>
-          <div><strong className="text-white">Protótipo físico B1 / B2</strong><div>{[b1,b2].map((b,i) => `B${i+1}: ${temLeitura(b) && !b.desatualizado && b.origem !== 'simulador' ? num(b.nivelPct) + '% de nível' : 'sem leitura física atual'}`).join(' • ')}</div></div>
-        </div>
-        <p className="text-[11px] text-slate-400 mt-2">A análise reúne fontes distintas, sem atribuir causalidade automaticamente. Nível de água não equivale a vazão (L/s): para medir vazão são necessários sensor adequado e calibração hidráulica. No modo demonstração os valores gerados são sintéticos; para medições reais use Modo Real e conecte o dispositivo.</p>
+      <div className="hs-measure-row">
+        <section className="hs-card hs-level">
+          <div className="hs-card-head"><h3><span className="hs-outline-icon">♧</span> Nível atual da água</h3><button className="hs-text-link" onClick={()=>navegar('/bueiros')}>Ver sensores ↗</button></div>
+          <div className="hs-level-content">
+            <div className="hs-level-main"><strong>{inteligente ? numero(medicaoOficial,' m') : temDado(b1) ? numero(eletrodosAtivos ? b1.nivelPct : b1.alturaAguaCm,eletrodosAtivos ? '%' : ' cm') : 'Sem leitura B01'}</strong><p>{inteligente ? (tituloEstacao ? 'Estação oficial · ' + tituloEstacao : 'Aguardando estação oficial') : 'Protótipo experimental · Bueiro 01'}</p><span>{inteligente ? 'Medições da estação não equivalem ao nível de um bueiro.' : ambos ? 'Sensores experimentais disponíveis' : 'Sem medições da bancada'}</span></div>
+            <div className="hs-sensor-measures"><NivelSensor bueiro={b1} titulo="Monitor de nível · B01"/><NivelSensor bueiro={b2} titulo="Saída · B02"/></div>
+          </div>
+        </section>
+        <section className="hs-card hs-rain">
+          <div className="hs-card-head"><h3><span className="hs-outline-icon">☁</span> Precipitação observada</h3></div>
+          <div className="hs-rain-body"><div><strong>{chuva==null?'—':numero(chuva,' mm')}</strong><p>{chuva==null?'Dados meteorológicos indisponíveis':'Open-Meteo · observação reportada pela API'}</p></div><span className="hs-rain-icon" aria-hidden="true">▂▅▇█</span></div>
+        </section>
       </div>
-      <div className="overview-central-layout">
-        <div className="preview-map-box">
-          <div className="preview-map-header">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>🗺️</span> Malha Cartográfica de Porto Alegre-RS (OpenStreetMap)
-              </h3>
-              <p className="text-xs text-slate-400">
-                Base cartográfica OpenStreetMap; cadastro municipal de bocas de lobo disponível no mapa completo.
-              </p>
-            </div>
-            <button className="btn-action-primary text-xs" onClick={() => navegar('/mapa')}>
-              Abrir Mapa Completo ↗
-            </button>
-          </div>
-          <div className="preview-map-frame" style={{ cursor: 'pointer' }} onClick={() => navegar('/mapa')}>
-            <MapContainer
-              center={CENTRO_PORTO_ALEGRE}
-              zoom={13}
-              zoomControl={false}
-              dragging={false}
-              scrollWheelZoom={false}
-              doubleClickZoom={false}
-              touchZoom={false}
-              boxZoom={false}
-              keyboard={false}
-              attributionControl={false}
-              style={{ height: '100%', width: '100%', pointerEvents: 'none' }}
-            >
-              <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={18} />
-            </MapContainer>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className={`alert-status-card ${s.card}`}>
-            <div className={`alert-icon-wrap ${s.icone[0]}`}>{s.icone[1]}</div>
-            <div>
-              <div className="text-xs font-bold text-white">{s.titulo}</div>
-              <div className="text-[11px] text-slate-300 mt-0.5">{s.descricao}</div>
-            </div>
-          </div>
-
-          <div className="card-base">
-            <div className="text-xs font-bold text-white uppercase border-b border-slate-800 pb-2 mb-2 flex justify-between">
-              <span>Enlace de Telemetria</span>
-              <span className="text-cyan-400 font-mono text-[11px]">{serial.leiturasRecebidas} msgs</span>
-            </div>
-            <div className="space-y-1.5 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Porta USB:</span>
-                <span className="font-mono text-white">{serial.conectado ? `${serial.porta} (${serial.baudRate} baud)` : 'Desconectada'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Erros de leitura:</span>
-                <span className={`font-mono ${serial.errosParser ? 'text-amber-400' : 'text-emerald-400'}`}>{serial.errosParser} erros</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">CEMADEN Porto Alegre:</span>
-                <span className={corCemaden}>{textoCemaden}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Banco de dados:</span>
-                <span className={`font-mono text-[11px] ${banco === 'postgres' ? 'text-emerald-400' : 'text-amber-400'}`}>{banco}</span>
-              </div>
-            </div>
-            <button className="btn-action-secondary mt-3 text-xs w-full" onClick={() => navegar('/diagnostico')}>
-              Ver Diagnóstico Completo
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+      <section className="hs-card hs-chart">
+        <div className="hs-card-head"><h3><span className="hs-outline-icon">▥</span> Evolução do nível da água</h3><button className="hs-period" onClick={()=>navegar('/graficos')}>Ver histórico completo ⌄</button></div>
+        <p className="hs-chart-caption">{inteligente ? 'Sensores reais de campo (se conectados)' : 'Leituras experimentais do protótipo'} · percentual da altura útil</p>
+        <GraficoNivel b1={b1} b2={b2}/>
+      </section>
+      {inteligente && <Estacoes data={hidrologia} loading={hidroCarregando} error={hidroErro}/>}
+      {inteligente && <DemonstracaoAssistida />}
+      <ReceptorSimulado />
+    </div>
+    <AnaliseIntegrada estacao={inteligente ? estacaoDestaque : null} chuva={chuva} bueiros={estado?.bueiros} demonstracao={!inteligente}/>
+  </div>;
 }

@@ -25,7 +25,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules/three')) return 'three';
             if (id.includes('node_modules/leaflet') || id.includes('react-leaflet')) return 'mapa';
             if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'graficos';
             return undefined;
