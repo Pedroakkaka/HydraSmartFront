@@ -7,7 +7,7 @@ import { useTelemetria } from '../store/useTelemetria.js';
 import { useAlertas, useHistoricoOficial } from '../hooks/useConsultas.js';
 import { api, urlDownload } from '../lib/api.js';
 import { eixoPercentual, linhaLimiar, opcoesBase, serieBueiro1, serieBueiro2 } from '../lib/graficos.js';
-import { dataHora, hora, horaCurta, num } from '../lib/formato.js';
+import { dataHora, horaCurta, num } from '../lib/formato.js';
 
 const opcoesNivel = {
   ...opcoesBase,

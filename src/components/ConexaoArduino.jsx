@@ -192,7 +192,7 @@ export default function ConexaoArduino() {
               }
             }
           }
-        } catch (e) {
+        } catch {
           if (!interromperRef.current) setErro('A comunicação USB foi interrompida. Confira o cabo.');
         } finally {
           try { leitor.releaseLock(); } catch { /* nada */ }

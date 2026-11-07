@@ -6,7 +6,6 @@ import { api } from '../lib/api.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useClima } from '../hooks/useConsultas.js';
 import { situacaoGeral, temLeitura } from '../lib/risco.js';
-import { num } from '../lib/formato.js';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import DemonstracaoAssistida from '../components/DemonstracaoAssistida.jsx';
 import ReceptorSimulado from '../components/ReceptorSimulado.jsx';
