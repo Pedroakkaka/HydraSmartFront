@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import HidrologiaOficial from '../components/HidrologiaOficial.jsx';
 import { Line } from 'react-chartjs-2';
@@ -106,10 +106,29 @@ export default function Graficos() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
-  const canalLocal = useTelemetria((s) => s.canalLocal);
-  const localB1 = canalLocal.bueiro_1;
-  const localB2 = canalLocal.bueiro_2;
   const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
+  const definirEstado = useTelemetria((s) => s.definirEstado);
+  const geradoEmAtual = useTelemetria((s) => s.estadoBruto?.geradoEm);
+
+  // WebSocket entrega a leitura imediatamente; HTTP confirma a cada 3 segundos.
+  // Nunca sobrescreve um estado mais recente com resposta HTTP atrasada.
+  const { data: confirmacao, isError: falhaConfirmacao } = useQuery({
+    queryKey: ['graficos-prototipo-estado'],
+    queryFn: () => api.get('/estado'),
+    enabled: fonte === 'prototipo',
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
+    retry: 1
+  });
+  useEffect(() => {
+    if (fonte !== 'prototipo' || !confirmacao?.canais) return;
+    if (Number.isFinite(geradoEmAtual) && Number(confirmacao.geradoEm) < geradoEmAtual) return;
+    definirEstado(confirmacao);
+  }, [confirmacao, definirEstado, fonte, geradoEmAtual]);
+
+  const statusRegua = (b) => b?.timestamp && Number.isFinite(Number(b.nivelPct))
+    ? `${Number(b.nivelPct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% · ${b.historicoNiveis?.length ?? 0} amostras`
+    : 'Aguardando leitura';
 
   return (
     <>
@@ -126,12 +145,15 @@ export default function Graficos() {
           </div>
         </div>
         {fonte === 'prototipo' && <p className="text-xs text-slate-300 mt-2" role="status">
-          <strong>B01:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} leituras` : 'Aguardando leitura'}
-          {' · '}<strong>B02:</strong> {localB2?.timestamp ? `${Number(localB2.nivelPct).toLocaleString('pt-BR')}% · ${localB2.historicoNiveis.length} leituras` : 'Aguardando segunda régua'}.
-          {' '}A curva atualiza quando cada novo nível é recebido; nenhuma chave de API é necessária para visualizar neste computador.
+          <strong>B01:</strong> {statusRegua(b1)}
+          {' · '}<strong>B02:</strong> {statusRegua(b2)}.
+          {' '}Cada curva acompanha a régua correspondente, por USB local ou canal experimental da API.
         </p>}
+        {fonte === 'prototipo' && falhaConfirmacao && <p className="text-xs text-amber-500 mt-2" role="status">A API não respondeu à confirmação. As leituras USB locais continuam disponíveis neste computador.</p>}
         <div className="h-72 w-full relative mt-2">
-          <GraficoAoVivo b1={b1} b2={b2} />
+          {totalAoVivo === 0 && fonte === 'prototipo'
+            ? <p className="text-xs text-slate-400 py-4" role="status">Aguardando a primeira leitura da régua B01 ou B02. Confira a conexão USB e as mensagens interpretadas acima.</p>
+            : <GraficoAoVivo b1={b1} b2={b2} />}
         </div>
       </div>
 
