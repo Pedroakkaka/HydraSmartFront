@@ -131,3 +131,21 @@ professor no histórico da `main` foram mantidas.
 - Testar no celular com a página aberta e notificações autorizadas: iniciar
   cenário digital no painel autorizado, passar por 50% e 80%, verificar avisos
   claramente rotulados e a deduplicação; retornar ao normal e testar rearmar.
+
+## 09/11/2026 — solicitação imediata da permissão ao acessar o site
+
+- Adicionado componente `SolicitacaoInicialAlertas` na raiz do aplicativo.
+- Ao abrir o HydraSmart em HTTPS, se a permissão do navegador está `default`,
+  aparece imediatamente um convite visível para **Permitir notificações**,
+  com identificação de **simulação / não emergência**.
+- O botão chama `Notification.requestPermission()` **diretamente no gesto
+  do visitante**, como exigido por navegadores móveis e navegadores modernos.
+  **Não é tecnicamente possível garantir que o navegador mostre o prompt nativo
+  de modo automático ao carregar a página**, sem nenhum toque.
+- Quem escolhe **Agora não** não é redirecionado nem impedido de usar o site;
+  o botão de avisos do cabeçalho continua disponível.
+- Quem já recusou a permissão no navegador não recebe solicitações repetidas
+  que poderiam violar a escolha. É necessário habilitar manualmente nas
+  configurações do site para autorizar depois.
+- Não altera o modo de dados, os gráficos nem a separação de alertas reais
+  e simulados. O aviso ainda exige site aberto para funcionar.
