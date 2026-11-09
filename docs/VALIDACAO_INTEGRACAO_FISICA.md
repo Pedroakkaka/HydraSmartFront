@@ -76,3 +76,33 @@ da equipe para obter evidência de aprovação e corrigir eventuais falhas.
 Depois de aprovar os testes, revisar o pull request da branch e só então integrá-lo
 à `main`. Conferir no Vercel o SHA publicado e no Render a versão da API. Um
 commit, por si só, **não** significa deploy.
+
+## 09/11/2026 — acompanhamento dos testes da equipe
+
+O responsável confirmou que o protótipo físico já envia percentuais corretos, os
+gráficos acompanham a água e as tabelas atualizam. Essas três verificações são
+evidências relatadas pela equipe; não equivalem a testes instrumentados feitos
+nesta branch.
+
+**Falha reportada:** a notificação não chegou. Causa provável identificada no
+código: o hook observava mensagens do WebSocket da API, mas não reagia diretamente
+às alterações de `canalLocal` quando o Arduino estava conectado via Web Serial
+sem credencial experimental. Agora as leituras locais genuínas são observadas,
+com a mesma classificação de faixa e proteção contra duplicações já existentes.
+O usuário deve **ativar avisos** e usar **Testar aviso** neste dispositivo para
+separar problemas de permissão de problemas de telemetria.
+
+**Limitação:** a notificação funciona com a página aberta, permissão concedida
+e recursos do navegador disponíveis. Não há infraestrutura de Web Push com
+assinatura/servidor para garantir aviso com o aplicativo fechado, especialmente
+em plataformas móveis. Não anunciar essa capacidade sem implementação e testes.
+
+**Diagnóstico:** o código USB local passou a exigir ao menos 10 amostras em
+25 segundos, no mínimo duas elevações e ausência de quedas para considerar a
+extrapolação de enchimento. Se a água ficar estável, baixar, ficar sem leitura,
+ou se ocorrer salto isolado, o resultado é **Não calculável**. A estimativa
+continua sendo experimental, não uma previsão validada de alagamento.
+
+**Publicação:** integrar e publicar somente após `npm test`, `npm run lint`,
+`npm run build` e validação da notificação com Arduino real. Alterações do
+professor no histórico da `main` foram mantidas.
