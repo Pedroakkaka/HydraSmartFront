@@ -23,6 +23,7 @@ afterEach(() => vi.useRealTimers());
 
 describe('isolamento e validade da telemetria física', () => {
   it('atualiza B01 sem inventar nível de B02', () => {
+    vi.useFakeTimers();
     vi.setSystemTime(agora);
     const estado = selecionarCanal(base(), 'prototipo', { bueiro_1: leitura(33.3) });
     expect(estado.bueiros.bueiro_1.nivelPct).toBe(33.3);
