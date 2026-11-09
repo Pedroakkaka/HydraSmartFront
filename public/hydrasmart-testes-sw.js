@@ -1,5 +1,13 @@
 // Serviço de notificações remoto: somente simulações identificadas.
 // Não altera cache, páginas, bancos ou telemetria do projeto.
+// O SW antigo não tinha listener push. Ativar a atualização imediatamente
+// evita celulares ficarem permanentemente presos à versão anterior.
+self.addEventListener('install', event => {
+  event.waitUntil(self.skipWaiting());
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
+});
 self.addEventListener('push', (event) => {
   let dados = {};
   try { dados = event.data ? event.data.json() : {}; } catch { return; }
