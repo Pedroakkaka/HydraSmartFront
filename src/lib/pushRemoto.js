@@ -16,7 +16,15 @@ export function suportaPushRemoto() {
  * Registra este aparelho no servidor, independentemente da fonte de dados
  * selecionada no painel. A permissão deve ter sido concedida pelo visitante.
  */
-export async function inscreverCelular() {
+let registroPendente = null;
+export function inscreverCelular() {
+  if (!registroPendente) {
+    registroPendente = registrarCelular().finally(() => { registroPendente = null; });
+  }
+  return registroPendente;
+}
+
+async function registrarCelular() {
   if (!suportaPushRemoto()) throw new Error('Web Push não suportado neste navegador. No iPhone, adicione o site à Tela de Início.');
   if (Notification.permission !== 'granted') throw new Error('Permissão de notificações não concedida.');
   const config = await api.get('/push/publica');
@@ -26,10 +34,17 @@ export async function inscreverCelular() {
   const registro = await navigator.serviceWorker.register('/hydrasmart-testes-sw.js', { scope: '/' });
   const pronto = await navigator.serviceWorker.ready;
   let inscricao = await pronto.pushManager.getSubscription();
+  const novaChave = chaveAplicacao(config.chavePublica);
+  const anterior = inscricao?.options?.applicationServerKey;
+  if (inscricao && anterior &&
+      !Array.from(new Uint8Array(anterior)).every((v, i) => v === novaChave[i])) {
+    await inscricao.unsubscribe();
+    inscricao = null;
+  }
   if (!inscricao) {
     inscricao = await pronto.pushManager.subscribe({
       userVisibleOnly:true,
-      applicationServerKey:chaveAplicacao(config.chavePublica)
+      applicationServerKey:novaChave
     });
   }
   try {
