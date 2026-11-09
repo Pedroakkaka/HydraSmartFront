@@ -32,16 +32,38 @@ export function ehAlertaProtótipo(dados) {
     && a.mensagem.startsWith('[TESTE PROTÓTIPO]');
 }
 
+// Alertas digitais do projeto são estritamente rotulados como simulação.
+export function ehAlertaSimulacao(dados) {
+  const a = dados?.alerta;
+  return (dados?.acao === 'disparado' || dados?.acao === 'nivel_alto_teste')
+    && a?.simulado === true
+    && typeof a?.mensagem === 'string'
+    && a.mensagem.startsWith('[TESTE SIMULAÇÃO]');
+}
+export const ehAlertaDeTeste = dados => ehAlertaProtótipo(dados) || ehAlertaSimulacao(dados);
+export function classificarFaixaTeste(nivel, atencao = 50, critico = 80) {
+  const n = Number(nivel);
+  if (nivel == null || !Number.isFinite(n) || n < 0 || n > 100) return null;
+  return n >= critico ? 'critico' : n >= atencao ? 'atencao' : 'normal';
+}
+
 export async function exibirNotificacaoTeste(evento = null) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
   const nivel = evento?.alerta?.nivelPctPico;
-  const dadosExperimentais = ehAlertaProtótipo(evento) && typeof nivel === 'number' && Number.isFinite(nivel);
-  const descricao = dadosExperimentais
-    ? `Leitura experimental do protótipo: ${nivel.toFixed(1)}% da altura útil. Não há emergência real. Nenhuma ação é necessária.`
+  const simDigital = ehAlertaSimulacao(evento);
+  const prototipo = ehAlertaProtótipo(evento);
+  const percentual = typeof nivel === 'number' && Number.isFinite(nivel)
+    ? `${nivel.toFixed(1)}%` : 'nível alto';
+  const origem = simDigital ? 'SIMULAÇÃO DIGITAL DO PROJETO'
+    : prototipo ? 'ENSAIO DO PROTÓTIPO FÍSICO' : 'TESTE MANUAL';
+  const id = evento?.alerta?.bueiroId;
+  const bueiro = id === 'bueiro_1' ? 'Bueiro 01' : id === 'bueiro_2' ? 'Bueiro 02' : 'HydraSmart';
+  const descricao = simDigital || prototipo
+    ? `${origem} — ${bueiro}: ${percentual}. DADO SIMULADO/EXPERIMENTAL. NÃO É EMERGÊNCIA REAL. Nenhuma ação necessária.`
     : TEXTO_TESTE;
   const opcoes = {
     body: descricao,
-    tag: 'hydrasmart-teste-experimental',
+    tag: `hydrasmart-teste-${simDigital ? 'simulacao' : 'prototipo'}-${id || 'manual'}`,
     icon: '/hydrasmart-h.svg',
     silent: true,
     requireInteraction: false
@@ -50,10 +72,10 @@ export async function exibirNotificacaoTeste(evento = null) {
     // O método showNotification é necessário em muitos navegadores de celular.
     if ('serviceWorker' in navigator) {
       const registro = await navigator.serviceWorker.register('/hydrasmart-testes-sw.js');
-      await registro.showNotification(TITULO_TESTE, opcoes);
+      await registro.showNotification(simDigital ? 'SIMULAÇÃO HYDRASMART — NÃO É EMERGÊNCIA' : TITULO_TESTE, opcoes);
       return true;
     }
-    const aviso = new Notification(TITULO_TESTE, opcoes);
+    const aviso = new Notification(simDigital ? 'SIMULAÇÃO HYDRASMART — NÃO É EMERGÊNCIA' : TITULO_TESTE, opcoes);
     aviso.onclick = () => { window.focus(); aviso.close(); };
     return true;
   } catch { return false; }

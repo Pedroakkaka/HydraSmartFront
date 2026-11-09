@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { avisar } from '../store/useTelemetria.js';
-import { useNotificacoesTeste } from '../lib/notificacoesTeste.js';
+import { exibirNotificacaoTeste, useNotificacoesTeste } from '../lib/notificacoesTeste.js';
 
 // Controle discreto e voluntário: o site não pode autorizar notificações por conta própria.
 // Depois de uma única autorização, os alertas experimentais chegam automaticamente.
@@ -32,7 +32,7 @@ export default function PermissaoAlertas() {
       setAutorizacao(resultado);
       if (resultado === 'granted') {
         definirInscricao(true);
-        avisar('Avisos experimentais ativados. O envio será automático quando o sensor atingir o limite.', 'sucesso');
+        avisar('Avisos de simulação ativados neste aparelho, inclusive ao visualizar dados reais (com o site aberto).', 'sucesso');
       } else {
         definirInscricao(false);
         avisar('Para receber os avisos de teste, permita notificações nas configurações deste site.', 'info');
@@ -44,14 +44,22 @@ export default function PermissaoAlertas() {
     }
   }
 
-  return <button
+  async function testarAviso() {
+    const enviado = await exibirNotificacaoTeste();
+    avisar(enviado
+      ? 'Aviso de teste solicitado ao navegador. Confira a central de notificações.'
+      : 'O navegador recusou o aviso. Confira as permissões e o suporte a notificações.',
+      enviado ? 'sucesso' : 'erro');
+  }
+
+  return <span className="inline-flex items-center gap-1 flex-wrap"><button
     type="button"
     className={`hs-alerts-icon ${ativo ? 'enabled' : ''}`}
     onClick={configurar}
     disabled={ocupado}
     title={ativo
-      ? 'Avisos automáticos de teste ativos. Toque para desativar.'
-      : 'Ativar avisos automáticos de teste neste aparelho (autorização única)'}
+      ? 'Avisos de simulação e protótipo ativos, mesmo ao visualizar dados reais. Requer página aberta; toque para desativar.'
+      : 'Ativar avisos de simulação nos celulares, mesmo na análise de dados reais; requer este site aberto'}
     aria-label={ativo
       ? 'Avisos automáticos de teste ativados; toque para desativar'
       : 'Ativar avisos automáticos experimentais neste celular'}
@@ -59,5 +67,5 @@ export default function PermissaoAlertas() {
   >
     <span aria-hidden="true">{ativo ? '🔔' : '🔕'}</span>
     <span className="hs-alerts-icon-text">{ativo ? 'Avisos ativos' : 'Ativar avisos'}</span>
-  </button>;
+  </button>{ativo && <button type="button" className="hs-alerts-icon" onClick={testarAviso} title="Enviar notificação local de teste (não é emergência)" aria-label="Testar notificação deste dispositivo">Testar aviso</button>}</span>;
 }

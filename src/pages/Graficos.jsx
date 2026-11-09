@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnaliseIntegrada from '../components/AnaliseIntegrada.jsx';
 import HidrologiaOficial from '../components/HidrologiaOficial.jsx';
 import { Line } from 'react-chartjs-2';
@@ -8,6 +8,7 @@ import { useAlertas, useHistoricoOficial } from '../hooks/useConsultas.js';
 import { api, urlDownload } from '../lib/api.js';
 import { eixoPercentual, linhaLimiar, opcoesBase, serieBueiro1, serieBueiro2 } from '../lib/graficos.js';
 import { dataHora, horaCurta, num } from '../lib/formato.js';
+import { montarSeriesAoVivo } from '../lib/seriesPrototipo.js';
 
 const opcoesNivel = {
   ...opcoesBase,
@@ -26,21 +27,17 @@ const PERIODOS = [
 ];
 
 function GraficoAoVivo({ b1, b2 }) {
-  // As duas réguas têm relógios e frequências independentes; índices de arrays
-  // não representam a mesma hora. Unimos timestamps e criamos lacunas explícitas.
-  const tempos = [...new Set([...b1.historicoTimestamps, ...b2.historicoTimestamps].filter(Number.isFinite))].sort((a,b)=>a-b);
-  const labels = tempos.map(t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
-  const mapear = b => {
-    const mapa = new Map(b.historicoTimestamps.map((t,i)=>[t,b.historicoNiveis[i]]));
-    return tempos.map(t => mapa.has(t) ? mapa.get(t) : null);
-  };
+  const { tempos, b1: valoresB1, b2: valoresB2, amostrasB2 } = montarSeriesAoVivo(b1, b2);
+  const labels = tempos.map(t => new Date(t).toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }));
   const n = Math.max(labels.length, 1);
 
   const dados = {
     labels: labels.length ? labels : ['Aguardando leituras'],
     datasets: [
-      { label: 'Bueiro 01 — Entrada (%)', data: mapear(b1), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
-      ...(b2.historicoNiveis.length ? [{ label: 'Bueiro 02 — Saída (%)', data: mapear(b2), fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
+      { label: 'Bueiro 01 — Entrada (%)', data: valoresB1, fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
+      ...(amostrasB2 ? [{ label: 'Bueiro 02 — Saída (%)', data: valoresB2, fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
       linhaLimiar(`Atenção (${b1.calibracao.limiteAtencaoPct}%)`, b1.calibracao.limiteAtencaoPct, 'rgba(251, 191, 36, 0.5)', n),
       linhaLimiar(`Crítico (${b1.calibracao.limiteCriticoPct}%)`, b1.calibracao.limiteCriticoPct, 'rgba(244, 63, 94, 0.65)', n)
     ]
@@ -106,10 +103,30 @@ export default function Graficos() {
   const bueiros = useTelemetria((s) => s.estado?.bueiros || {});
   const { data: historico } = useHistoricoOficial();
   const { data: alertas } = useAlertas();
-  const canalLocal = useTelemetria((s) => s.canalLocal);
-  const localB1 = canalLocal.bueiro_1;
-  const localB2 = canalLocal.bueiro_2;
-  const totalAoVivo = b1.historicoNiveis.length + b2.historicoNiveis.length;
+  const { amostrasB1, amostrasB2 } = montarSeriesAoVivo(b1, b2);
+  const totalAoVivo = amostrasB1 + amostrasB2;
+  const definirEstado = useTelemetria((s) => s.definirEstado);
+  const geradoEmAtual = useTelemetria((s) => s.estadoBruto?.geradoEm);
+  // WebSocket é o caminho principal. HTTP recupera leituras se a conexão
+  // permanecer aberta sem transmitir eventos, sem misturar sensores de campo.
+  const { data: confirmacao, isError: falhaConfirmacao } = useQuery({
+    queryKey: ['graficos-prototipo-estado'],
+    queryFn: () => api.get('/estado'),
+    enabled: fonte === 'prototipo',
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
+    retry: 1
+  });
+  useEffect(() => {
+    if (fonte !== 'prototipo' || !confirmacao?.canais) return;
+    if (Number.isFinite(geradoEmAtual) &&
+        (!Number.isFinite(Number(confirmacao.geradoEm)) ||
+          Number(confirmacao.geradoEm) <= geradoEmAtual)) return;
+    definirEstado(confirmacao);
+  }, [confirmacao, definirEstado, fonte, geradoEmAtual]);
+  const statusRegua = (b, amostras) => b?.valido && b?.timestamp
+    ? `${Number(b.nivelPct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% · ${amostras} amostras`
+    : 'Aguardando leitura';
 
   return (
     <>
@@ -126,12 +143,15 @@ export default function Graficos() {
           </div>
         </div>
         {fonte === 'prototipo' && <p className="text-xs text-slate-300 mt-2" role="status">
-          <strong>B01:</strong> {localB1?.timestamp ? `${Number(localB1.nivelPct).toLocaleString('pt-BR')}% · ${localB1.historicoNiveis.length} leituras` : 'Aguardando leitura'}
-          {' · '}<strong>B02:</strong> {localB2?.timestamp ? `${Number(localB2.nivelPct).toLocaleString('pt-BR')}% · ${localB2.historicoNiveis.length} leituras` : 'Aguardando segunda régua'}.
-          {' '}A curva atualiza quando cada novo nível é recebido; nenhuma chave de API é necessária para visualizar neste computador.
+          <strong>B01:</strong> {statusRegua(b1, amostrasB1)}
+          {' · '}<strong>B02:</strong> {statusRegua(b2, amostrasB2)}.
+          {' '}Os gráficos acompanham cada régua independentemente. A conexão USB local funciona sem chave da API.
         </p>}
+        {fonte === 'prototipo' && falhaConfirmacao && <p className="text-xs text-amber-500 mt-2" role="status">Falha na confirmação da API. As leituras USB locais continuam disponíveis.</p>}
         <div className="h-72 w-full relative mt-2">
-          <GraficoAoVivo b1={b1} b2={b2} />
+          {fonte === 'prototipo' && totalAoVivo === 0
+            ? <p className="text-xs text-slate-400 py-4" role="status">Aguardando a primeira leitura da régua B01 ou B02. Confira a conexão USB e as mensagens interpretadas.</p>
+            : <GraficoAoVivo b1={b1} b2={b2} />}
         </div>
       </div>
 
