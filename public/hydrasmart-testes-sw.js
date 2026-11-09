@@ -6,15 +6,30 @@ self.addEventListener('push', (event) => {
   if (dados.tipo !== 'simulacao' || typeof dados.titulo !== 'string' ||
       !dados.titulo.includes('NÃO É EMERGÊNCIA') || typeof dados.corpo !== 'string' ||
       !dados.corpo.includes('Não é uma emergência real.')) return;
-  event.waitUntil(self.registration.showNotification(dados.titulo, {
-    body:dados.corpo,
-    tag:'hydrasmart-push-' + (dados.bueiroId || 'teste'),
-    icon:'/hydrasmart-h.svg',
-    badge:'/hydrasmart-h.svg',
-    silent:false,
-    renotify:true,
-    data:{url:'/diagnostico', tipo:'simulacao'}
-  }));
+  event.waitUntil((async () => {
+    await self.registration.showNotification(dados.titulo, {
+      body:dados.corpo,
+      tag:'hydrasmart-push-' + (dados.bueiroId || 'teste'),
+      icon:'/hydrasmart-h.svg',
+      badge:'/hydrasmart-h.svg',
+      silent:false,
+      renotify:true,
+      data:{url:'/diagnostico', tipo:'simulacao'}
+    });
+    // Recibo técnico: confirma que o Service Worker processou a mensagem.
+    // Não equivale à comprovação de leitura pelo usuário.
+    if (typeof dados.reciboToken === 'string' && /^[a-f0-9]{32}$/.test(dados.reciboToken)) {
+      try {
+        await fetch('/api/v1/push/confirmar', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({token:dados.reciboToken}),
+          credentials:'omit',
+          keepalive:true
+        });
+      } catch { /* entrega de notificação já foi solicitada ao SO */ }
+    }
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
