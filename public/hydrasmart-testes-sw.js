@@ -28,7 +28,7 @@ self.addEventListener('push', (event) => {
     // Não equivale à comprovação de leitura pelo usuário.
     if (typeof dados.reciboToken === 'string' && /^[a-f0-9]{32}$/.test(dados.reciboToken)) {
       try {
-        await fetch('/api/v1/push/confirmar', {
+        await fetch('https://hydrasmartapi.onrender.com/api/v1/push/confirmar', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({token:dados.reciboToken}),
