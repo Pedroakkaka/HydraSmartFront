@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNotificacoesTeste } from '../lib/notificacoesTeste.js';
+import { inscreverCelular } from '../lib/pushRemoto.js';
 
 /**
  * Aparece na entrada do site: a pessoa não precisa procurar o sino.
@@ -9,12 +10,14 @@ import { useNotificacoesTeste } from '../lib/notificacoesTeste.js';
 export default function SolicitacaoInicialAlertas() {
   const inscrito = useNotificacoesTeste(s => s.inscrito);
   const definirInscricao = useNotificacoesTeste(s => s.definirInscricao);
+  const definirPush = useNotificacoesTeste(s => s.definirPush);
+  const [erro, setErro] = useState('');
   const [descartado, setDescartado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const suportado = typeof window !== 'undefined' && window.isSecureContext &&
     'Notification' in window;
   // Não insistir com quem já recusou ou desativou notificações.
-  const pendente = suportado && Notification.permission === 'default' &&
+  const pendente = suportado && Notification.permission !== 'denied' &&
     !inscrito && !descartado;
 
   if (!pendente) return null;
@@ -25,11 +28,23 @@ export default function SolicitacaoInicialAlertas() {
     try {
       // Executado diretamente pelo clique do visitante: requisito de Chrome,
       // Safari e de vários navegadores móveis.
-      const permissao = await Notification.requestPermission();
-      if (permissao === 'granted') definirInscricao(true);
-      setDescartado(true);
-    } catch {
-      setDescartado(true);
+      const permissao = Notification.permission === 'granted'
+        ? 'granted' : await Notification.requestPermission();
+      if (permissao === 'granted') {
+        definirInscricao(true);
+        try {
+          await inscreverCelular();
+          definirPush(true);
+          setDescartado(true);
+        } catch (err) {
+          definirPush(false, err.message);
+          setErro(err.message);
+        }
+      } else {
+        setDescartado(true);
+      }
+    } catch (err) {
+      setErro(err.message || 'Não foi possível ativar os avisos.');
     } finally {
       setOcupado(false);
     }
@@ -46,9 +61,10 @@ export default function SolicitacaoInicialAlertas() {
           <p className="mt-1 text-xs text-slate-300">
             Autorize neste celular avisos de simulação do projeto físico, mesmo ao
             visualizar dados reais. Os avisos são testes e NÃO são emergências reais.
-            É necessário manter o site aberto; notificações com ele fechado ainda
-            não estão disponíveis.
+            A inscrição remota permite avisos mesmo com o site fechado em aparelhos
+            compatíveis, quando o servidor estiver configurado.
           </p>
+          {erro && <p role="alert" className="mt-2 text-xs text-amber-300">{erro}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={solicitar} disabled={ocupado}
               className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white hover:bg-cyan-500 disabled:opacity-60">
