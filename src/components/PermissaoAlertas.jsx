@@ -19,6 +19,7 @@ export default function PermissaoAlertas() {
   );
   const [ocupado, setOcupado] = useState(false);
   const [enviandoTeste, setEnviandoTeste] = useState(false);
+  const [resultadoRemoto, setResultadoRemoto] = useState(null);
   const ativo = disponivel && inscrito && autorizacao === 'granted';
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function PermissaoAlertas() {
     setEnviandoTeste(true);
     try {
       const resultado = await api.post('/push/testar');
+      setResultadoRemoto({ ...resultado, confirmadosCelulares: 0 });
       const aceitos = Number(resultado.aceitosGateway ?? 0);
       const inscritos = Number(resultado.inscritos ?? 0);
       avisar(
@@ -92,9 +94,20 @@ export default function PermissaoAlertas() {
         aceitos > 0 ? 'sucesso' : 'erro'
       );
     } catch (err) {
+      setResultadoRemoto(null);
       avisar('Não foi possível testar o envio remoto: ' + err.message, 'erro');
     } finally {
       setEnviandoTeste(false);
+    }
+  }
+
+  async function consultarRecebimentos() {
+    if (!resultadoRemoto?.testeId) return;
+    try {
+      const novo = await api.post('/push/resultado', { testeId: resultadoRemoto.testeId });
+      setResultadoRemoto(anterior => ({ ...anterior, ...novo }));
+    } catch (err) {
+      avisar('Falha ao consultar confirmações do celular: ' + err.message, 'erro');
     }
   }
 
@@ -114,5 +127,9 @@ export default function PermissaoAlertas() {
     <span aria-hidden="true">{ativo ? '🔔' : '🔕'}</span>
     <span className="hs-alerts-icon-text">{pushAtivo ? 'Push ativo' : ativo ? 'Permissão concedida' : 'Ativar avisos'}</span>
   </button>{ativo && pushErro && <span className="text-xs text-amber-400" role="status">Push remoto não ativo: {pushErro}</span>}{ativo && <button type="button" className="hs-alerts-icon" onClick={testarAvisoLocal} title="Exibir apenas um aviso local neste dispositivo" aria-label="Testar aviso local">Testar local</button>}
-  {pushAtivo && <button type="button" className="hs-alerts-icon" onClick={testarEnvioRemoto} disabled={enviandoTeste} title="Enviar aviso remoto de SIMULAÇÃO a todos os celulares inscritos; requer chave de operador" aria-label="Testar envio remoto aos celulares">{enviandoTeste ? 'Enviando…' : 'Testar nos celulares'}</button>}</span>;
+  {pushAtivo && <button type="button" className="hs-alerts-icon" onClick={testarEnvioRemoto} disabled={enviandoTeste} title="Enviar aviso remoto de SIMULAÇÃO a todos os celulares inscritos; requer chave de operador" aria-label="Testar envio remoto aos celulares">{enviandoTeste ? 'Enviando…' : 'Testar nos celulares'}</button>}
+  {resultadoRemoto && <span className="text-xs text-cyan-300" role="status">
+    {resultadoRemoto.aceitosGateway} envios aceitos pelo serviço; {resultadoRemoto.confirmadosCelulares ?? 0} aparelhos confirmaram processamento de {resultadoRemoto.inscritos} inscrições.
+    {resultadoRemoto.testeId && <button type="button" className="underline ml-2" onClick={consultarRecebimentos}>Atualizar confirmações</button>}
+  </span>}</span>;
 }
