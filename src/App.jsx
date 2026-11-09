@@ -8,6 +8,7 @@ import Banners from './components/Banners.jsx';
 import Avisos from './components/Avisos.jsx';
 import ChaveOperadorModal from './components/ChaveOperadorModal.jsx';
 import PermissaoAlertas from './components/PermissaoAlertas.jsx';
+import SolicitacaoInicialAlertas from './components/SolicitacaoInicialAlertas.jsx';
 import ConexaoArduino from './components/ConexaoArduino.jsx';
 
 const TEXTO_CONEXAO = {
@@ -111,6 +112,7 @@ export default function App() {
         </main>
       </div>
 
+      <SolicitacaoInicialAlertas />
       <Avisos />
       <ChaveOperadorModal />
     </>
