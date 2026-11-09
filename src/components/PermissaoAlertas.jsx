@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { avisar } from '../store/useTelemetria.js';
-import { useNotificacoesTeste } from '../lib/notificacoesTeste.js';
+import { exibirNotificacaoTeste, useNotificacoesTeste } from '../lib/notificacoesTeste.js';
 
 // Controle discreto e voluntário: o site não pode autorizar notificações por conta própria.
 // Depois de uma única autorização, os alertas experimentais chegam automaticamente.
@@ -44,7 +44,15 @@ export default function PermissaoAlertas() {
     }
   }
 
-  return <button
+  async function testarAviso() {
+    const enviado = await exibirNotificacaoTeste();
+    avisar(enviado
+      ? 'Aviso de teste solicitado ao navegador. Confira a central de notificações.'
+      : 'O navegador recusou o aviso. Confira as permissões e o suporte a notificações.',
+      enviado ? 'sucesso' : 'erro');
+  }
+
+  return <span className="inline-flex items-center gap-1 flex-wrap"><button
     type="button"
     className={`hs-alerts-icon ${ativo ? 'enabled' : ''}`}
     onClick={configurar}
@@ -59,5 +67,5 @@ export default function PermissaoAlertas() {
   >
     <span aria-hidden="true">{ativo ? '🔔' : '🔕'}</span>
     <span className="hs-alerts-icon-text">{ativo ? 'Avisos ativos' : 'Ativar avisos'}</span>
-  </button>;
+  </button>{ativo && <button type="button" className="hs-alerts-icon" onClick={testarAviso} title="Enviar notificação local de teste (não é emergência)" aria-label="Testar notificação deste dispositivo">Testar aviso</button>}</span>;
 }
