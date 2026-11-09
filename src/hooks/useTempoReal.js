@@ -89,6 +89,11 @@ export function useTempoReal() {
       }
     };
     const intervaloHttp = setInterval(buscarEstadoHttp, 15_000);
+    // Sem novas leituras, o sensor deve ficar marcado como desconectado
+    // mesmo que o WebSocket continue tecnicamente aberto.
+    const intervaloValidade = setInterval(() => {
+      useTelemetria.getState().revalidarLeituras();
+    }, 5_000);
     buscarEstadoHttp();
 
     const conectar = () => {
@@ -136,6 +141,7 @@ export function useTempoReal() {
       ativo = false;
       clearTimeout(timer);
       clearInterval(intervaloHttp);
+      clearInterval(intervaloValidade);
       socket?.close();
     };
   }, []);
