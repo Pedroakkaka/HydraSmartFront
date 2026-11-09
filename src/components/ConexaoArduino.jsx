@@ -253,7 +253,7 @@ export default function ConexaoArduino() {
           </select>
         </div>
         <div className="hs-arduino-field">
-          <label htmlFor="hs-chave-usb">Chave de envio experimental (opcional para detectar USB)</label>
+          <label htmlFor="hs-chave-usb">Chave de envio experimental (necessária para avisar outros celulares)</label>
           <input id="hs-chave-usb" type="password" autoComplete="off" value={chave}
             onChange={e => setChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
         </div>
@@ -274,7 +274,9 @@ export default function ConexaoArduino() {
       </p>}
       {conectado && ultimaLinha && <p className="hs-arduino-raw">Última linha serial recebida: <code>{ultimaLinha}</code></p>}
       {conectado && linhasRecebidas > 0 && linhasInterpretadas === 0 && <p role="alert" className="hs-arduino-error">A porta USB funciona, mas nenhuma linha é uma medição reconhecida. Confira a última linha e instale o firmware experimental de eletrodos na placa; o site não consegue gravar o firmware automaticamente.</p>}
-      {conectado && !chave.trim() && <p className="hs-arduino-notice">USB conectada para diagnóstico. Sem a chave do protótipo, nenhuma medição é enviada à API. Desconecte antes de informar a chave.</p>}
+      {conectado && !chave.trim() && <p role="status" className="hs-arduino-notice"><strong>Alertas em outros celulares indisponíveis:</strong> a leitura está chegando apenas por USB a este navegador. Para chegar aos celulares com o site aberto, configure a chave de envio do protótipo e confirme os envios aceitos pela API.</p>}
+      {conectado && chave.trim() && leituras === 0 && <p role="status" className="hs-arduino-notice"><strong>Aguardando confirmação da API:</strong> ainda não há envio experimental aceito. Os gráficos locais não comprovam a transmissão aos celulares.</p>}
+      {conectado && leituras > 0 && <p role="status" className="hs-arduino-notice"><strong>API recebeu medições experimentais.</strong> Celulares com o HydraSmart atualizado, aberto e com notificações autorizadas podem receber os avisos de teste independentemente da tela selecionada. Isso não é Web Push com o site fechado.</p>}
       {!suportaWebSerial && <p role="alert" className="hs-arduino-notice">Este navegador não permite selecionar portas USB seriais. Abra o site em Chrome ou Edge atualizado no computador, por HTTPS; no celular, use uma ponte ou dispositivo com Wi-Fi.</p>}
       {erro && <p role="alert" className="hs-arduino-error">{erro}</p>}
       <p className="hs-arduino-footnote">Apenas conexão e diagnóstico USB. A leitura dos eletrodos depende de firmware específico e da ordem física dos contatos. A bomba não é acionada pelo site; controle elétrico exige circuito e validação próprios.</p>
