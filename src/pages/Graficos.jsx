@@ -36,8 +36,8 @@ function GraficoAoVivo({ b1, b2 }) {
   const dados = {
     labels: labels.length ? labels : ['Aguardando leituras'],
     datasets: [
-      { label: 'Bueiro 01 — Entrada (%)', data: valoresB1, fill: true, spanGaps: false, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
-      ...(amostrasB2 ? [{ label: 'Bueiro 02 — Saída (%)', data: valoresB2, fill: true, spanGaps: false, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
+      { label: 'Bueiro 01 — Entrada (%)', data: valoresB1, fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro1 },
+      ...(amostrasB2 ? [{ label: 'Bueiro 02 — Saída (%)', data: valoresB2, fill: true, spanGaps: true, tension: 0.25, borderWidth: 2.2, pointRadius: 2, ...serieBueiro2 }] : []),
       linhaLimiar(`Atenção (${b1.calibracao.limiteAtencaoPct}%)`, b1.calibracao.limiteAtencaoPct, 'rgba(251, 191, 36, 0.5)', n),
       linhaLimiar(`Crítico (${b1.calibracao.limiteCriticoPct}%)`, b1.calibracao.limiteCriticoPct, 'rgba(244, 63, 94, 0.65)', n)
     ]
