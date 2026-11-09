@@ -79,7 +79,13 @@ export default function ConexaoArduino() {
   const conexaoIdRef = useRef(0);
   const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
 
-  useEffect(() => { chaveRef.current = chave.trim(); }, [chave]);
+  useEffect(() => {
+    chaveRef.current = chave.trim();
+    if (chave.trim()) {
+      setErro('');
+      setStatusEnvio('Chave informada. Aguardando próxima leitura para tentar o envio à API.');
+    }
+  }, [chave]);
 
   const enviar = async (leitura, idConexao) => {
     if (interromperRef.current || idConexao !== conexaoIdRef.current) return;
@@ -97,9 +103,9 @@ export default function ConexaoArduino() {
       });
       if (response.status === 401 || response.status === 503) {
         setStatusEnvio('API bloqueou o envio: HTTP ' + response.status);
-        setErro(response.status === 401 ? 'Chave do protótipo incorreta.' : 'Chave do protótipo não configurada no Render.');
-        interromperRef.current = true;
-        try { await leitorRef.current?.cancel(); } catch { /* encerramento */ }
+        setErro(response.status === 401 ? 'API recusou a chave do protótipo (401). Confira a chave configurada no servidor.' : 'Chave do protótipo não configurada no servidor (503).');
+        // A falha de autenticação da API não deve interromper a leitura USB.
+        // O operador pode corrigir a chave e retomar o envio sem reconectar o Arduino.
         return;
       }
       if (!response.ok) { setErro('API recusou leitura (HTTP ' + response.status + ').'); setStatusEnvio('Falha de envio: HTTP ' + response.status); return; }
@@ -248,7 +254,7 @@ export default function ConexaoArduino() {
         </div>
         <div className="hs-arduino-field">
           <label htmlFor="hs-chave-usb">Chave de envio experimental (opcional para detectar USB)</label>
-          <input id="hs-chave-usb" type="password" autoComplete="off" value={chave} disabled={conectado}
+          <input id="hs-chave-usb" type="password" autoComplete="off" value={chave}
             onChange={e => setChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
         </div>
         <button className={`hs-arduino-action ${conectado ? 'disconnect' : ''}`} type="button"
