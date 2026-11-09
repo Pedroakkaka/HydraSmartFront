@@ -7,7 +7,7 @@ import { create } from 'zustand';
 const CANAIS = ['prototipo', 'inteligente'];
 
 // Constrói um painel inteiro a partir de uma única fonte; jamais preenche com outra.
-function selecionarCanal(snapshot, fonte, local = {}) {
+export function selecionarCanal(snapshot, fonte, local = {}) {
   if (!snapshot) {
     if (fonte !== 'prototipo') return null;
     snapshot = {modo:'real',simulacao:{ativo:false},canais:{prototipo:{}},bueiros:{
@@ -16,15 +16,19 @@ function selecionarCanal(snapshot, fonte, local = {}) {
     }};
   }
   const canais = snapshot.canais || {};
-  const temUsbLocal = Object.values(local).some(b => b.timestamp && Date.now() - b.timestamp <= 30000);
+  const recente = b => {
+    const ts = Number(b?.timestamp);
+    return Number.isFinite(ts) && ts > 0 && Date.now() >= ts && Date.now() - ts <= 30000 &&
+      b.nivelPct != null && Number.isFinite(Number(b.nivelPct));
+  };
+  const temUsbLocal = Object.values(local).some(recente);
   const simulando = fonte === 'prototipo' && !temUsbLocal && snapshot.modo === 'demo' && snapshot.simulacao?.ativo;
   const remoto = canais[fonte === 'inteligente' ? 'campo' : simulando ? 'demonstracao' : 'prototipo'] || {};
-  const localRecentes = Object.fromEntries(Object.entries(local).filter(([,b]) => b.timestamp && Date.now()-b.timestamp <= 30000));
+  const localRecentes = Object.fromEntries(Object.entries(local).filter(([,b]) => recente(b)));
   const leituras = fonte === 'prototipo' && !simulando ? {...remoto,...localRecentes} : remoto;
   const bueiros = Object.fromEntries(Object.entries(snapshot.bueiros || {}).map(([id, original]) => {
     const leitura = leituras[id];
-    const recente = leitura && Date.now() - Number(leitura.timestamp) <= 30000;
-    if (!recente) return [id, {
+    if (!recente(leitura)) return [id, {
       ...original, conectado: false, valido: false, desatualizado: true,
       origem: fonte === 'prototipo' ? 'Aguardando protótipo físico' : 'Aguardando sensores de campo',
       nivelPct: 0, alturaAguaCm: 0, volumeMl: 0,
@@ -60,7 +64,7 @@ export const useTelemetria = create((set) => ({
   publicarNivelLocal: (entrada) => set(s => {
     const id = entrada.bueiroId || 'bueiro_1';
     const nivel = Number(entrada.nivelPct);
-    if (!['bueiro_1','bueiro_2'].includes(id) || !Number.isFinite(nivel) || nivel < 0 || nivel > 100) return {};
+    if (!['bueiro_1','bueiro_2'].includes(id) || entrada.nivelPct == null || !Number.isFinite(nivel) || nivel < 0 || nivel > 100) return {};
     const antigo = s.canalLocal[id] || {};
     const timestamp = Date.now();
     const n = [...(antigo.historicoNiveis || []),nivel].slice(-50);
@@ -75,6 +79,15 @@ export const useTelemetria = create((set) => ({
     const leitura = {...antigo,bueiroId:id,origem:'Arduino USB',tipoMedicao:'nivel_percentual',timestamp,nivelPct:nivel,risco:nivel>=80?'critico':nivel>=50?'atencao':'normal',conectado:true,valido:true,desatualizado:false,historicoNiveis:n,historicoTimestamps:t,historicoDistancias:[],distanciaCm:null,alturaAguaCm:null,volumeMl:null,diagnostico,tendencia:diagnostico.tendencia,taxaVariacaoMinuto:diagnostico.taxaPctMin};
     const canalLocal = {...s.canalLocal,[id]:leitura};
     return {canalLocal,estado:selecionarCanal(s.estadoBruto,s.fonteSelecionada,canalLocal)};
+  }),
+  // Reavalia a validade temporal quando um Arduino para de transmitir,
+  // inclusive se o WebSocket permanecer aberto sem novos eventos.
+  revalidarLeituras: () => set(s => {
+    if (s.fonteSelecionada !== 'prototipo' || !s.estado) return s;
+    const invalidados = Object.values(s.estado.bueiros || {}).some(b =>
+      b?.valido && (!b.timestamp || Date.now() - Number(b.timestamp) > 30000));
+    if (!invalidados) return s;
+    return { estado: selecionarCanal(s.estadoBruto, s.fonteSelecionada, s.canalLocal) };
   }),
   usbLocalConectado: false,
   definirUsbLocal: (conectado) => set({ usbLocalConectado: Boolean(conectado) }),
