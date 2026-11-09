@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { diagnosticarRegua } from '../lib/diagnosticoRegua.js';
 
 /**
  * Estado global do painel, alimentado pelo WebSocket da API.
@@ -69,13 +70,7 @@ export const useTelemetria = create((set) => ({
     const timestamp = Date.now();
     const n = [...(antigo.historicoNiveis || []),nivel].slice(-50);
     const t = [...(antigo.historicoTimestamps || []),timestamp].slice(-50);
-    const dt = t.length > 1 ? (timestamp - t[0])/60000 : 0;
-    const delta = n.length > 1 ? nivel - n[0] : 0;
-    const taxa = dt > 0 ? delta/dt : 0;
-    const passos = n.slice(1).map((v,i)=>v-n[i]);
-    const confiavel = dt >= 0.4 && n.length >= 10 && passos.filter(v=>v>0.1).length>=2 && passos.every(v=>v>=-0.1) && taxa>0.5;
-    const tempo = nivel>=100 ? 0 : confiavel ? (100-nivel)/taxa : null;
-    const diagnostico = {amostras:n.length,taxaPctMin:dt>0?Number(taxa.toFixed(2)):null,tendencia:delta>0? 'subindo':delta<0?'descendo':'estavel',confiavel,tempoAte100Min:tempo!==null&&tempo<=60?Number(tempo.toFixed(1)):null,motivo:confiavel?'Extrapolação experimental da subida dos contatos':'Aguardando série suficiente e estável para estimar enchimento'};
+    const diagnostico = diagnosticarRegua(n, t, timestamp);
     const leitura = {...antigo,bueiroId:id,origem:'Arduino USB',tipoMedicao:'nivel_percentual',timestamp,nivelPct:nivel,risco:nivel>=80?'critico':nivel>=50?'atencao':'normal',conectado:true,valido:true,desatualizado:false,historicoNiveis:n,historicoTimestamps:t,historicoDistancias:[],distanciaCm:null,alturaAguaCm:null,volumeMl:null,diagnostico,tendencia:diagnostico.tendencia,taxaVariacaoMinuto:diagnostico.taxaPctMin};
     const canalLocal = {...s.canalLocal,[id]:leitura};
     return {canalLocal,estado:selecionarCanal(s.estadoBruto,s.fonteSelecionada,canalLocal)};
