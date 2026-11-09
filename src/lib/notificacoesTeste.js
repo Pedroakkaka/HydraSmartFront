@@ -9,6 +9,9 @@ const ler = () => {
 export const useNotificacoesTeste = create((set) => ({
   inscrito: ler(),
   ultima: null,
+  pushAtivo: false,
+  pushErro: null,
+  definirPush: (pushAtivo, pushErro = null) => set({ pushAtivo, pushErro }),
   definirInscricao: inscrito => {
     try {
       if (inscrito) window.localStorage.setItem(CHAVE, 'sim');

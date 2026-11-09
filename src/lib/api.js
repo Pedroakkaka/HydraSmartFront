@@ -34,7 +34,7 @@ export class ErroApi extends Error {
  * Rotas de escrita que NÃO usam a chave do operador (mesma regra do backend em app.js):
  * leituras de sensores em campo (X-API-Key) e da ponte do protótipo (X-Prototype-Key).
  */
-const SEM_CHAVE_OPERADOR = ['/leituras', '/leituras/prototipo'];
+const SEM_CHAVE_OPERADOR = ['/leituras', '/leituras/prototipo', '/push/inscrever', '/push/cancelar'];
 
 export function exigeChaveOperador(metodo, caminho) {
   const rota = caminho.split('?')[0];
