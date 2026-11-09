@@ -22,7 +22,9 @@ export function useTempoReal() {
 
     const avisarCelular = (evento, faixa = null) => {
       const optin = useNotificacoesTeste.getState();
-      if (!optin.inscrito || !ehAlertaDeTeste(evento)) return;
+      // O Push remoto já notifica os aparelhos inscritos; não duplicar com
+      // o aviso local do WebSocket quando o site estiver aberto.
+      if (!optin.inscrito || optin.pushAtivo || !ehAlertaDeTeste(evento)) return;
       const idSensor = evento.alerta.bueiroId;
       if (!idSensor) return;
       const novaFaixa = faixa || (evento.dadosFaixa || (evento.acao === 'nivel_alto_teste' ? 'atencao' : 'critico'));
