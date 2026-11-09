@@ -79,13 +79,14 @@ export default function ConexaoArduino() {
   const conexaoIdRef = useRef(0);
   const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
 
-  useEffect(() => {
-    chaveRef.current = chave.trim();
-    if (chave.trim()) {
+  const alterarChave = valor => {
+    setChave(valor);
+    chaveRef.current = valor.trim();
+    if (valor.trim()) {
       setErro('');
       setStatusEnvio('Chave informada. Aguardando próxima leitura para tentar o envio à API.');
     }
-  }, [chave]);
+  };
 
   const enviar = async (leitura, idConexao) => {
     if (interromperRef.current || idConexao !== conexaoIdRef.current) return;
@@ -224,7 +225,7 @@ export default function ConexaoArduino() {
     abortarRef.current?.abort();
     definirUsbLocal(false);
     void leitorRef.current?.cancel().catch(() => {});
-  }, []);
+  }, [definirUsbLocal]);
 
   if (fonte !== 'prototipo') return null;
   return (
@@ -255,7 +256,7 @@ export default function ConexaoArduino() {
         <div className="hs-arduino-field">
           <label htmlFor="hs-chave-usb">Chave de envio experimental (necessária para avisar outros celulares)</label>
           <input id="hs-chave-usb" type="password" autoComplete="off" value={chave}
-            onChange={e => setChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
+            onChange={e => alterarChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
         </div>
         <button className={`hs-arduino-action ${conectado ? 'disconnect' : ''}`} type="button"
           onClick={conectado ? fecharPorta : conectar} disabled={ocupado || (!conectado && !suportaWebSerial)}>
