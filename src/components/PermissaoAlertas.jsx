@@ -32,7 +32,7 @@ export default function PermissaoAlertas() {
       setAutorizacao(resultado);
       if (resultado === 'granted') {
         definirInscricao(true);
-        avisar('Avisos experimentais ativados. O envio será automático quando o sensor atingir o limite.', 'sucesso');
+        avisar('Avisos de simulação ativados neste aparelho, inclusive ao visualizar dados reais (com o site aberto).', 'sucesso');
       } else {
         definirInscricao(false);
         avisar('Para receber os avisos de teste, permita notificações nas configurações deste site.', 'info');
@@ -58,8 +58,8 @@ export default function PermissaoAlertas() {
     onClick={configurar}
     disabled={ocupado}
     title={ativo
-      ? 'Avisos automáticos de teste ativos. Toque para desativar.'
-      : 'Ativar avisos automáticos de teste neste aparelho (autorização única)'}
+      ? 'Avisos de simulação e protótipo ativos, mesmo ao visualizar dados reais. Requer página aberta; toque para desativar.'
+      : 'Ativar avisos de simulação nos celulares, mesmo na análise de dados reais; requer este site aberto'}
     aria-label={ativo
       ? 'Avisos automáticos de teste ativados; toque para desativar'
       : 'Ativar avisos automáticos experimentais neste celular'}
