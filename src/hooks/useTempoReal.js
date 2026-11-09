@@ -49,7 +49,8 @@ export function useTempoReal() {
     const verificarPrototipo = snapshot => {
       if (!useNotificacoesTeste.getState().inscrito) return;
       for (const [id, leitura] of Object.entries(snapshot?.canais?.prototipo || {})) {
-        if (leitura?.natureza !== 'experimental' || leitura?.origem !== 'Arduino USB') continue;
+        if (leitura?.origem !== 'Arduino USB' ||
+            (leitura.natureza != null && leitura.natureza !== 'experimental')) continue;
         const idade = Date.now() - Number(leitura.timestamp);
         if (!Number.isFinite(idade) || idade < 0 || idade > 30_000) continue;
         const pct = Number(leitura.nivelPct);
@@ -74,6 +75,16 @@ export function useTempoReal() {
         }, faixa);
       }
     };
+
+    // Notificar diretamente das leituras USB neste navegador, mesmo quando
+    // a chave da API não está configurada. Apenas dados físicos experimentais.
+    const cancelarEscutaLocal = useTelemetria.subscribe((novo, antigo) => {
+      if (novo.canalLocal === antigo.canalLocal || novo.fonteSelecionada !== 'prototipo') return;
+      verificarPrototipo({
+        canais: { prototipo: novo.canalLocal },
+        bueiros: novo.estado?.bueiros || {}
+      });
+    });
 
     // Fallback HTTP para navegadores/redes que bloqueiam WebSocket.
     const buscarEstadoHttp = async () => {
@@ -139,6 +150,7 @@ export function useTempoReal() {
     conectar();
     return () => {
       ativo = false;
+      cancelarEscutaLocal();
       clearTimeout(timer);
       clearInterval(intervaloHttp);
       clearInterval(intervaloValidade);
