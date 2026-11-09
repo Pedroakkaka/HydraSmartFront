@@ -106,3 +106,28 @@ continua sendo experimental, não uma previsão validada de alagamento.
 **Publicação:** integrar e publicar somente após `npm test`, `npm run lint`,
 `npm run build` e validação da notificação com Arduino real. Alterações do
 professor no histórico da `main` foram mantidas.
+
+## 09/11/2026 — alertas de simulação para celulares em Análise com dados reais
+
+- O WebSocket da API já transmite eventos e snapshots para todos os navegadores
+  conectados, independentemente do modo que cada um está visualizando.
+- O frontend agora monitora **apenas** os canais de teste `prototipo` (Arduino
+  experimental) e `demonstracao` (simulação digital ativa). Não reaproveita
+  o canal de sensores operacionais `campo` como prova de simulação.
+- A seleção visual **Análise com dados reais** não bloqueia a entrega de uma
+  notificação didática de simulação para aquele navegador.
+- A notificação digital mostra o título **SIMULAÇÃO HYDRASMART — NÃO É EMERGÊNCIA**
+  e identifica o bueiro e o percentual, sem se passar por aviso oficial.
+- A autorização é opt-in **por aparelho**. O usuário precisa ativar os avisos no
+  celular e manter o site aberto; em dispositivos móveis, a execução em segundo
+  plano pode ser suspensa. **Não foi implementado Web Push remoto que funcione
+  com o site fechado.**
+- Para o Arduino físico enviar alertas a **outros** celulares, suas medições
+  precisam chegar à API hospedada via ponte autenticada `/leituras/prototipo`.
+  Apenas a leitura USB local, sem ponte, não consegue transmitir para celulares
+  em outras máquinas.
+- Simulação digital ativa na API é distribuída pelo WebSocket para os clientes,
+  inclusive os que selecionaram o modo real, sem alterar os gráficos desse modo.
+- Testar no celular com a página aberta e notificações autorizadas: iniciar
+  cenário digital no painel autorizado, passar por 50% e 80%, verificar avisos
+  claramente rotulados e a deduplicação; retornar ao normal e testar rearmar.
