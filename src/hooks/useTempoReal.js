@@ -107,12 +107,16 @@ export function useTempoReal() {
 
     // Fallback HTTP para navegadores/redes que bloqueiam WebSocket.
     const buscarEstadoHttp = async () => {
-      if (!ativo) return;
+      // Não consultar a API a cada 5 s por visitante quando o WebSocket já
+      // está funcionando: evita sobrecarga e leituras fora de ordem.
+      if (!ativo || socket?.readyState === WebSocket.OPEN) return;
       try {
         const estado = await api.get('/estado');
         if (!ativo) return;
-        if (socket?.readyState !== WebSocket.OPEN) definirEstado(estado);
-        verificarCanaisTeste(estado);
+        if (socket?.readyState !== WebSocket.OPEN) {
+          definirEstado(estado);
+          verificarCanaisTeste(estado);
+        }
       } catch {
         // O WebSocket segue tentando reconectar.
       }
