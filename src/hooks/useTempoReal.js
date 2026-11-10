@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { api, urlWebSocket } from '../lib/api.js';
 import { som } from '../lib/som.js';
+import { necessitaFallbackHttp } from '../lib/estadoConexao.js';
 import { useTelemetria } from '../store/useTelemetria.js';
 import { useNotificacoesTeste, ehAlertaProtótipo, ehAlertaSimulacao, ehAlertaDeTeste, classificarFaixaTeste, exibirNotificacaoTeste } from '../lib/notificacoesTeste.js';
 
@@ -109,11 +110,11 @@ export function useTempoReal() {
     const buscarEstadoHttp = async () => {
       // Não consultar a API a cada 5 s por visitante quando o WebSocket já
       // está funcionando: evita sobrecarga e leituras fora de ordem.
-      if (!ativo || socket?.readyState === WebSocket.OPEN) return;
+      if (!ativo || !necessitaFallbackHttp(socket)) return;
       try {
         const estado = await api.get('/estado');
         if (!ativo) return;
-        if (socket?.readyState !== WebSocket.OPEN) {
+        if (necessitaFallbackHttp(socket)) {
           definirEstado(estado);
           verificarCanaisTeste(estado);
         }
