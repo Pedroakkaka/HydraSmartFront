@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { avisar, useTelemetria } from '../store/useTelemetria.js';
 import { API_V1 } from '../lib/api.js';
+import { useOperador } from '../store/useOperador.js';
 
 // Web Serial usa a porta USB deste computador; não tenta acessar a USB no Render.
 // Chave mantida apenas nesta sessão do componente, sem localStorage/cookies/logs.
@@ -57,6 +58,7 @@ export default function ConexaoArduino() {
   const definirUsbLocal = useTelemetria(s => s.definirUsbLocal);
   const publicarNivelLocal = useTelemetria(s => s.publicarNivelLocal);
   const [chave, setChave] = useState('');
+  const temOperador = useOperador(s => Boolean(s.chave));
   const [baud, setBaud] = useState(115200);
   const [conectado, setConectado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -75,6 +77,7 @@ export default function ConexaoArduino() {
   const chaveRef = useRef('');
   const filaRef = useRef(Promise.resolve());
   const ultimoEnvioRef = useRef({});
+  const proximaTentativaRef = useRef(0);
   const abortarRef = useRef(null);
   const conexaoIdRef = useRef(0);
   const suportaWebSerial = typeof navigator !== 'undefined' && 'serial' in navigator && typeof window !== 'undefined' && window.isSecureContext;
@@ -82,6 +85,7 @@ export default function ConexaoArduino() {
   const alterarChave = valor => {
     setChave(valor);
     chaveRef.current = valor.trim();
+    proximaTentativaRef.current = 0;
     if (valor.trim()) {
       setErro('');
       setStatusEnvio('Chave informada. Aguardando próxima leitura para tentar o envio à API.');
@@ -91,20 +95,30 @@ export default function ConexaoArduino() {
   const enviar = async (leitura, idConexao) => {
     if (interromperRef.current || idConexao !== conexaoIdRef.current) return;
     const token = chaveRef.current;
-    if (!token) { setStatusEnvio('USB recebe dados, mas não há chave de envio à API.'); return; }
+    const operador = useOperador.getState().chave?.trim() || '';
+    if (!token && !operador) {
+      setStatusEnvio('USB recebe dados, mas ainda não há uma chave de envio à API.');
+      return;
+    }
+    if (Date.now() < proximaTentativaRef.current) return;
     const controlador = new AbortController();
     abortarRef.current = controlador;
     const timeout = setTimeout(() => controlador.abort(), 9500);
     try {
       const response = await fetch(API_V1 + '/leituras/prototipo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Prototype-Key': token },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'X-Prototype-Key': token } : {}),
+          ...(operador || token ? { 'X-Operator-Key': operador || token } : {})
+        },
         body: JSON.stringify(leitura),
         signal: controlador.signal
       });
       if (response.status === 401 || response.status === 503) {
         setStatusEnvio('API bloqueou o envio: HTTP ' + response.status);
-        setErro(response.status === 401 ? 'API recusou a chave do protótipo (401). Confira a chave configurada no servidor.' : 'Chave do protótipo não configurada no servidor (503).');
+        proximaTentativaRef.current = Date.now() + 15000;
+        setErro(response.status === 401 ? 'API recusou a credencial (401). Informe a chave válida do operador ou do protótipo. É possível corrigir sem desconectar o Arduino.' : 'Chave do protótipo não configurada no servidor (503).');
         // A falha de autenticação da API não deve interromper a leitura USB.
         // O operador pode corrigir a chave e retomar o envio sem reconectar o Arduino.
         return;
@@ -113,6 +127,7 @@ export default function ConexaoArduino() {
       if (!interromperRef.current && idConexao === conexaoIdRef.current) {
         setLeituras(n => n + 1);
         setStatusEnvio('Leituras aceitas pela API; painel deve refletir o canal experimental.');
+        proximaTentativaRef.current = 0;
         setErro('');
       }
     } catch (err) {
@@ -182,7 +197,7 @@ export default function ConexaoArduino() {
                 for (const leitura of parsed) {
                   if (leitura.nivelPct != null) publicarNivelLocal(leitura);
                 }
-                if (!chaveRef.current) setStatusEnvio('Leitura interpretada localmente. Informe chave para enviar à API.');
+                if (!chaveRef.current && !useOperador.getState().chave) setStatusEnvio('Leitura interpretada localmente. Informe chave para enviar à API.');
                 // Não acumula milhares de requests: a placa pode transmitir
                 // mais rápido do que a rede. Amostra um envio por segundo.
                 // Cada bueiro mantém frequência de envio independente.
@@ -254,9 +269,9 @@ export default function ConexaoArduino() {
           </select>
         </div>
         <div className="hs-arduino-field">
-          <label htmlFor="hs-chave-usb">Chave de envio experimental (necessária para avisar outros celulares)</label>
+          <label htmlFor="hs-chave-usb">Chave do protótipo ou do operador (envio à API e avisos nos celulares)</label>
           <input id="hs-chave-usb" type="password" autoComplete="off" value={chave}
-            onChange={e => alterarChave(e.target.value)} placeholder="Informe somente para transmitir à API"/>
+            onChange={e => alterarChave(e.target.value)} placeholder={temOperador ? 'Chave de operador da sessão já disponível' : 'Informe a chave de operador ou do protótipo'}/>
         </div>
         <button className={`hs-arduino-action ${conectado ? 'disconnect' : ''}`} type="button"
           onClick={conectado ? fecharPorta : conectar} disabled={ocupado || (!conectado && !suportaWebSerial)}>
@@ -275,8 +290,8 @@ export default function ConexaoArduino() {
       </p>}
       {conectado && ultimaLinha && <p className="hs-arduino-raw">Última linha serial recebida: <code>{ultimaLinha}</code></p>}
       {conectado && linhasRecebidas > 0 && linhasInterpretadas === 0 && <p role="alert" className="hs-arduino-error">A porta USB funciona, mas nenhuma linha é uma medição reconhecida. Confira a última linha e instale o firmware experimental de eletrodos na placa; o site não consegue gravar o firmware automaticamente.</p>}
-      {conectado && !chave.trim() && <p role="status" className="hs-arduino-notice"><strong>Alertas em outros celulares indisponíveis:</strong> a leitura está chegando apenas por USB a este navegador. Para chegar aos celulares com o site aberto, configure a chave de envio do protótipo e confirme os envios aceitos pela API.</p>}
-      {conectado && chave.trim() && leituras === 0 && <p role="status" className="hs-arduino-notice"><strong>Aguardando confirmação da API:</strong> ainda não há envio experimental aceito. Os gráficos locais não comprovam a transmissão aos celulares.</p>}
+      {conectado && !chave.trim() && !temOperador && <p role="status" className="hs-arduino-notice"><strong>Alertas em outros celulares indisponíveis:</strong> a leitura está chegando apenas por USB a este navegador. Para chegar aos celulares com o site aberto, configure a chave de envio do protótipo e confirme os envios aceitos pela API.</p>}
+      {conectado && (chave.trim() || temOperador) && leituras === 0 && <p role="status" className="hs-arduino-notice"><strong>Aguardando confirmação da API:</strong> ainda não há envio experimental aceito. Os gráficos locais não comprovam a transmissão aos celulares.</p>}
       {conectado && leituras > 0 && <p role="status" className="hs-arduino-notice"><strong>API recebeu medições experimentais.</strong> Celulares com o HydraSmart atualizado, aberto e com notificações autorizadas podem receber os avisos de teste independentemente da tela selecionada. Isso não é Web Push com o site fechado.</p>}
       {!suportaWebSerial && <p role="alert" className="hs-arduino-notice">Este navegador não permite selecionar portas USB seriais. Abra o site em Chrome ou Edge atualizado no computador, por HTTPS; no celular, use uma ponte ou dispositivo com Wi-Fi.</p>}
       {erro && <p role="alert" className="hs-arduino-error">{erro}</p>}
